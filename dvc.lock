@@ -1,0 +1,94 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: python src/data/ingest.py
+    deps:
+    - path: data/raw/Car_Hacking_Challenge_Dataset
+      hash: md5
+      md5: 5f72c1ed9abefb3e32cd3a651dd34ddb.dir
+      size: 523722619
+      nfiles: 9
+    - path: src/data/ingest.py
+      hash: md5
+      md5: 379c9c0920ad94df335a588bcff80b1b
+      size: 2441
+    outs:
+    - path: data/interim/car_hacking_with_session.parquet
+      hash: md5
+      md5: fda0d8c482c8816c9ff1ad4a086ed5d9
+      size: 92995532
+  split:
+    cmd: PYTHONPATH=src python src/data/split.py
+    deps:
+    - path: data/interim/car_hacking_with_session.parquet
+      hash: md5
+      md5: fda0d8c482c8816c9ff1ad4a086ed5d9
+      size: 92995532
+    - path: src/data/split.py
+      hash: md5
+      md5: a947e0746a969565184a64e7673da77a
+      size: 3728
+    - path: src/utils/params.py
+      hash: md5
+      md5: c7a308c250d7984cd722affe3052f3ce
+      size: 2042
+    params:
+      params.yaml:
+        split.test_sessions:
+        - Pre_train_D_2
+        - Pre_train_S_2
+        split.val_sessions:
+        - Pre_train_D_1
+        - Pre_train_S_1
+    outs:
+    - path: data/processed/car_hacking/test.parquet
+      hash: md5
+      md5: 02a8393c6c59752c1a42d1e8a3135487
+      size: 18203011
+    - path: data/processed/car_hacking/train.parquet
+      hash: md5
+      md5: ad2b6627d88a1934236a16fcc7bd3025
+      size: 57929349
+    - path: data/processed/car_hacking/val.parquet
+      hash: md5
+      md5: 6c93fb1013b9945f6e17ac8a1f4fbb3f
+      size: 16928898
+  feature:
+    cmd: PYTHONPATH=src python src/data/feature.py
+    deps:
+    - path: data/processed/car_hacking/test.parquet
+      hash: md5
+      md5: 02a8393c6c59752c1a42d1e8a3135487
+      size: 18203011
+    - path: data/processed/car_hacking/train.parquet
+      hash: md5
+      md5: ad2b6627d88a1934236a16fcc7bd3025
+      size: 57929349
+    - path: data/processed/car_hacking/val.parquet
+      hash: md5
+      md5: 6c93fb1013b9945f6e17ac8a1f4fbb3f
+      size: 16928898
+    - path: src/data/feature.py
+      hash: md5
+      md5: b01713f2c8ef3db741e258abb95636b7
+      size: 7086
+    - path: src/utils/params.py
+      hash: md5
+      md5: c7a308c250d7984cd722affe3052f3ce
+      size: 2042
+    params:
+      params.yaml:
+        feature.window_ms: 20
+    outs:
+    - path: data/processed/car_hacking/featured/test.parquet
+      hash: md5
+      md5: c147624833e0c67c9c6c2478f1bfe54b
+      size: 34017309
+    - path: data/processed/car_hacking/featured/train.parquet
+      hash: md5
+      md5: 610d179662cbfa4a8f44651c3e293841
+      size: 104520491
+    - path: data/processed/car_hacking/featured/val.parquet
+      hash: md5
+      md5: 065d80596a0fee0231dc8068d1246182
+      size: 31832933

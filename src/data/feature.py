@@ -1,8 +1,10 @@
 from pathlib import Path
+
 import polars as pl
 
+from utils.params import load_params
 
-WINDOW_MS = 20
+WINDOW_MS = load_params("feature")["window_ms"]
 
 
 ###############################################################################
@@ -39,11 +41,6 @@ def xor_bitcount(curr, prev):
 
 
 def add_delta_t(df: pl.DataFrame) -> pl.DataFrame:
-    # PENTING: partisi juga per session_id, bukan cuma Arbitration_ID.
-    # Timestamp antar file capture (session) tidak sinkron (sebagian
-    # relatif ke awal capture, sebagian epoch absolut) -- diff() lintas
-    # sesi akan menghasilkan delta_t yang tidak berarti (bahkan bisa
-    # sangat besar/negatif secara acak).
     return df.with_columns(
         pl.col("Timestamp")
         .diff()
@@ -302,9 +299,9 @@ def build_features(
 ###############################################################################
 
 if __name__ == "__main__":
-    input_dir = Path("data/processed/car_hacking")
-
-    output_dir = Path("data/processed/car_hacking/featured")
+    _dataset_params = load_params("dataset")
+    input_dir = Path(_dataset_params["processed_dir"])
+    output_dir = Path(_dataset_params["featured_dir"])
 
     output_dir.mkdir(
         parents=True,

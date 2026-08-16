@@ -1,21 +1,19 @@
 import json
 from pathlib import Path
 
+import matplotlib
+import mlflow
 import numpy as np
 import tensorflow as tf
-
-from tensorflow import keras
-
 from sklearn.metrics import (
+    accuracy_score,
     classification_report,
     confusion_matrix,
-    accuracy_score,
+    f1_score,
     precision_score,
     recall_score,
-    f1_score,
 )
-
-import matplotlib
+from tensorflow import keras
 
 matplotlib.use("Agg")  # headless-safe: simpan ke file, tidak butuh display
 import matplotlib.pyplot as plt
@@ -24,9 +22,9 @@ import seaborn as sns
 from data.temporal_dataset import (
     TemporalCANDataset,
 )
-
 from model.hybrid_ids import HybridIDS
-
+from utils.mlflow_utils import load_run_id
+from utils.params import load_params
 
 # ==========================================================
 # Configuration
@@ -41,7 +39,12 @@ MODEL_PATH = "checkpoints/hybrid_best.keras"
 # TIDAK BOLEH menghitung statistiknya sendiri, itu data leakage.
 NORMALIZE_STATS_PATH = "checkpoints/temporal_norm_stats.json"
 
-SEQ_LEN = 32
+# Arsitektur HARUS sama persis dengan training -- baca dari params.yaml
+# yang sama (bukan hardcode ulang), supaya tidak pernah drift kalau
+# hyperparameter di params.yaml berubah tapi lupa disamakan di sini.
+model_params = dict(load_params("model.hybrid"))
+SEQ_LEN = model_params.pop("seq_len")
+
 BATCH_SIZE = 256
 
 CLASS_NAMES = [
@@ -68,6 +71,12 @@ CONFUSION_MATRIX_NORM_PNG_PATH = (
     REPORTS_FIGURES_DIR / "hybrid_confusion_matrix_normalized.png"
 )
 
+mlflow_params = load_params("mlflow")
+RUN_ID_PATH = "checkpoints/hybrid_mlflow_run_id.txt"
+
+mlflow.set_tracking_uri(mlflow_params["tracking_uri"])
+mlflow.set_experiment(mlflow_params["experiment_hybrid"])
+
 
 # ==========================================================
 # Dataset
@@ -90,17 +99,10 @@ test_tf = test_dataset.to_tf_dataset()
 # ==========================================================
 
 #
-# HARUS SAMA DENGAN TRAINING
+# HARUS SAMA DENGAN TRAINING -- dibaca dari params.yaml (model_params),
+# bukan hardcode ulang di sini.
 #
-model = HybridIDS(
-    d_model=4,
-    num_heads=2,
-    ff_dim=8,
-    num_layers=1,
-    gru_units=16,
-    num_classes=5,
-    dropout=0.1,
-)
+model = HybridIDS(**model_params)
 
 
 dummy = {
@@ -323,3 +325,44 @@ with open(METRICS_JSON_PATH, "w") as f:
     json.dump(full_report, f, indent=2)
 
 print(f"Classification report (JSON) disimpan ke: {METRICS_JSON_PATH}")
+
+
+# ==========================================================
+# Log ke MLflow (melanjutkan run training yang sama kalau ada)
+# ==========================================================
+
+_existing_run_id = load_run_id(RUN_ID_PATH)
+
+with mlflow.start_run(run_id=_existing_run_id) as run:
+    if _existing_run_id is None:
+        print(
+            f"PERINGATAN: {RUN_ID_PATH} tidak ditemukan -- log ke MLflow "
+            f"run BARU (bukan melanjutkan run training). Jalankan "
+            f"train_hybrid.py dulu supaya eval ter-link ke run yang sama."
+        )
+
+    mlflow.log_metrics(
+        {
+            "test_keras_loss": float(keras_loss),
+            "test_keras_accuracy": float(keras_accuracy),
+            "test_accuracy": accuracy,
+            "test_precision_macro": precision_macro,
+            "test_recall_macro": recall_macro,
+            "test_f1_macro": f1_macro,
+        }
+    )
+    for _cname in CLASS_NAMES:
+        _m = report_dict[_cname]
+        mlflow.log_metrics(
+            {
+                f"test_precision_{_cname}": _m["precision"],
+                f"test_recall_{_cname}": _m["recall"],
+                f"test_f1_{_cname}": _m["f1-score"],
+            }
+        )
+
+    mlflow.log_artifact(str(METRICS_JSON_PATH))
+    mlflow.log_artifact(str(CONFUSION_MATRIX_PNG_PATH))
+    mlflow.log_artifact(str(CONFUSION_MATRIX_NORM_PNG_PATH))
+
+print(f"Metrik evaluasi di-log ke MLflow run: {run.info.run_id}")
