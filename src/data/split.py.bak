@@ -1,0 +1,118 @@
+from pathlib import Path
+
+import polars as pl
+
+VAL_SESSIONS = ["Pre_train_D_1", "Pre_train_S_1"]
+TEST_SESSIONS = ["Pre_train_D_2", "Pre_train_S_2"]
+# TRAIN_SESSIONS = semua session_id selain yang ada di VAL_SESSIONS & TEST_SESSIONS
+
+input_path = Path("data/interim/car_hacking_with_session.parquet")
+output_dir = Path("data/processed/car_hacking")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+df = pl.read_parquet(input_path)
+
+all_sessions = set(df["session_id"].unique().to_list())
+
+# --- Validasi nama sesi yang ditentukan manual benar-benar ada di data ---
+for name, sessions in [
+    ("VAL_SESSIONS", VAL_SESSIONS),
+    ("TEST_SESSIONS", TEST_SESSIONS),
+]:
+    unknown = set(sessions) - all_sessions
+    if unknown:
+        raise RuntimeError(
+            f"{name} menyebut session_id yang tidak ada di data: {sorted(unknown)}\n"
+            f"session_id yang tersedia: {sorted(all_sessions)}"
+        )
+
+overlap = set(VAL_SESSIONS) & set(TEST_SESSIONS)
+if overlap:
+    raise RuntimeError(
+        f"VAL_SESSIONS dan TEST_SESSIONS tidak boleh tumpang tindih: {sorted(overlap)}"
+    )
+
+train_sessions = sorted(all_sessions - set(VAL_SESSIONS) - set(TEST_SESSIONS))
+
+sessions_by_split = {
+    "train": train_sessions,
+    "val": VAL_SESSIONS,
+    "test": TEST_SESSIONS,
+}
+
+expected_classes = set(df["Class"].unique().to_list())
+total_rows = len(df)
+
+# --- Analisis per sesi (sama seperti versi exhaustive search) ---
+session_stats = (
+    df.group_by("session_id")
+    .agg(
+        pl.len().alias("n_rows"),
+        pl.col("Class").unique().alias("classes"),
+    )
+    .sort("session_id")
+    .to_dicts()
+)
+
+print(f"Jumlah session_id: {len(session_stats)}")
+for s in session_stats:
+    print(
+        f"  {s['session_id']:30} n_rows={s['n_rows']:>10,}  classes={sorted(s['classes'])}"
+    )
+
+print("\nPembagian sesi (FIXED, ditentukan manual):")
+for name in ["train", "val", "test"]:
+    print(f"  {name:5}: {sessions_by_split[name]}")
+
+
+def select_sessions(session_ids: list[str]) -> pl.DataFrame:
+    return df.filter(pl.col("session_id").is_in(session_ids)).sort(
+        ["session_id", "Timestamp"]
+    )
+
+
+train_df = select_sessions(sessions_by_split["train"])
+val_df = select_sessions(sessions_by_split["val"])
+test_df = select_sessions(sessions_by_split["test"])
+
+splits = {"train": train_df, "val": val_df, "test": test_df}
+
+print("\nProporsi baris:")
+for name, split_df in splits.items():
+    count = len(split_df)
+    print(f"  {name:5}: {count:,} ({count / total_rows:.2%})")
+
+print("\nDistribusi kelas per split:")
+any_missing = False
+for name, split_df in splits.items():
+    actual_classes = set(split_df["Class"].unique().to_list())
+    missing_classes = expected_classes - actual_classes
+
+    print(f"\n-- {name} --")
+    print(split_df.group_by("Class").len().rename({"len": "count"}).sort("Class"))
+
+    if missing_classes:
+        any_missing = True
+        print(
+            f"  !! PERINGATAN: kelas {sorted(missing_classes)} tidak ada di split '{name}'"
+        )
+
+if any_missing:
+    print(
+        "\n!! Masih ada kelas yang hilang di salah satu split dengan pembagian "
+        "sesi ini. Pertimbangkan tukar salah satu sesi VAL_SESSIONS/TEST_SESSIONS "
+        "dengan sesi lain yang memuat kelas yang hilang, atau terima keterbatasan "
+        "ini dan dokumentasikan secara eksplisit di laporan."
+    )
+else:
+    print("\nOK: semua kelas hadir di train, val, dan test dengan pembagian sesi ini.")
+
+train_df.write_parquet(output_dir / "train.parquet", compression="zstd")
+val_df.write_parquet(output_dir / "val.parquet", compression="zstd")
+test_df.write_parquet(output_dir / "test.parquet", compression="zstd")
+
+print(
+    "\nCATATAN: val/test masing-masing cuma 2 sesi -- variansnya bisa tinggi. "
+    "Pertimbangkan Leave-One-Group-Out (ulangi dengan pembagian sesi lain) "
+    "sebelum menyimpulkan performa model dari pembagian ini saja."
+)
