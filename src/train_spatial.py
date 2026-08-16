@@ -1,3 +1,4 @@
+import dagshub
 import mlflow
 import tensorflow as tf
 from tensorflow import keras
@@ -6,6 +7,9 @@ from data.dataset import CANDataset
 from model.spatial_transformer import SpatialTransformer
 from utils.mlflow_utils import MlflowEpochLogger, save_run_id
 from utils.params import load_params
+
+dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
+
 
 # ==========================
 # Load params.yaml (DVC-tracked hyperparameter, bukan hardcode lagi)

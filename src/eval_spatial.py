@@ -15,6 +15,7 @@ from sklearn.metrics import (
 )
 
 matplotlib.use("Agg")  # headless-safe: simpan ke file, tidak butuh display
+import dagshub
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -22,6 +23,9 @@ from data.dataset import CANDataset
 from model.spatial_transformer import SpatialTransformer
 from utils.mlflow_utils import load_run_id
 from utils.params import load_params
+
+dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
+
 
 # ==========================
 # Configuration

@@ -49,6 +49,6 @@ training:
     learning_rate_stage2: 0.0001
 
 mlflow:
-  tracking_uri: "sqlite:///mlruns/mlflow.db"
+  tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
   experiment_spatial: "hybrid_ids_spatial"
   experiment_hybrid: "hybrid_ids_hybrid"

@@ -16,6 +16,7 @@ from sklearn.metrics import (
 from tensorflow import keras
 
 matplotlib.use("Agg")  # headless-safe: simpan ke file, tidak butuh display
+import dagshub
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -25,6 +26,9 @@ from data.temporal_dataset import (
 from model.hybrid_ids import HybridIDS
 from utils.mlflow_utils import load_run_id
 from utils.params import load_params
+
+dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
+
 
 # ==========================================================
 # Configuration

@@ -1,3 +1,4 @@
+import dagshub
 import mlflow
 import tensorflow as tf
 from tensorflow import keras
@@ -8,6 +9,8 @@ from utils.class_weights import compute_class_weight_dict
 from utils.metrics import MacroF1Score
 from utils.mlflow_utils import MlflowEpochLogger, save_run_id
 from utils.params import load_params
+
+dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
 # ==========================================================
 # Load params.yaml (DVC-tracked hyperparameter, bukan hardcode lagi)
