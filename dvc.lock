@@ -92,3 +92,209 @@ stages:
       hash: md5
       md5: 065d80596a0fee0231dc8068d1246182
       size: 31832933
+  train_spatial:
+    cmd: PYTHONPATH=src python src/train_spatial.py
+    deps:
+    - path: data/processed/car_hacking/train.parquet
+      hash: md5
+      md5: ad2b6627d88a1934236a16fcc7bd3025
+      size: 57929349
+    - path: data/processed/car_hacking/val.parquet
+      hash: md5
+      md5: 6c93fb1013b9945f6e17ac8a1f4fbb3f
+      size: 16928898
+    - path: src/data/dataset.py
+      hash: md5
+      md5: d67edb451599add8e568341769d50631
+      size: 3343
+    - path: src/model/embeddings.py
+      hash: md5
+      md5: 75bcb00f889952036d7c0cde442df6c2
+      size: 3216
+    - path: src/model/spatial_transformer.py
+      hash: md5
+      md5: b2f3436f9f429ea563ecc4577597d200
+      size: 4176
+    - path: src/model/transformer.py
+      hash: md5
+      md5: d2106ba1e461b154aaad1262be37e7bb
+      size: 2218
+    - path: src/train_spatial.py
+      hash: md5
+      md5: f109a6e0ee384243a47130df95730472
+      size: 3356
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: aecee8f5ec40579dfe1542ad21b20062
+      size: 1708
+    - path: src/utils/params.py
+      hash: md5
+      md5: c7a308c250d7984cd722affe3052f3ce
+      size: 2042
+    params:
+      params.yaml:
+        model.spatial:
+          d_model: 4
+          num_heads: 2
+          ff_dim: 8
+          num_layers: 1
+          num_classes: 5
+          dropout: 0.1
+        training.spatial:
+          batch_size: 256
+          epochs: 50
+          learning_rate: 0.001
+    outs:
+    - path: checkpoints/spatial_best.keras
+      hash: md5
+      md5: 83dc32529e8835193f34b83343e19ed5
+      size: 215465
+  eval_spatial:
+    cmd: PYTHONPATH=src python src/eval_spatial.py
+    deps:
+    - path: checkpoints/spatial_best.keras
+      hash: md5
+      md5: 83dc32529e8835193f34b83343e19ed5
+      size: 215465
+    - path: data/processed/car_hacking/test.parquet
+      hash: md5
+      md5: 02a8393c6c59752c1a42d1e8a3135487
+      size: 18203011
+    - path: src/eval_spatial.py
+      hash: md5
+      md5: 5cd581fb695424a89871eee6373e1f58
+      size: 6632
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: aecee8f5ec40579dfe1542ad21b20062
+      size: 1708
+    - path: src/utils/params.py
+      hash: md5
+      md5: c7a308c250d7984cd722affe3052f3ce
+      size: 2042
+    outs:
+    - path: reports/figures/spatial_confusion_matrix.png
+      hash: md5
+      md5: 621695342b650e100c3d0a1d16c2ad4b
+      size: 145889
+    - path: reports/metrics/spatial_classification_report.json
+      hash: md5
+      md5: b1d5194fd2e740fea450c1e250f88a95
+      size: 2347
+  train_hybrid:
+    cmd: PYTHONPATH=src python src/train_hybrid.py
+    deps:
+    - path: checkpoints/spatial_best.keras
+      hash: md5
+      md5: 83dc32529e8835193f34b83343e19ed5
+      size: 215465
+    - path: data/processed/car_hacking/featured/train.parquet
+      hash: md5
+      md5: 610d179662cbfa4a8f44651c3e293841
+      size: 104520491
+    - path: data/processed/car_hacking/featured/val.parquet
+      hash: md5
+      md5: 065d80596a0fee0231dc8068d1246182
+      size: 31832933
+    - path: src/data/temporal_dataset.py
+      hash: md5
+      md5: 5779cf571a4b673baecdbdc824c2c743
+      size: 11164
+    - path: src/model/hybrid_ids.py
+      hash: md5
+      md5: b5799910ecfb696c03e467b5ccf275e0
+      size: 3957
+    - path: src/model/temporal_gru.py
+      hash: md5
+      md5: 41c5727aef182110238a8704c432e5eb
+      size: 580
+    - path: src/train_hybrid.py
+      hash: md5
+      md5: aef4b5cf533b00aea29f2333d0b1499b
+      size: 8757
+    - path: src/utils/class_weights.py
+      hash: md5
+      md5: 4ed31ea3beb8eee8b11e283728db8087
+      size: 1335
+    - path: src/utils/metrics.py
+      hash: md5
+      md5: 48d02268d867bb949bbde2eb3dd8f202
+      size: 3024
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: aecee8f5ec40579dfe1542ad21b20062
+      size: 1708
+    - path: src/utils/params.py
+      hash: md5
+      md5: c7a308c250d7984cd722affe3052f3ce
+      size: 2042
+    params:
+      params.yaml:
+        model.hybrid:
+          d_model: 4
+          num_heads: 2
+          ff_dim: 8
+          num_layers: 1
+          gru_units: 16
+          num_classes: 5
+          dropout: 0.1
+          seq_len: 32
+        training.hybrid:
+          batch_size: 256
+          epochs_stage1: 50
+          epochs_stage2: 10
+          learning_rate_stage1: 0.001
+          learning_rate_stage2: 0.0001
+    outs:
+    - path: checkpoints/hybrid_best.keras
+      hash: md5
+      md5: 39ca838abe3824cfa5b9e12bbaf27938
+      size: 262554
+    - path: checkpoints/hybrid_final.keras
+      hash: md5
+      md5: 067ea34b9726755e3efb161a90206ce0
+      size: 262554
+    - path: checkpoints/temporal_norm_stats.json
+      hash: md5
+      md5: a51c9325d511933285cc5d0435ee57bd
+      size: 734
+  eval_hybrid:
+    cmd: PYTHONPATH=src python src/eval_hybrid.py
+    deps:
+    - path: checkpoints/hybrid_best.keras
+      hash: md5
+      md5: 39ca838abe3824cfa5b9e12bbaf27938
+      size: 262554
+    - path: checkpoints/temporal_norm_stats.json
+      hash: md5
+      md5: a51c9325d511933285cc5d0435ee57bd
+      size: 734
+    - path: data/processed/car_hacking/featured/test.parquet
+      hash: md5
+      md5: c147624833e0c67c9c6c2478f1bfe54b
+      size: 34017309
+    - path: src/eval_hybrid.py
+      hash: md5
+      md5: 2323468aa3e3f5752693addf0ba5f3a7
+      size: 9981
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: aecee8f5ec40579dfe1542ad21b20062
+      size: 1708
+    - path: src/utils/params.py
+      hash: md5
+      md5: c7a308c250d7984cd722affe3052f3ce
+      size: 2042
+    outs:
+    - path: reports/figures/hybrid_confusion_matrix.png
+      hash: md5
+      md5: 71897946639d57b80c2769e0d2c8f40b
+      size: 149030
+    - path: reports/figures/hybrid_confusion_matrix_normalized.png
+      hash: md5
+      md5: 8fa4b1c781da2381a5de39ec8d59fc1d
+      size: 152824
+    - path: reports/metrics/hybrid_classification_report.json
+      hash: md5
+      md5: bb9ed92425e0cb6caaaf6dd99fda8caf
+      size: 2630

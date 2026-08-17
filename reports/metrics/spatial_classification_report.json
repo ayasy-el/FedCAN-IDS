@@ -1,0 +1,136 @@
+{
+  "model": "spatial_transformer",
+  "test_path": "data/processed/car_hacking/test.parquet",
+  "model_path": "checkpoints/spatial_best.keras",
+  "n_test_samples": 1706437,
+  "accuracy": 0.9801317013168374,
+  "precision_macro": 0.5942269306741373,
+  "recall_macro": 0.5944717432075353,
+  "f1_macro": 0.5943073620807275,
+  "classification_report": {
+    "Normal": {
+      "precision": 0.9788463310540354,
+      "recall": 0.9997937094268345,
+      "f1-score": 0.9892091378536148,
+      "support": 1551210.0
+    },
+    "Flooding": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 77508.0
+    },
+    "Fuzzing": {
+      "precision": 0.992288322316651,
+      "recall": 0.9725650066108418,
+      "f1-score": 0.9823276725500234,
+      "support": 45380.0
+    },
+    "Spoofing": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 5780.0
+    },
+    "Replay": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 26559.0
+    },
+    "accuracy": 0.9801317013168374,
+    "macro avg": {
+      "precision": 0.5942269306741373,
+      "recall": 0.5944717432075353,
+      "f1-score": 0.5943073620807275,
+      "support": 1706437.0
+    },
+    "weighted avg": {
+      "precision": 0.9616143234476631,
+      "recall": 0.9801317013168374,
+      "f1-score": 0.9707695839402368,
+      "support": 1706437.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      1550890,
+      0,
+      277,
+      43,
+      0
+    ],
+    [
+      0,
+      77508,
+      0,
+      0,
+      0
+    ],
+    [
+      1245,
+      0,
+      44135,
+      0,
+      0
+    ],
+    [
+      5780,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      26491,
+      0,
+      66,
+      2,
+      0
+    ]
+  ],
+  "confusion_matrix_normalized_percent": [
+    [
+      99.97937094268346,
+      0.0,
+      0.01785702773963551,
+      0.0027720295769109275,
+      0.0
+    ],
+    [
+      0.0,
+      100.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      2.743499338915822,
+      0.0,
+      97.25650066108417,
+      0.0,
+      0.0
+    ],
+    [
+      100.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      99.74396626379006,
+      0.0,
+      0.24850333220377274,
+      0.007530404006174931,
+      0.0
+    ]
+  ],
+  "class_names": [
+    "Normal",
+    "Flooding",
+    "Fuzzing",
+    "Spoofing",
+    "Replay"
+  ]
+}
