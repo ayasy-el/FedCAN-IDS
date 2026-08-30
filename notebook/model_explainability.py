@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.23.14"
 app = marimo.App(width="medium")
 
 
@@ -11,7 +11,7 @@ def _():
     return (mo,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     # Explainability Analysis -- Hybrid IDS (CAN Bus)
@@ -95,7 +95,7 @@ def _():
     return (SpatialTransformer,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## Config -- SATU-SATUNYA bagian yang spesifik ke dataset ini
@@ -218,7 +218,7 @@ def _(FEATURED_SPLIT_PATHS, pl, split_selector):
     return (df_featured,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## 1. Distribusi Kelas per Split
@@ -256,7 +256,7 @@ def _(CLASS_NAMES, FEATURED_SPLIT_PATHS, pl, px):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## 2. Distribusi Fitur Temporal per Kelas
@@ -306,7 +306,7 @@ def _(CLASS_NAMES, df_featured, feature_selector, log_scale_toggle, plt, sns):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ### Ringkasan separability semua fitur (one-way ANOVA)
@@ -362,7 +362,7 @@ def _(px, separability_table):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     F-statistic tinggi = fitur itu SANGAT memisahkan kelas satu sama
@@ -383,7 +383,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ### Ilustrasi Within-group vs Between-group Variance (kurva densitas per kelas)
@@ -400,7 +400,15 @@ def _(mo):
 
 
 @app.cell
-def _(CLASS_COLOR_MAP, CLASS_NAMES, df_featured, feature_selector, pl, plt, sns):
+def _(
+    CLASS_COLOR_MAP,
+    CLASS_NAMES,
+    df_featured,
+    feature_selector,
+    pl,
+    plt,
+    sns,
+):
     _fig, _ax = plt.subplots(figsize=(9, 5))
 
     for _cls_idx, _cname in enumerate(CLASS_NAMES):
@@ -432,7 +440,7 @@ def _(CLASS_COLOR_MAP, CLASS_NAMES, df_featured, feature_selector, pl, plt, sns)
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## 3. Visualisasi Representasi Spatial (Transformer Embedding)
@@ -556,7 +564,7 @@ def _(np, pl, sample_df):
     return labels_np, positions_np, token_types_np, tokens_np
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ### 3A. Baseline -- PCA/t-SNE pada RAW DATA (ID, DLC, Byte0-7)
@@ -665,7 +673,7 @@ def _(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ### 3B. Embedding Spatial Transformer (setelah model)
@@ -815,7 +823,7 @@ def _(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## 3B. Message Timing Plot (mereplikasi gaya plot di paper referensi)
@@ -936,7 +944,7 @@ def _(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## 4. Confusion Matrix & Classification Report (Model Saat Ini)
@@ -1023,7 +1031,7 @@ def _(CLASS_NAMES, hybrid_report, pl, px):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## 5. Analisis Kegagalan Per-Kelas (generik -- ganti kelas apapun)
@@ -1135,7 +1143,7 @@ def _(CLASS_NAMES, hybrid_report, mo, target_class_selector):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## 6. Generalisasi ke Dataset / Kelas Attack Lain
@@ -1163,7 +1171,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## Panduan Interpretasi -- Checklist Sebelum Memutuskan Langkah
