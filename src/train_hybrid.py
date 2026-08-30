@@ -174,7 +174,8 @@ callbacks = [
     keras.callbacks.EarlyStopping(
         monitor="val_macro_f1",
         mode="max",
-        patience=8,
+        patience=5,
+        min_delta=0.001,
         restore_best_weights=True,
     ),
     keras.callbacks.ReduceLROnPlateau(

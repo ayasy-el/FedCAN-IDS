@@ -11,5 +11,8 @@ mlruns/
 
 # Jupyter/marimo checkpoint
 .ipynb_checkpoints/
+__marimo__/
+.marimo_cython_cache/
 
+#datasets
 /data
