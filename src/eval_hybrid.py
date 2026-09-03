@@ -110,13 +110,9 @@ model = HybridIDS(**model_params)
 
 
 dummy = {
-    "tokens": tf.zeros(
+    "numeric_values": tf.zeros(
         (1, SEQ_LEN, 10),
-        dtype=tf.int32,
-    ),
-    "token_types": tf.zeros(
-        (1, SEQ_LEN, 10),
-        dtype=tf.int32,
+        dtype=tf.float32,
     ),
     "positions": tf.zeros(
         (1, SEQ_LEN, 10),

@@ -12,7 +12,7 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
 
 # ==========================
-# Load params.yaml (DVC-tracked hyperparameter, bukan hardcode lagi)
+# Load params.yaml
 # ==========================
 
 dataset_params = load_params("dataset")
@@ -71,8 +71,7 @@ model = SpatialTransformer(**model_params)
 
 # build model
 dummy = {
-    "tokens": tf.zeros((1, 10), dtype=tf.int32),
-    "token_types": tf.zeros((1, 10), dtype=tf.int32),
+    "numeric_values": tf.zeros((1, 10), dtype=tf.float32),
     "positions": tf.zeros((1, 10), dtype=tf.int32),
 }
 model(dummy)

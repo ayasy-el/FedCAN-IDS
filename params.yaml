@@ -18,17 +18,17 @@ feature:
 
 model:
   spatial:
-    d_model: 4
+    d_model: 16
     num_heads: 2
-    ff_dim: 8
+    ff_dim: 32
     num_layers: 1
     num_classes: 5
     dropout: 0.1
 
   hybrid:
-    d_model: 4
+    d_model: 16
     num_heads: 2
-    ff_dim: 8
+    ff_dim: 32
     num_layers: 1
     gru_units: 16
     num_classes: 5

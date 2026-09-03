@@ -5,11 +5,14 @@ import numpy as np
 import polars as pl
 import tensorflow as tf
 
+ID_MAX = 2047.0  # CAN ID standar 11-bit: nilai valid 0..2047
+DLC_MAX = 8.0
+BYTE_MAX = 255.0
+PAD_SENTINEL = (
+    -1.0
+)  # nilai valid selalu >=0 setelah normalisasi -> -1 aman jadi penanda PAD
 
-# Urutan kolom fitur temporal -- HARUS konsisten dengan urutan yang
-# dipakai saat menghitung/menyimpan statistik normalisasi (mean/std),
-# supaya index kolom di file stats JSON tidak pernah tertukar dengan
-# index kolom saat dipakai kembali.
+
 TEMPORAL_FEATURE_COLUMNS = [
     "delta_t",
     "delta_t_z",
@@ -29,8 +32,7 @@ class TemporalCANDataset:
 
     (
         {
-            "tokens": (T,10),
-            "token_types": (T,10),
+            "numeric_values": (T,10),
             "positions": (T,10),
             "temporal_features": (T,9),
         },
@@ -76,47 +78,54 @@ class TemporalCANDataset:
         )
 
         #
-        # Arbitration ID
-        # "4F1" -> 1265
+        # Numeric Encoding
+        #
+        # Arbitration_ID "4F1" -> 1265 -> 1265/2047 (dinormalisasi [0,1])
+        # DLC -> DLC/8 (dinormalisasi [0,1])
+        # Data_i "FF" -> 255/255=1.0 ; "PAD" -> PAD_SENTINEL (-1.0)
+        #
+        # Menggantikan tokenisasi diskrit lama (tokens/token_types) --
+        # lihat NumericFeatureProjection di src/model/embeddings.py.
         #
         df = df.with_columns(
-            pl.col("Arbitration_ID").map_elements(
-                lambda x: int(x, 16),
-                return_dtype=pl.UInt16,
-            )
+            (
+                pl.col("Arbitration_ID")
+                .map_elements(
+                    lambda x: int(x, 16),
+                    return_dtype=pl.UInt16,
+                )
+                .cast(pl.Float32)
+                / ID_MAX
+            ).alias("id_norm"),
+            (pl.col("DLC").cast(pl.Float32) / DLC_MAX).alias("dlc_norm"),
         )
 
-        #
-        # Payload bytes
-        # "FF" -> 255
-        # "PAD" -> 256
-        #
-        payload_exprs = []
+        payload_norm_exprs = []
 
         for i in range(8):
             c = f"Data_{i}"
 
-            payload_exprs.append(
+            payload_norm_exprs.append(
                 pl.col(c)
                 .map_elements(
-                    lambda x: 256 if x == "PAD" else int(x, 16),
-                    return_dtype=pl.UInt16,
+                    lambda x: PAD_SENTINEL if x == "PAD" else int(x, 16) / BYTE_MAX,
+                    return_dtype=pl.Float32,
                 )
-                .alias(c)
+                .alias(f"{c}_norm")
             )
 
-        df = df.with_columns(payload_exprs)
+        df = df.with_columns(payload_norm_exprs)
 
         #
-        # Token matrix
+        # Numeric value matrix: (N, 10) -- [ID, DLC, Byte0..Byte7]
         #
-        self.tokens = np.column_stack(
+        self.numeric_values = np.column_stack(
             [
-                df["Arbitration_ID"].to_numpy(),
-                df["DLC"].to_numpy(),
-                *[df[f"Data_{i}"].to_numpy() for i in range(8)],
+                df["id_norm"].to_numpy(),
+                df["dlc_norm"].to_numpy(),
+                *[df[f"Data_{i}_norm"].to_numpy() for i in range(8)],
             ]
-        ).astype(np.int32)
+        ).astype(np.float32)
 
         #
         # Temporal features (mentah, sebelum normalisasi)
@@ -147,14 +156,10 @@ class TemporalCANDataset:
         self.session_ids = df["session_id"].to_numpy()
 
         #
-        # Constant matrices
+        # Constant matrix -- posisi slot (0=ID, 1=DLC, 2..9=Byte0..7).
+        # token_types konstan lama (dulu dipakai bedakan ID/DLC/byte/PAD)
+        # tidak diperlukan lagi -- lihat NumericFeatureProjection.
         #
-
-        self.token_types = np.array(
-            [0, 1, 2, 2, 2, 2, 2, 2, 2, 2],
-            dtype=np.int32,
-        )
-
         self.positions = np.arange(
             10,
             dtype=np.int32,
@@ -286,8 +291,7 @@ class TemporalCANDataset:
 
             yield (
                 {
-                    "tokens": self.tokens[i - T : i],
-                    "token_types": np.broadcast_to(self.token_types, (T, 10)),
+                    "numeric_values": self.numeric_values[i - T : i],
                     "positions": np.broadcast_to(self.positions, (T, 10)),
                     "temporal_features": self.temporal[i - T : i],
                 },
@@ -302,19 +306,12 @@ class TemporalCANDataset:
 
         output_signature = (
             {
-                "tokens": tf.TensorSpec(
+                "numeric_values": tf.TensorSpec(
                     shape=(
                         self.seq_len,
                         10,
                     ),
-                    dtype=tf.int32,
-                ),
-                "token_types": tf.TensorSpec(
-                    shape=(
-                        self.seq_len,
-                        10,
-                    ),
-                    dtype=tf.int32,
+                    dtype=tf.float32,
                 ),
                 "positions": tf.TensorSpec(
                     shape=(

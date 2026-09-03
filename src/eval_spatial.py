@@ -81,24 +81,14 @@ test_tf = test_dataset.to_tf_dataset()
 # Model
 # ==========================
 
-#
-# HARUS SAMA DENGAN TRAINING
-#
-model = SpatialTransformer(
-    d_model=4,
-    num_heads=2,
-    ff_dim=8,
-    num_layers=1,
-    num_classes=5,
-    dropout=0.1,
-)
+model_params = load_params("model.spatial")
+model = SpatialTransformer(**model_params)
 
 
 # build model
 
 dummy = {
-    "tokens": tf.zeros((1, 10), dtype=tf.int32),
-    "token_types": tf.zeros((1, 10), dtype=tf.int32),
+    "numeric_values": tf.zeros((1, 10), dtype=tf.float32),
     "positions": tf.zeros((1, 10), dtype=tf.int32),
 }
 
@@ -225,7 +215,7 @@ full_report = {
     "model": "spatial_transformer",
     "test_path": TEST_PATH,
     "model_path": MODEL_PATH,
-    "n_test_samples": len(y_true),
+    "n_test_samples": int(len(y_true)),
     "accuracy": accuracy,
     "precision_macro": precision_macro,
     "recall_macro": recall_macro,

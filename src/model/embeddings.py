@@ -3,24 +3,10 @@ from tensorflow import keras
 from keras import layers
 
 
-class CANEmbedding(layers.Layer):
-    """
-    Input:
-        tokens       : (B, 10)
-        token_types  : (B, 10)
-        positions    : (B, 10)
-
-    Output:
-        embeddings   : (B, 10, d_model)
-    """
-
+class NumericFeatureProjection(layers.Layer):
     def __init__(
         self,
         d_model=4,
-        id_vocab_size=2048,
-        dlc_vocab_size=9,
-        byte_vocab_size=257,
-        type_vocab_size=4,
         max_position=10,
         dropout=0.1,
         **kwargs,
@@ -30,33 +16,11 @@ class CANEmbedding(layers.Layer):
         self.d_model = d_model
 
         #
-        # Token embeddings
+        # Feature Projection
         #
-        self.id_embedding = layers.Embedding(
-            input_dim=id_vocab_size,
-            output_dim=d_model,
-            name="id_embedding",
-        )
-
-        self.dlc_embedding = layers.Embedding(
-            input_dim=dlc_vocab_size,
-            output_dim=d_model,
-            name="dlc_embedding",
-        )
-
-        self.byte_embedding = layers.Embedding(
-            input_dim=byte_vocab_size,
-            output_dim=d_model,
-            name="byte_embedding",
-        )
-
-        #
-        # Type embedding
-        #
-        self.type_embedding = layers.Embedding(
-            input_dim=type_vocab_size,
-            output_dim=d_model,
-            name="type_embedding",
+        self.feature_projection = layers.Dense(
+            d_model,
+            name="feature_projection",
         )
 
         #
@@ -68,76 +32,29 @@ class CANEmbedding(layers.Layer):
             name="position_embedding",
         )
 
-        self.dropout = layers.Dropout(
-            dropout
-        )
+        self.dropout = layers.Dropout(dropout)
 
     def call(
         self,
         inputs,
         training=None,
     ):
-        tokens = inputs["tokens"]
-        token_types = inputs["token_types"]
-        positions = inputs["positions"]
+        numeric_values = inputs["numeric_values"]  # (B, 10)
+        positions = inputs["positions"]  # (B, 10)
 
         #
-        # Split token
+        # Numeric Encoding -> Feature Projection
         #
-        id_token = tokens[:, 0]
-        dlc_token = tokens[:, 1]
-        byte_tokens = tokens[:, 2:]
-
-        #
-        # Token embeddings
-        #
-        id_emb = self.id_embedding(
-            id_token
-        )
-        dlc_emb = self.dlc_embedding(
-            dlc_token
-        )
-        byte_emb = self.byte_embedding(
-            byte_tokens
+        x = self.feature_projection(
+            numeric_values[..., tf.newaxis]  # (B, 10, 1) -> (B, 10, d_model)
         )
 
         #
-        # Rebuild sequence
+        # Tambah positional embedding
         #
-        x = tf.concat(
-            [
-                tf.expand_dims(
-                    id_emb,
-                    axis=1,
-                ),
-                tf.expand_dims(
-                    dlc_emb,
-                    axis=1,
-                ),
-                byte_emb,
-            ],
-            axis=1,
-        )
+        pos_emb = self.position_embedding(positions)
 
-        #
-        # Add type embedding
-        #
-        type_emb = self.type_embedding(
-            token_types
-        )
-
-        #
-        # Add positional embedding
-        #
-        pos_emb = self.position_embedding(
-            positions
-        )
-
-        x = (
-            x
-            + type_emb
-            + pos_emb
-        )
+        x = x + pos_emb
 
         x = self.dropout(
             x,

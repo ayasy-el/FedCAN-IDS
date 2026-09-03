@@ -20,8 +20,6 @@ dataset_params = load_params("dataset")
 training_params = load_params("training.hybrid")
 mlflow_params = load_params("mlflow")
 
-# Salin (bukan pakai langsung dict cache global) karena kita pop "seq_len"
-# di bawah -- HybridIDS constructor tidak menerima kwarg seq_len itu.
 model_params = dict(load_params("model.hybrid"))
 SEQ_LEN = model_params.pop("seq_len")
 
@@ -40,12 +38,6 @@ LEARNING_RATE_STAGE1 = training_params["learning_rate_stage1"]
 LEARNING_RATE_STAGE2 = training_params["learning_rate_stage2"]
 
 PRETRAINED_SPATIAL = "checkpoints/spatial_best.keras"
-
-# Statistik normalisasi (mean/std) fitur temporal, dihitung SEKALI dari
-# train, lalu dipakai ulang untuk val & test (lihat eval_hybrid.py) --
-# mencegah data leakage. Lihat docstring TemporalCANDataset untuk alasan
-# kenapa normalisasi ini perlu (fitur temporal skalanya sangat timpang,
-# berisiko membuat gate GRU jenuh / gradient hilang).
 NORMALIZE_STATS_PATH = "checkpoints/temporal_norm_stats.json"
 
 RUN_ID_PATH = "checkpoints/hybrid_mlflow_run_id.txt"
@@ -86,13 +78,8 @@ val_tf = val_dataset.to_tf_dataset()
 
 
 # ==========================================================
-# Class weight (fix bug #3 -- tidak ada penanganan imbalance)
+# Class weight
 # ==========================================================
-#
-# Dihitung dari distribusi label window VALID di train (bukan label
-# per-frame mentah), supaya merepresentasikan persis apa yang dilihat
-# model saat training.
-#
 class_weight = compute_class_weight_dict(train_dataset.window_labels)
 
 print("\nClass weight (balanced):")
@@ -112,8 +99,7 @@ model = HybridIDS(**model_params)
 # ==========================================================
 
 dummy = {
-    "tokens": tf.zeros((1, SEQ_LEN, 10), dtype=tf.int32),
-    "token_types": tf.zeros((1, SEQ_LEN, 10), dtype=tf.int32),
+    "numeric_values": tf.zeros((1, SEQ_LEN, 10), dtype=tf.float32),
     "positions": tf.zeros((1, SEQ_LEN, 10), dtype=tf.int32),
     "temporal_features": tf.zeros((1, SEQ_LEN, 9), dtype=tf.float32),
 }
@@ -145,14 +131,7 @@ print("Spatial encoder frozen.")
 # ==========================================================
 # Compile
 # ==========================================================
-#
-# Fix bug #4 -- ModelCheckpoint sebelumnya monitor val_accuracy, yang
-# bias ke kelas mayoritas (model "selalu prediksi Normal" otomatis dapat
-# val_accuracy ~90%). Ganti ke macro-F1 -- metric ini memberi bobot sama
-# ke tiap kelas (attack minoritas tidak tenggelam oleh dominasi Normal),
-# jadi checkpoint yang tersimpan benar-benar merepresentasikan model yang
-# bisa mendeteksi attack, bukan model yang collapse ke mayoritas.
-#
+
 model.compile(
     optimizer=keras.optimizers.Adam(learning_rate=LEARNING_RATE_STAGE1),
     loss=keras.losses.SparseCategoricalCrossentropy(),
@@ -189,7 +168,7 @@ callbacks = [
 # ==========================================================
 # Training (dibungkus 1 MLflow run -- stage 1 & stage 2 sama-sama masuk
 # run yang sama, dibedakan lewat step/epoch offset supaya kurvanya
-# nyambung di MLflow UI, bukan tumpang tindih dari epoch 0 lagi)
+# nyambung di MLflow UI, bukan tumpang tindih dari epoch/step 0 lagi)
 # ==========================================================
 
 with mlflow.start_run() as run:
@@ -229,19 +208,16 @@ with mlflow.start_run() as run:
         metrics=["accuracy", MacroF1Score(num_classes=model_params["num_classes"])],
     )
 
-    # MlflowEpochLogger butuh instance BARU supaya `step` (epoch) mulai
-    # dari _stage1_epochs_ran, bukan dari 0 lagi -- supaya kurva stage 1
-    # & stage 2 nyambung mulus di satu grafik MLflow, bukan tumpang tindih.
-    class _Stage2MlflowLogger(MlflowEpochLogger):
-        def on_epoch_end(self, epoch, logs=None):
-            super().on_epoch_end(epoch + _stage1_epochs_ran, logs)
+    # step_offset -- supaya kurva epoch stage 2 nyambung mulus dari
+    # titik terakhir stage 1 di grafik MLflow, bukan restart dari 0.
+    stage2_epoch_logger = MlflowEpochLogger(step_offset=_stage1_epochs_ran)
 
     history_ft = model.fit(
         train_tf,
         validation_data=val_tf,
         epochs=EPOCHS_STAGE2,
         class_weight=class_weight,
-        callbacks=callbacks + [_Stage2MlflowLogger()],
+        callbacks=callbacks + [stage2_epoch_logger],
     )
 
     # ------------------------------------------------------

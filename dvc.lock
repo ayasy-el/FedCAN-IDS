@@ -105,24 +105,24 @@ stages:
       size: 16928898
     - path: src/data/dataset.py
       hash: md5
-      md5: d67edb451599add8e568341769d50631
-      size: 3343
+      md5: 3477a9779b60e9c1d3aceaa0136346e9
+      size: 3090
     - path: src/model/embeddings.py
       hash: md5
-      md5: 75bcb00f889952036d7c0cde442df6c2
-      size: 3216
+      md5: d2114e67a3fe2842e9fe5b5b5656e0aa
+      size: 1561
     - path: src/model/spatial_transformer.py
       hash: md5
-      md5: b2f3436f9f429ea563ecc4577597d200
-      size: 4176
+      md5: b4d72786f117e3d979b76c4bd05bdd96
+      size: 2687
     - path: src/model/transformer.py
       hash: md5
       md5: d2106ba1e461b154aaad1262be37e7bb
       size: 2218
     - path: src/train_spatial.py
       hash: md5
-      md5: f109a6e0ee384243a47130df95730472
-      size: 3356
+      md5: 66333acdb85b709f9cd5bbb48db6fdbf
+      size: 3224
     - path: src/utils/mlflow_utils.py
       hash: md5
       md5: aecee8f5ec40579dfe1542ad21b20062
@@ -134,9 +134,9 @@ stages:
     params:
       params.yaml:
         model.spatial:
-          d_model: 4
+          d_model: 16
           num_heads: 2
-          ff_dim: 8
+          ff_dim: 32
           num_layers: 1
           num_classes: 5
           dropout: 0.1
@@ -147,23 +147,23 @@ stages:
     outs:
     - path: checkpoints/spatial_best.keras
       hash: md5
-      md5: 83dc32529e8835193f34b83343e19ed5
-      size: 215465
+      md5: 289e2458f04025fdd1bec38c1fdfa942
+      size: 128586
   eval_spatial:
     cmd: PYTHONPATH=src python src/eval_spatial.py
     deps:
     - path: checkpoints/spatial_best.keras
       hash: md5
-      md5: 83dc32529e8835193f34b83343e19ed5
-      size: 215465
+      md5: 289e2458f04025fdd1bec38c1fdfa942
+      size: 128586
     - path: data/processed/car_hacking/test.parquet
       hash: md5
       md5: 02a8393c6c59752c1a42d1e8a3135487
       size: 18203011
     - path: src/eval_spatial.py
       hash: md5
-      md5: 5cd581fb695424a89871eee6373e1f58
-      size: 6632
+      md5: ec65077235cc736e06a9f6fc69913b20
+      size: 6431
     - path: src/utils/mlflow_utils.py
       hash: md5
       md5: aecee8f5ec40579dfe1542ad21b20062
@@ -175,12 +175,12 @@ stages:
     outs:
     - path: reports/figures/spatial_confusion_matrix.png
       hash: md5
-      md5: 621695342b650e100c3d0a1d16c2ad4b
-      size: 145889
+      md5: 24c298121d3172519ef7c1dedd538255
+      size: 151452
     - path: reports/metrics/spatial_classification_report.json
       hash: md5
-      md5: b1d5194fd2e740fea450c1e250f88a95
-      size: 2347
+      md5: f2fe96142b06dd9907be77c86c548a6d
+      size: 2407
   train_hybrid:
     cmd: PYTHONPATH=src python src/train_hybrid.py
     deps:

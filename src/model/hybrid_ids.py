@@ -7,55 +7,6 @@ from .temporal_gru import TemporalGRU
 
 
 class HybridIDS(keras.Model):
-    """
-    Hybrid Spatial Transformer + Temporal GRU IDS
-
-
-    Input:
-
-        tokens:
-            (B,T,10)
-
-        token_types:
-            (B,T,10)
-
-        positions:
-            (B,T,10)
-
-        temporal_features:
-            (B,T,9)
-
-
-    Flow:
-
-        CAN frame
-             |
-             v
-        Spatial Transformer
-             |
-        z_spatial
-
-             +
-        temporal features
-
-             |
-             v
-
-            GRU
-
-             |
-             v
-
-        classifier
-
-
-    Output:
-
-        logits:
-            (B,num_classes)
-
-    """
-
     def __init__(
         self,
         d_model=32,
@@ -72,8 +23,6 @@ class HybridIDS(keras.Model):
 
         #
         # Spatial encoder
-        #
-        # classifier tidak digunakan
         #
         self.spatial_encoder = SpatialTransformer(
             d_model=d_model,
@@ -117,9 +66,7 @@ class HybridIDS(keras.Model):
         training=False,
     ):
 
-        tokens = inputs["tokens"]
-
-        token_types = inputs["token_types"]
+        numeric_values = inputs["numeric_values"]
 
         positions = inputs["positions"]
 
@@ -132,25 +79,15 @@ class HybridIDS(keras.Model):
         # T = sequence length
         #
 
-        B = tf.shape(tokens)[0]
+        B = tf.shape(numeric_values)[0]
 
-        T = tf.shape(tokens)[1]
+        T = tf.shape(numeric_values)[1]
 
         #
         # Flatten sequence
         #
-        # sebelum transformer:
-        #
-        # (B,T,10)
-        #
-        # menjadi
-        #
-        # (B*T,10)
-        #
 
-        frame_tokens = tf.reshape(tokens, (-1, 10))
-
-        frame_types = tf.reshape(token_types, (-1, 10))
+        frame_numeric_values = tf.reshape(numeric_values, (-1, 10))
 
         frame_positions = tf.reshape(positions, (-1, 10))
 
@@ -164,23 +101,12 @@ class HybridIDS(keras.Model):
 
         z = self.spatial_encoder(
             {
-                "tokens": frame_tokens,
-                "token_types": frame_types,
+                "numeric_values": frame_numeric_values,
                 "positions": frame_positions,
             },
             training=training,
             return_embedding=True,
         )
-
-        #
-        # kembali ke sequence
-        #
-        # (B*T,d)
-        #
-        # menjadi
-        #
-        # (B,T,d)
-        #
 
         z = tf.reshape(
             z,
