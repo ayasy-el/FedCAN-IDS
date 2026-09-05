@@ -4,6 +4,8 @@ import tensorflow as tf
 from keras import layers
 from tensorflow import keras
 
+from utils.metrics import MacroF1Score
+
 
 class StreamingCANIDS(keras.Model):
     def __init__(
@@ -23,6 +25,7 @@ class StreamingCANIDS(keras.Model):
     ):
         super().__init__(**kwargs)
         self.d_model, self.d_qk, self.d_v = d_model, d_qk, d_v
+        self.num_classes = num_classes
         self.global_memory, self.same_id_memory, self.num_ids = (
             global_memory,
             same_id_memory,
@@ -49,6 +52,82 @@ class StreamingCANIDS(keras.Model):
             ],
             name="classifier",
         )
+        self.loss_fn = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        self.loss_tracker = keras.metrics.Mean(name="loss")
+        self.accuracy_tracker = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
+        self.macro_f1_tracker = MacroF1Score(num_classes)
+        self._state_variables = None
+        self._last_stream = None
+
+    @property
+    def metrics(self):
+        metrics = [self.loss_tracker, self.accuracy_tracker]
+        if self.macro_f1_tracker is not None:
+            metrics.append(self.macro_f1_tracker)
+        return metrics
+
+    def initialize_stream_state(self, batch_size=1):
+        """Allocate persistent state used by Keras ``fit``."""
+        state = self.initial_state(batch_size)
+        self._state_variables = [
+            tf.Variable(value, trainable=False, name=f"stream_state_{i}")
+            for i, value in enumerate(state)
+        ]
+        self._last_stream = tf.Variable(tf.constant(b""), trainable=False, dtype=tf.string, name="last_stream")
+
+    def reset_stream_state(self):
+        if self._state_variables is not None:
+            for variable, value in zip(self._state_variables, self.initial_state(1)):
+                variable.assign(value)
+            self._last_stream.assign(tf.constant(b""))
+
+    def _persistent_state(self):
+        return tuple(variable.value() for variable in self._state_variables)
+
+    def _store_stream_state(self, state, stream_id):
+        for variable, value in zip(self._state_variables, state):
+            variable.assign(tf.stop_gradient(value))
+        self._last_stream.assign(tf.reshape(stream_id, []))
+
+    def _reset_if_new_stream(self, stream_id):
+        is_new = tf.reduce_any(tf.not_equal(stream_id, self._last_stream))
+        tf.cond(is_new, lambda: self._reset_state_in_graph(), lambda: tf.constant(0))
+
+    def _reset_state_in_graph(self):
+        for variable, value in zip(self._state_variables, self.initial_state(1)):
+            variable.assign(value)
+        self._last_stream.assign(tf.constant(b""))
+        return tf.constant(0)
+
+    def train_step(self, data):
+        inputs, labels = data
+        stream_id = inputs["stream_id"]
+        self._reset_if_new_stream(stream_id)
+        with tf.GradientTape() as tape:
+            logits, state = self.run_sequence(
+                inputs["can_id"], inputs["numeric"], self._persistent_state(), training=True
+            )
+            loss = self.loss_fn(labels, logits)
+        gradients = tape.gradient(loss, self.trainable_variables)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+        self._store_stream_state(state, stream_id)
+        self.loss_tracker.update_state(loss)
+        self.accuracy_tracker.update_state(labels, logits)
+        self.macro_f1_tracker.update_state(labels, logits)
+        return {metric.name: metric.result() for metric in self.metrics}
+
+    def test_step(self, data):
+        inputs, labels = data
+        stream_id = inputs["stream_id"]
+        self._reset_if_new_stream(stream_id)
+        logits, state = self.run_sequence(
+            inputs["can_id"], inputs["numeric"], self._persistent_state(), training=False
+        )
+        self._store_stream_state(state, stream_id)
+        self.loss_tracker.update_state(self.loss_fn(labels, logits))
+        self.accuracy_tracker.update_state(labels, logits)
+        self.macro_f1_tracker.update_state(labels, logits)
+        return {metric.name: metric.result() for metric in self.metrics}
 
     def encode_frame(self, can_id, numeric, training=None):
         can_id = tf.clip_by_value(tf.cast(can_id, tf.int32), 0, self.num_ids - 1)
