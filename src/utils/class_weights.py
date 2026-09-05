@@ -3,8 +3,8 @@ Utility terpusat untuk menghitung class weight dari label training.
 
 CATATAN SCOPE: modul ini disiapkan sebagai fondasi untuk perbaikan
 "Bug #3 -- tidak ada penanganan class imbalance saat training" yang
-dibahas terpisah. BELUM dipanggil dari train_spatial.py / train_hybrid.py
--- supaya train_spatial.py dan train_hybrid.py tidak diam-diam berubah
+dibahas terpisah. Modul ini dipertahankan sebagai utilitas opsional.
+-- supaya training streaming tidak berubah diam-diam
 perilaku saat fokus perbaikan masih di bug #1/#2/#6.
 
 Cara pakai nanti (saat bug #3 dikerjakan):

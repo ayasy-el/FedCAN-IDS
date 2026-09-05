@@ -20,7 +20,7 @@ def _find_project_root() -> Path:
     until a directory containing `params.yaml` is found.
 
     This keeps path resolution consistent regardless of where the loader
-    is invoked, whether through `dvc repro` or directly from `hybrid_ids/`.
+    is invoked, whether through `dvc repro` or directly from the project root.
     """
     current = Path.cwd()
 
@@ -44,8 +44,8 @@ def load_params(section: str | None = None) -> dict:
     Parameters
     ----------
     section : str, optional
-        Dot-delimited path to load a specific subsection, e.g. `model.spatial`
-        or `training.hybrid`. If `None`, return the entire contents of the file.
+        Dot-delimited path to load a specific subsection, e.g. `model.streaming`
+        or `training.streaming`. If `None`, return the entire contents of the file.
     """
     global _PARAMS_CACHE
 

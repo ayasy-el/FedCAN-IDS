@@ -14,41 +14,29 @@ split:
     - Pre_train_S_2
 
 feature:
-  window_ms: 20
+  window_ms: 0
 
 model:
-  spatial:
-    d_model: 16
-    num_heads: 2
-    ff_dim: 32
-    num_layers: 1
+  streaming:
+    d_model: 32
+    id_embedding_dim: 8
+    numeric_dim: 11
+    numeric_projection_dim: 24
+    d_qk: 8
+    d_v: 8
+    global_memory: 64
+    same_id_memory: 16
+    num_ids: 2048
     num_classes: 5
     dropout: 0.1
-
-  hybrid:
-    d_model: 16
-    num_heads: 2
-    ff_dim: 32
-    num_layers: 1
-    gru_units: 16
-    num_classes: 5
-    dropout: 0.1
-    seq_len: 32
 
 training:
-  spatial:
-    batch_size: 256
-    epochs: 50
+  streaming:
+    batch_size: 1
+    chunk_len: 256
+    epochs: 20
     learning_rate: 0.001
-
-  hybrid:
-    batch_size: 256
-    epochs_stage1: 50
-    epochs_stage2: 10
-    learning_rate_stage1: 0.001
-    learning_rate_stage2: 0.0001
 
 mlflow:
   tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
-  experiment_spatial: "hybrid_ids_spatial"
-  experiment_hybrid: "hybrid_ids_hybrid"
+  experiment_streaming: "can_ids_streaming"

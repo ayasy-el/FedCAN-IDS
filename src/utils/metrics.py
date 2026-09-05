@@ -1,10 +1,9 @@
 """
-Custom metric terpusat, dipakai bersama oleh train_spatial.py dan
-train_hybrid.py.
+Custom metric untuk training model streaming.
 
 CATATAN SCOPE: modul ini disiapkan sebagai fondasi untuk perbaikan
 "Bug #4 -- ModelCheckpoint memonitor val_accuracy" yang dibahas terpisah.
-BELUM dipanggil dari train_spatial.py / train_hybrid.py.
+Dipakai oleh train_streaming.py.
 
 Cara pakai nanti (saat bug #4 dikerjakan):
 
@@ -14,7 +13,7 @@ Cara pakai nanti (saat bug #4 dikerjakan):
 
     callbacks = [
         keras.callbacks.ModelCheckpoint(
-            filepath="checkpoints/spatial_best.keras",
+            filepath="checkpoints/streaming_best.keras",
             monitor="val_macro_f1",
             mode="max",
             save_best_only=True,
@@ -53,7 +52,7 @@ class MacroF1Score(keras.metrics.Metric):
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         y_true = tf.cast(tf.reshape(y_true, [-1]), tf.int32)
-        y_pred = tf.cast(tf.argmax(y_pred, axis=-1), tf.int32)
+        y_pred = tf.cast(tf.reshape(tf.argmax(y_pred, axis=-1), [-1]), tf.int32)
 
         y_true_oh = tf.one_hot(y_true, depth=self.num_classes)
         y_pred_oh = tf.one_hot(y_pred, depth=self.num_classes)

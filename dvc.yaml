@@ -37,72 +37,33 @@ stages:
       - data/processed/car_hacking/featured/val.parquet
       - data/processed/car_hacking/featured/test.parquet
 
-  train_spatial:
-    cmd: PYTHONPATH=src python src/train_spatial.py
+  train_streaming:
+    cmd: PYTHONPATH=src python src/train_streaming.py
     deps:
-      - src/train_spatial.py
-      - src/data/dataset.py
-      - src/model/spatial_transformer.py
-      - src/model/embeddings.py
-      - src/model/transformer.py
+      - src/train_streaming.py
+      - src/data/streaming_dataset.py
+      - src/model/streaming_ids.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
-      - data/processed/car_hacking/train.parquet
-      - data/processed/car_hacking/val.parquet
-    params:
-      - model.spatial
-      - training.spatial
-    outs:
-      - checkpoints/spatial_best.keras
-
-  eval_spatial:
-    cmd:  PYTHONPATH=src python src/eval_spatial.py
-    deps:
-      - src/eval_spatial.py
-      - src/utils/params.py
-      - src/utils/mlflow_utils.py
-      - checkpoints/spatial_best.keras
-      - data/processed/car_hacking/test.parquet
-    metrics:
-      - reports/metrics/spatial_classification_report.json:
-          cache: false
-    outs:
-      - reports/figures/spatial_confusion_matrix.png
-
-  train_hybrid:
-    cmd: PYTHONPATH=src python src/train_hybrid.py
-    deps:
-      - src/train_hybrid.py
-      - src/data/temporal_dataset.py
-      - src/model/hybrid_ids.py
-      - src/model/temporal_gru.py
-      - src/utils/params.py
-      - src/utils/mlflow_utils.py
-      - src/utils/class_weights.py
       - src/utils/metrics.py
-      - checkpoints/spatial_best.keras
       - data/processed/car_hacking/featured/train.parquet
       - data/processed/car_hacking/featured/val.parquet
     params:
-      - model.hybrid
-      - training.hybrid
+      - model.streaming
+      - training.streaming
     outs:
-      - checkpoints/hybrid_best.keras
-      - checkpoints/hybrid_final.keras
-      - checkpoints/temporal_norm_stats.json
+      - checkpoints/streaming_best.keras
+      - checkpoints/streaming_final.keras
+      - checkpoints/streaming_norm_stats.json
 
-  eval_hybrid:
-    cmd: PYTHONPATH=src python src/eval_hybrid.py
+  eval_streaming:
+    cmd: PYTHONPATH=src python src/eval_streaming.py
     deps:
-      - src/eval_hybrid.py
+      - src/eval_streaming.py
       - src/utils/params.py
-      - src/utils/mlflow_utils.py
-      - checkpoints/hybrid_best.keras
-      - checkpoints/temporal_norm_stats.json
+      - checkpoints/streaming_best.keras
+      - checkpoints/streaming_norm_stats.json
       - data/processed/car_hacking/featured/test.parquet
     metrics:
-      - reports/metrics/hybrid_classification_report.json:
+      - reports/metrics/streaming_classification_report.json:
           cache: false
-    outs:
-      - reports/figures/hybrid_confusion_matrix.png
-      - reports/figures/hybrid_confusion_matrix_normalized.png
