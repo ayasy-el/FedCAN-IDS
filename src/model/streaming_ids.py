@@ -73,13 +73,14 @@ class StreamingCANIDS(keras.Model):
             tf.Variable(value, trainable=False, name=f"stream_state_{i}")
             for i, value in enumerate(state)
         ]
-        self._last_stream = tf.Variable(tf.constant(b""), trainable=False, dtype=tf.string, name="last_stream")
+        self._last_stream = tf.Variable(tf.fill([batch_size], b""), trainable=False, dtype=tf.string, name="last_stream")
 
     def reset_stream_state(self):
         if self._state_variables is not None:
-            for variable, value in zip(self._state_variables, self.initial_state(1)):
+            batch_size = self._state_variables[0].shape[0]
+            for variable, value in zip(self._state_variables, self.initial_state(batch_size)):
                 variable.assign(value)
-            self._last_stream.assign(tf.constant(b""))
+            self._last_stream.assign(tf.fill([batch_size], b""))
 
     def _persistent_state(self):
         return tuple(variable.value() for variable in self._state_variables)
@@ -87,17 +88,25 @@ class StreamingCANIDS(keras.Model):
     def _store_stream_state(self, state, stream_id):
         for variable, value in zip(self._state_variables, state):
             variable.assign(tf.stop_gradient(value))
-        self._last_stream.assign(tf.reshape(stream_id, []))
+        self._last_stream.assign(stream_id)
 
     def _reset_if_new_stream(self, stream_id):
-        is_new = tf.reduce_any(tf.not_equal(stream_id, self._last_stream))
-        tf.cond(is_new, lambda: self._reset_state_in_graph(), lambda: tf.constant(0))
+        is_new = tf.not_equal(stream_id, self._last_stream)
+        self._reset_state_in_graph(is_new)
 
-    def _reset_state_in_graph(self):
-        for variable, value in zip(self._state_variables, self.initial_state(1)):
-            variable.assign(value)
-        self._last_stream.assign(tf.constant(b""))
-        return tf.constant(0)
+    def _reset_state_in_graph(self, is_new):
+        batch_size = self._state_variables[0].shape[0]
+        for variable, value in zip(self._state_variables, self.initial_state(batch_size)):
+            mask = tf.reshape(is_new, [batch_size] + [1] * (len(variable.shape) - 1))
+            variable.assign(tf.where(mask, value, variable))
+        self._last_stream.assign(tf.where(is_new, tf.fill(tf.shape(is_new), b""), self._last_stream))
+
+    def _masked_loss(self, labels, logits, valid_mask):
+        losses = keras.losses.sparse_categorical_crossentropy(
+            labels, logits, from_logits=True
+        )
+        valid_mask = tf.cast(valid_mask, losses.dtype)
+        return tf.reduce_sum(losses * valid_mask) / tf.maximum(tf.reduce_sum(valid_mask), 1.0)
 
     def train_step(self, data):
         inputs, labels = data
@@ -105,15 +114,16 @@ class StreamingCANIDS(keras.Model):
         self._reset_if_new_stream(stream_id)
         with tf.GradientTape() as tape:
             logits, state = self.run_sequence(
-                inputs["can_id"], inputs["numeric"], self._persistent_state(), training=True
+                inputs["can_id"], inputs["numeric"], self._persistent_state(),
+                training=True, active_mask=inputs["valid_mask"]
             )
-            loss = self.loss_fn(labels, logits)
+            loss = self._masked_loss(labels, logits, inputs["valid_mask"])
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         self._store_stream_state(state, stream_id)
         self.loss_tracker.update_state(loss)
-        self.accuracy_tracker.update_state(labels, logits)
-        self.macro_f1_tracker.update_state(labels, logits)
+        self.accuracy_tracker.update_state(labels, logits, sample_weight=inputs["valid_mask"])
+        self.macro_f1_tracker.update_state(labels, logits, sample_weight=inputs["valid_mask"])
         return {metric.name: metric.result() for metric in self.metrics}
 
     def test_step(self, data):
@@ -121,12 +131,14 @@ class StreamingCANIDS(keras.Model):
         stream_id = inputs["stream_id"]
         self._reset_if_new_stream(stream_id)
         logits, state = self.run_sequence(
-            inputs["can_id"], inputs["numeric"], self._persistent_state(), training=False
+            inputs["can_id"], inputs["numeric"], self._persistent_state(),
+            training=False, active_mask=inputs["valid_mask"]
         )
         self._store_stream_state(state, stream_id)
-        self.loss_tracker.update_state(self.loss_fn(labels, logits))
-        self.accuracy_tracker.update_state(labels, logits)
-        self.macro_f1_tracker.update_state(labels, logits)
+        loss = self._masked_loss(labels, logits, inputs["valid_mask"])
+        self.loss_tracker.update_state(loss)
+        self.accuracy_tracker.update_state(labels, logits, sample_weight=inputs["valid_mask"])
+        self.macro_f1_tracker.update_state(labels, logits, sample_weight=inputs["valid_mask"])
         return {metric.name: metric.result() for metric in self.metrics}
 
     def encode_frame(self, can_id, numeric, training=None):
@@ -152,7 +164,7 @@ class StreamingCANIDS(keras.Model):
         )
         return tf.einsum("bm,bmv->bv", weights, values)
 
-    def _step(self, can_id, numeric, state, training=None):
+    def _step(self, can_id, numeric, state, training=None, active=None):
         gk, gv, gm, ik, iv, im = state
         can_id = tf.clip_by_value(tf.cast(can_id, tf.int32), 0, self.num_ids - 1)
         h = self.encode_frame(can_id, numeric, training)
@@ -182,7 +194,7 @@ class StreamingCANIDS(keras.Model):
         new_k = tf.concat([old_k[:, 1:], k[:, None, :]], axis=1)
         new_v = tf.concat([old_v[:, 1:], v[:, None, :]], axis=1)
         new_m = tf.concat([old_m[:, 1:], tf.ones_like(old_m[:, :1])], axis=1)
-        return logits, (
+        updated = (
             gk,
             gv,
             gm,
@@ -190,6 +202,16 @@ class StreamingCANIDS(keras.Model):
             tf.tensor_scatter_nd_update(iv, indices, new_v),
             tf.tensor_scatter_nd_update(im, indices, new_m),
         )
+        if active is not None:
+            updated = tuple(
+                tf.where(
+                    tf.reshape(tf.cast(active, tf.bool), [-1] + [1] * (value.shape.rank - 1)),
+                    value,
+                    old,
+                )
+                for value, old in zip(updated, state)
+            )
+        return logits, updated
 
     def initial_state(self, batch_size):
         z = tf.zeros
@@ -206,7 +228,7 @@ class StreamingCANIDS(keras.Model):
         ids, numeric = inputs["can_id"], inputs["numeric"]
         return self.run_sequence(ids, numeric, training=training)[0]
 
-    def run_sequence(self, ids, numeric, state=None, training=False):
+    def run_sequence(self, ids, numeric, state=None, training=False, active_mask=None):
         """Process a chronological chunk and return ``(logits, state)``."""
         if state is None:
             state = self.initial_state(tf.shape(ids)[0])
@@ -216,7 +238,8 @@ class StreamingCANIDS(keras.Model):
             return t < tf.shape(ids)[1]
 
         def body(t, state, outputs):
-            logits, state = self._step(ids[:, t], numeric[:, t], state, training)
+            active = None if active_mask is None else active_mask[:, t]
+            logits, state = self._step(ids[:, t], numeric[:, t], state, training, active)
             return t + 1, state, outputs.write(t, logits)
 
         _, state, outputs = tf.while_loop(

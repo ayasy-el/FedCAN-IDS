@@ -57,6 +57,11 @@ class MacroF1Score(keras.metrics.Metric):
         y_true_oh = tf.one_hot(y_true, depth=self.num_classes)
         y_pred_oh = tf.one_hot(y_pred, depth=self.num_classes)
 
+        if sample_weight is not None:
+            weight = tf.cast(tf.reshape(sample_weight, [-1, 1]), y_true_oh.dtype)
+            y_true_oh *= weight
+            y_pred_oh *= weight
+
         tp = tf.reduce_sum(y_true_oh * y_pred_oh, axis=0)
         fp = tf.reduce_sum((1 - y_true_oh) * y_pred_oh, axis=0)
         fn = tf.reduce_sum(y_true_oh * (1 - y_pred_oh), axis=0)

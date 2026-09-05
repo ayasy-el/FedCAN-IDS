@@ -1,17 +1,11 @@
-"""Chronological chunks for truncated-BPTT of the stateful frame model."""
-
+"""Session-parallel chronological chunks for stateful Keras training."""
 import json
 from pathlib import Path
 import numpy as np
 import polars as pl
 import tensorflow as tf
 
-NUMERIC_FEATURE_COLUMNS = [
-    "DLC",
-    *[f"Data_{i}" for i in range(8)],
-    "Delta_Id",
-    "Deltatime",
-]
+NUMERIC_FEATURE_COLUMNS = ["DLC", *[f"Data_{i}" for i in range(8)], "Delta_Id", "Deltatime"]
 
 
 def _hex(value, pad=0):
@@ -21,109 +15,60 @@ def _hex(value, pad=0):
 
 
 class StreamingCANDataset:
-    def __init__(
-        self,
-        parquet_path,
-        chunk_len=256,
-        batch_size=32,
-        shuffle=False,
-        normalize_stats_path=None,
-        fit_normalize_stats=False,
-    ):
-        self.parquet_path, self.chunk_len, self.batch_size = (
-            Path(parquet_path),
-            chunk_len,
-            batch_size,
-        )
-        self.shuffle = shuffle
+    def __init__(self, parquet_path, chunk_len=256, batch_size=4, shuffle=False,
+                 normalize_stats_path=None, fit_normalize_stats=False):
+        self.parquet_path, self.chunk_len, self.batch_size, self.shuffle = Path(parquet_path), chunk_len, batch_size, shuffle
         df = pl.read_parquet(parquet_path).sort(["session_id", "Timestamp"])
-        ids = np.array(
-            [_hex(x) for x in df["Arbitration_ID"].to_list()], dtype=np.int32
-        )
-        numeric = np.column_stack(
-            [
-                df["DLC"].to_numpy(),
-                *[
-                    np.array([_hex(x, 0) for x in df[f"Data_{i}"].to_list()])
-                    for i in range(8)
-                ],
-                df["Delta_Id"].to_numpy(),
-                df["Deltatime"].to_numpy(),
-            ]
-        ).astype(np.float32)
-        self.ids, self.numeric, self.labels = (
-            ids,
-            numeric,
-            df["Class"].to_numpy().astype(np.int32),
-        )
-        self.session_ids = np.array(df["session_id"].to_list())
+        self.sessions = []
+        for session, group in df.partition_by("session_id", as_dict=True, maintain_order=True).items():
+            ids = np.array([_hex(x) for x in group["Arbitration_ID"].to_list()], dtype=np.int32)
+            numeric = np.column_stack([
+                group["DLC"].to_numpy(),
+                *[np.array([_hex(x) for x in group[f"Data_{i}"].to_list()]) for i in range(8)],
+                group["Delta_Id"].to_numpy(), group["Deltatime"].to_numpy(),
+            ]).astype(np.float32)
+            labels = group["Class"].to_numpy().astype(np.int32)
+            self.sessions.append((str(session[0]) if isinstance(session, tuple) else str(session), ids, numeric, labels))
         self._normalize(normalize_stats_path, fit_normalize_stats)
-        self.starts = [
-            i
-            for i in range(0, len(self.labels) - chunk_len + 1, chunk_len)
-            if self.session_ids[i] == self.session_ids[i + chunk_len - 1]
-        ]
-        self.window_labels = (
-            np.concatenate([self.labels[i : i + chunk_len] for i in self.starts])
-            if self.starts
-            else np.array([], dtype=np.int32)
-        )
-        self.num_samples = len(self.starts)
+        self.groups = [self.sessions[i:i + batch_size] for i in range(0, len(self.sessions), batch_size)]
+        self.num_samples = sum(max(1, max(len(s[1]) // chunk_len for s in group)) for group in self.groups)
+        self.window_labels = np.concatenate([s[3] for s in self.sessions]) if self.sessions else np.array([], dtype=np.int32)
 
     def _normalize(self, path, fit):
-        if path is None:
+        if path is None or not self.sessions:
             return
         path = Path(path)
+        all_numeric = np.concatenate([s[2] for s in self.sessions])
         if fit:
-            mean, std = self.numeric.mean(0), self.numeric.std(0)
+            mean, std = all_numeric.mean(0), all_numeric.std(0)
             std = np.where(std < 1e-8, 1.0, std)
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(
-                json.dumps(
-                    {
-                        "columns": NUMERIC_FEATURE_COLUMNS,
-                        "mean": mean.tolist(),
-                        "std": std.tolist(),
-                    },
-                    indent=2,
-                )
-            )
+            path.write_text(json.dumps({"columns": NUMERIC_FEATURE_COLUMNS, "mean": mean.tolist(), "std": std.tolist()}, indent=2))
         else:
             stats = json.loads(path.read_text())
             if stats["columns"] != NUMERIC_FEATURE_COLUMNS:
-                raise ValueError(
-                    "Normalization columns do not match the streaming feature schema"
-                )
-            mean, std = (
-                np.array(stats["mean"], np.float32),
-                np.array(stats["std"], np.float32),
-            )
-        self.numeric = (self.numeric - mean) / std
+                raise ValueError("Normalization columns do not match the streaming feature schema")
+            mean, std = np.array(stats["mean"], np.float32), np.array(stats["std"], np.float32)
+        for i, (name, ids, numeric, labels) in enumerate(self.sessions):
+            self.sessions[i] = (name, ids, (numeric - mean) / std, labels)
 
     def generator(self):
-        for start in self.starts:
-            end = start + self.chunk_len
-            yield (
-                {
-                    "can_id": self.ids[start:end],
-                    "numeric": self.numeric[start:end],
-                    "stream_id": self.session_ids[start].encode(),
-                },
-                self.labels[start:end],
-            )
+        for group in self.groups:
+            max_chunks = max(len(s[1]) // self.chunk_len for s in group)
+            for chunk_no in range(max_chunks):
+                ids = np.zeros((self.batch_size, self.chunk_len), np.int32)
+                numeric = np.zeros((self.batch_size, self.chunk_len, 11), np.float32)
+                labels = np.zeros((self.batch_size, self.chunk_len), np.int32)
+                valid = np.zeros((self.batch_size, self.chunk_len), np.float32)
+                stream_ids = np.full((self.batch_size,), b"__inactive__", dtype="S64")
+                for slot, (name, session_ids, session_numeric, session_labels) in enumerate(group):
+                    start, end = chunk_no * self.chunk_len, (chunk_no + 1) * self.chunk_len
+                    if end <= len(session_ids):
+                        ids[slot], numeric[slot], labels[slot] = session_ids[start:end], session_numeric[start:end], session_labels[start:end]
+                        valid[slot] = 1.0
+                        stream_ids[slot] = name.encode()
+                yield ({"can_id": ids, "numeric": numeric, "stream_id": stream_ids, "valid_mask": valid}, labels)
 
     def to_tf_dataset(self):
-        sig = (
-            {
-                "can_id": tf.TensorSpec((self.chunk_len,), tf.int32),
-                "numeric": tf.TensorSpec((self.chunk_len, 11), tf.float32),
-                "stream_id": tf.TensorSpec((), tf.string),
-            },
-            tf.TensorSpec((self.chunk_len,), tf.int32),
-        )
-        ds = tf.data.Dataset.from_generator(self.generator, output_signature=sig)
-        if self.shuffle:
-            ds = ds.shuffle(min(self.num_samples, 10000), reshuffle_each_iteration=True)
-        return ds.batch(self.batch_size, drop_remainder=False).prefetch(
-            tf.data.AUTOTUNE
-        )
+        sig = ({"can_id": tf.TensorSpec((self.batch_size, self.chunk_len), tf.int32), "numeric": tf.TensorSpec((self.batch_size, self.chunk_len, 11), tf.float32), "stream_id": tf.TensorSpec((self.batch_size,), tf.string), "valid_mask": tf.TensorSpec((self.batch_size, self.chunk_len), tf.float32)}, tf.TensorSpec((self.batch_size, self.chunk_len), tf.int32))
+        return tf.data.Dataset.from_generator(self.generator, output_signature=sig).prefetch(tf.data.AUTOTUNE)

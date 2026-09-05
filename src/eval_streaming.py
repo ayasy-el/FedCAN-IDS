@@ -22,26 +22,27 @@ test = StreamingCANDataset(
 )
 model = StreamingCANIDS(**model_cfg)
 model(
-    {
-        "can_id": tf.zeros((1, training["chunk_len"]), tf.int32),
-        "numeric": tf.zeros((1, training["chunk_len"], 11), tf.float32),
-    }
+        {
+            "can_id": tf.zeros((training["batch_size"], training["chunk_len"]), tf.int32),
+            "numeric": tf.zeros((training["batch_size"], training["chunk_len"], 11), tf.float32),
+            "stream_id": tf.fill((training["batch_size"],), b"build"),
+            "valid_mask": tf.ones((training["batch_size"], training["chunk_len"]), tf.float32),
+        }
 )
 model.load_weights("checkpoints/streaming_best.keras")
+model.initialize_stream_state(training["batch_size"])
 y_true, y_pred = [], []
-state, previous_stream = None, None
 for batch, labels in test.to_tf_dataset():
-    stream = batch.pop("stream_id").numpy()[0]
-    if previous_stream != stream:
-        state = None
-        previous_stream = stream
+    model._reset_if_new_stream(batch["stream_id"])
     logits, state = model.run_sequence(
-        batch["can_id"], batch["numeric"], state, training=False
+        batch["can_id"], batch["numeric"], model._persistent_state(),
+        training=False, active_mask=batch["valid_mask"]
     )
-    state = tuple(tf.stop_gradient(x) for x in state)
-    pred = tf.argmax(logits, axis=-1)
-    y_true.extend(labels.numpy().reshape(-1))
-    y_pred.extend(pred.numpy().reshape(-1))
+    model._store_stream_state(state, batch["stream_id"])
+    pred = tf.argmax(logits, axis=-1).numpy()
+    mask = batch["valid_mask"].numpy().astype(bool)
+    y_true.extend(labels.numpy()[mask].reshape(-1))
+    y_pred.extend(pred[mask].reshape(-1))
 report = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
 result = {
     "model": "causal_compressed_kv",

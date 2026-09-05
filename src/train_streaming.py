@@ -33,6 +33,7 @@ model(
         "can_id": tf.zeros((1, training["chunk_len"]), tf.int32),
         "numeric": tf.zeros((1, training["chunk_len"], 11), tf.float32),
         "stream_id": tf.constant([b"build"]),
+        "valid_mask": tf.ones((1, training["chunk_len"]), tf.float32),
     }
 )
 model.summary()
