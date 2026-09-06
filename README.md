@@ -44,7 +44,8 @@ experiments through `params.yaml`, and MLflow tracking through DagsHub.
 ## Key features
 
 - Single-frame causal inference with global (64) and same-ID (16) KV memory.
-- CAN-ID embedding plus 11 numerical frame/timing features.
+- 11-bit CAN-ID representation projected with Dense(8), plus 11 numerical
+  frame/timing features projected with Dense(24).
 - Session-aware processing to prevent cross-capture temporal leakage.
 - Chronological train/validation/test splitting with row-level leakage checks.
 - Train-only normalization statistics reused for validation and test data.

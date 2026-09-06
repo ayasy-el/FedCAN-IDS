@@ -45,9 +45,7 @@ val = StreamingCANDataset(
 model = StreamingCANIDS(**model_params)
 model(
     {
-        "can_id": tf.zeros(
-            (training["batch_size"], training["chunk_len"]), tf.int32
-        ),
+        "can_id": tf.zeros((training["batch_size"], training["chunk_len"]), tf.int32),
         "numeric": tf.zeros(
             (training["batch_size"], training["chunk_len"], 11), tf.float32
         ),

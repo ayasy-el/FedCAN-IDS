@@ -11,7 +11,8 @@ class StreamingCANIDS(keras.Model):
     def __init__(
         self,
         d_model=32,
-        id_embedding_dim=8,
+        can_id_bits=11,
+        can_id_projection_dim=8,
         numeric_dim=11,
         numeric_projection_dim=24,
         d_qk=8,
@@ -25,14 +26,15 @@ class StreamingCANIDS(keras.Model):
     ):
         super().__init__(**kwargs)
         self.d_model, self.d_qk, self.d_v = d_model, d_qk, d_v
+        self.can_id_bits = can_id_bits
         self.num_classes = num_classes
         self.global_memory, self.same_id_memory, self.num_ids = (
             global_memory,
             same_id_memory,
             num_ids,
         )
-        self.id_embedding = layers.Embedding(
-            num_ids, id_embedding_dim, name="can_id_embedding"
+        self.can_id_projection = layers.Dense(
+            can_id_projection_dim, activation="gelu", name="can_id_projection"
         )
         self.numeric_projection = layers.Dense(
             numeric_projection_dim, activation="gelu", name="numeric_projection"
@@ -154,9 +156,18 @@ class StreamingCANIDS(keras.Model):
 
     def encode_frame(self, can_id, numeric, training=None):
         can_id = tf.clip_by_value(tf.cast(can_id, tf.int32), 0, self.num_ids - 1)
+        bit_positions = tf.range(self.can_id_bits - 1, -1, -1, dtype=tf.int32)
+        bit_values = tf.bitwise.left_shift(tf.ones_like(bit_positions), bit_positions)
+        can_id_bits = tf.cast(
+            tf.not_equal(
+                tf.bitwise.bitwise_and(can_id[..., tf.newaxis], bit_values), 0
+            ),
+            tf.float32,
+        )
         return self.frame_norm(
             tf.concat(
-                [self.id_embedding(can_id), self.numeric_projection(numeric)], axis=-1
+                [self.can_id_projection(can_id_bits), self.numeric_projection(numeric)],
+                axis=-1,
             )
         )
 

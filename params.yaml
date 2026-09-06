@@ -19,7 +19,8 @@ feature:
 model:
   streaming:
     d_model: 32
-    id_embedding_dim: 8
+    can_id_bits: 11
+    can_id_projection_dim: 8
     numeric_dim: 11
     numeric_projection_dim: 24
     d_qk: 8
