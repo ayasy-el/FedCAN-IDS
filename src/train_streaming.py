@@ -7,10 +7,15 @@ from tensorflow import keras
 
 from data.streaming_dataset import StreamingCANDataset
 from model.streaming_ids import StreamingCANIDS
-from utils.mlflow_utils import save_run_id
+from utils.mlflow_utils import MlflowEpochLogger, save_run_id
 from utils.params import load_params
 
 dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
+
+
+# ==========================================================
+# Load params.yaml (DVC-tracked hyperparameter, bukan hardcode lagi)
+# ==========================================================
 
 dataset = load_params("dataset")
 model_params = load_params("model.streaming")
@@ -20,6 +25,11 @@ train_path = f"{dataset['featured_dir']}/train.parquet"
 val_path = f"{dataset['featured_dir']}/val.parquet"
 stats_path = "checkpoints/streaming_norm_stats.json"
 
+
+# ==========================================================
+# Dataset
+# ==========================================================
+
 train = StreamingCANDataset(
     train_path, training["chunk_len"], training["batch_size"], False, stats_path, True
 )
@@ -27,19 +37,30 @@ val = StreamingCANDataset(
     val_path, training["chunk_len"], training["batch_size"], False, stats_path, False
 )
 
+
+# ==========================================================
+# Model and build
+# ==========================================================
+
 model = StreamingCANIDS(**model_params)
 model(
     {
-        "can_id": tf.zeros((1, training["chunk_len"]), tf.int32),
-        "numeric": tf.zeros((1, training["chunk_len"], 11), tf.float32),
-        "stream_id": tf.constant([b"build"]),
-        "valid_mask": tf.ones((1, training["chunk_len"]), tf.float32),
+        "can_id": tf.zeros(
+            (training["batch_size"], training["chunk_len"]), tf.int32
+        ),
+        "numeric": tf.zeros(
+            (training["batch_size"], training["chunk_len"], 11), tf.float32
+        ),
+        "stream_id": tf.fill((training["batch_size"],), b"build"),
+        "valid_mask": tf.ones(
+            (training["batch_size"], training["chunk_len"]), tf.float32
+        ),
     }
 )
 model.summary()
 model.initialize_stream_state(batch_size=training["batch_size"])
-# Persistent streaming state is a resource variable.  Disable Keras' automatic
-# XLA compilation so that the state can safely be read/written across devices.
+# Persistent streaming state is a resource variable. Disable Keras' automatic
+# XLA compilation so the state can safely be read/written across devices.
 # TensorFlow ops still execute on the GPU where supported.
 model.compile(
     optimizer=keras.optimizers.Adam(training["learning_rate"]),
@@ -48,6 +69,8 @@ model.compile(
 
 
 class ResetStreamingState(keras.callbacks.Callback):
+    """Reset state at stream/epoch boundaries without resetting per-chunk state."""
+
     def on_train_begin(self, logs=None):
         self.model.reset_stream_state()
 
@@ -66,18 +89,32 @@ callbacks = [
         save_best_only=True,
     ),
     keras.callbacks.EarlyStopping(
-        monitor="val_macro_f1", mode="max", patience=5, restore_best_weights=True
+        monitor="val_macro_f1",
+        mode="max",
+        patience=5,
+        min_delta=0.001,
+        restore_best_weights=True,
+    ),
+    keras.callbacks.ReduceLROnPlateau(
+        monitor="val_loss",
+        factor=0.5,
+        patience=3,
     ),
     ResetStreamingState(),
+    MlflowEpochLogger(),
 ]
 
 
 mlflow.set_tracking_uri(mlflow_params["tracking_uri"])
 mlflow.set_experiment(mlflow_params["experiment_streaming"])
 with mlflow.start_run() as run:
+    # Simpan run_id supaya eval_streaming.py dapat melanjutkan MLflow run
+    # yang sama, bukan membuat run evaluasi terpisah.
     save_run_id(run.info.run_id, "checkpoints/streaming_mlflow_run_id.txt")
     mlflow.log_params({f"model.{k}": v for k, v in model_params.items()})
     mlflow.log_params({f"training.{k}": v for k, v in training.items()})
+    # model.fit tetap memproses chunk secara kronologis. State KV diteruskan
+    # oleh StreamingCANIDS.train_step() antar-chunk dan di-reset per session.
     history = model.fit(
         train.to_tf_dataset(),
         validation_data=val.to_tf_dataset(),
@@ -87,8 +124,6 @@ with mlflow.start_run() as run:
         shuffle=False,
         callbacks=callbacks,
     )
-    for epoch, values in enumerate(zip(history.history["loss"], history.history["val_loss"])):
-        mlflow.log_metrics({"loss": values[0], "val_loss": values[1]}, step=epoch)
     model.save("checkpoints/streaming_final.keras")
     mlflow.log_artifact("checkpoints/streaming_best.keras")
     mlflow.log_artifact("checkpoints/streaming_final.keras")

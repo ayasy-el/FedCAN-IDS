@@ -1,0 +1,99 @@
+{
+  "model": "causal_compressed_kv",
+  "model_path": "checkpoints/streaming_best.keras",
+  "test_path": "data/processed/car_hacking/featured/test.parquet",
+  "n_test_frames": 1706240,
+  "accuracy": 0.9803005438859715,
+  "precision_macro": 0.7416715886352145,
+  "recall_macro": 0.6222284087765777,
+  "f1_macro": 0.6342123250243421,
+  "confusion_matrix": [
+    [
+      1547053,
+      2,
+      3084,
+      1,
+      873
+    ],
+    [
+      11,
+      77496,
+      0,
+      0,
+      1
+    ],
+    [
+      773,
+      0,
+      44597,
+      0,
+      10
+    ],
+    [
+      5766,
+      0,
+      0,
+      0,
+      14
+    ],
+    [
+      22912,
+      0,
+      165,
+      0,
+      3482
+    ]
+  ],
+  "classification_report": {
+    "Normal": {
+      "precision": 0.9813119443836563,
+      "recall": 0.9974468299105166,
+      "f1-score": 0.9893136048662075,
+      "support": 1551013.0
+    },
+    "Flooding": {
+      "precision": 0.999974192882397,
+      "recall": 0.9998451772720235,
+      "f1-score": 0.9999096809155774,
+      "support": 77508.0
+    },
+    "Fuzzing": {
+      "precision": 0.9320946369602474,
+      "recall": 0.9827457029528427,
+      "f1-score": 0.9567502628022225,
+      "support": 45380.0
+    },
+    "Spoofing": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 5780.0
+    },
+    "Replay": {
+      "precision": 0.7949771689497717,
+      "recall": 0.13110433374750555,
+      "f1-score": 0.2250880765377032,
+      "support": 26559.0
+    },
+    "accuracy": 0.9803005438859715,
+    "macro avg": {
+      "precision": 0.7416715886352145,
+      "recall": 0.6222284087765777,
+      "f1-score": 0.6342123250243421,
+      "support": 1706240.0
+    },
+    "weighted avg": {
+      "precision": 0.9746259821547086,
+      "recall": 0.9803005438859715,
+      "f1-score": 0.9736817229249608,
+      "support": 1706240.0
+    }
+  },
+  "class_names": [
+    "Normal",
+    "Flooding",
+    "Fuzzing",
+    "Spoofing",
+    "Replay"
+  ]
+}

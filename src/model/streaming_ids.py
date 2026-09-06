@@ -141,6 +141,17 @@ class StreamingCANIDS(keras.Model):
         self.macro_f1_tracker.update_state(labels, logits, sample_weight=inputs["valid_mask"])
         return {metric.name: metric.result() for metric in self.metrics}
 
+    def predict_step(self, data):
+        """State-aware Keras ``predict`` for chronological chunks."""
+        inputs = data[0] if isinstance(data, (tuple, list)) else data
+        self._reset_if_new_stream(inputs["stream_id"])
+        logits, state = self.run_sequence(
+            inputs["can_id"], inputs["numeric"], self._persistent_state(),
+            training=False, active_mask=inputs["valid_mask"]
+        )
+        self._store_stream_state(state, inputs["stream_id"])
+        return logits
+
     def encode_frame(self, can_id, numeric, training=None):
         can_id = tf.clip_by_value(tf.cast(can_id, tf.int32), 0, self.num_ids - 1)
         return self.frame_norm(

@@ -1,5 +1,4 @@
 stages:
-
   ingest:
     cmd: python src/data/ingest.py
     deps:
@@ -52,9 +51,12 @@ stages:
       - model.streaming
       - training.streaming
     outs:
-      - checkpoints/streaming_best.keras
-      - checkpoints/streaming_final.keras
-      - checkpoints/streaming_norm_stats.json
+      - checkpoints/streaming_best.keras:
+          cache: false
+      - checkpoints/streaming_final.keras:
+          cache: false
+      - checkpoints/streaming_norm_stats.json:
+          cache: false
 
   eval_streaming:
     cmd: PYTHONPATH=src python src/eval_streaming.py
@@ -66,4 +68,9 @@ stages:
       - data/processed/car_hacking/featured/test.parquet
     metrics:
       - reports/metrics/streaming_classification_report.json:
+          cache: false
+    outs:
+      - reports/figures/streaming_confusion_matrix.png:
+          cache: false
+      - reports/figures/streaming_confusion_matrix_normalized.png:
           cache: false
