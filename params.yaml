@@ -30,6 +30,9 @@ model:
     num_ids: 2048
     num_classes: 5
     dropout: 0.1
+  mlp:
+    can_id_bits: 11
+    num_classes: 5
 
 training:
   streaming:
@@ -37,7 +40,12 @@ training:
     chunk_len: 256
     epochs: 20
     learning_rate: 0.001
+  mlp:
+    batch_size: 256
+    epochs: 20
+    learning_rate: 0.001
 
 mlflow:
   tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
   experiment_streaming: "can_ids_streaming"
+  experiment_mlp: "can_ids_mlp"

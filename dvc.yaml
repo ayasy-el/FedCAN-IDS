@@ -74,3 +74,47 @@ stages:
           cache: false
       - reports/figures/streaming_confusion_matrix_normalized.png:
           cache: false
+
+  train_mlp:
+    cmd: PYTHONPATH=src python src/train_mlp.py
+    deps:
+      - src/train_mlp.py
+      - src/data/mlp_dataset.py
+      - src/data/streaming_dataset.py
+      - src/model/mlp.py
+      - src/utils/metrics.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - data/processed/car_hacking/featured/train.parquet
+      - data/processed/car_hacking/featured/val.parquet
+    params:
+      - model.mlp
+      - training.mlp
+      - mlflow.experiment_mlp
+    outs:
+      - checkpoints/mlp_best.keras:
+          cache: false
+      - checkpoints/mlp_final.keras:
+          cache: false
+      - checkpoints/mlp_norm_stats.json:
+          cache: false
+
+  eval_mlp:
+    cmd: PYTHONPATH=src python src/eval_mlp.py
+    deps:
+      - src/eval_mlp.py
+      - src/data/mlp_dataset.py
+      - src/data/streaming_dataset.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - src/utils/metrics.py
+      - checkpoints/mlp_best.keras
+      - checkpoints/mlp_norm_stats.json
+      - data/processed/car_hacking/featured/test.parquet
+    params:
+      - model.mlp
+      - training.mlp
+      - mlflow.experiment_mlp
+    metrics:
+      - reports/metrics/mlp_classification_report.json:
+          cache: false

@@ -112,7 +112,7 @@ FedCAN-IDS/
 ├── scripts/              # Raw-data and feature-data audit utilities
 ├── src/
 │   ├── data/             # Ingestion, splitting, features, dataset loaders
-│   ├── model/            # Causal streaming model and KV memory
+│   ├── model/            # Streaming model and frame-level MLP
 │   ├── train_*.py        # Training entry points
 │   └── eval_*.py         # Evaluation entry points
 ├── tests/                # Data integrity and leakage tests
@@ -186,6 +186,10 @@ PYTHONPATH=src python src/data/feature.py
 # 2. Train and evaluate the streaming model
 PYTHONPATH=src python src/train_streaming.py
 PYTHONPATH=src python src/eval_streaming.py
+
+# 3. Train and evaluate the MLP baseline
+PYTHONPATH=src python src/train_mlp.py
+PYTHONPATH=src python src/eval_mlp.py
 ```
 
 
@@ -198,6 +202,8 @@ PYTHONPATH=src python src/eval_streaming.py
 | Feature | `src/data/feature.py` | Adds per-ID and 20 ms window-level temporal features. |
 | Streaming training | `src/train_streaming.py` | Trains the causal compressed-KV model. |
 | Streaming evaluation | `src/eval_streaming.py` | Evaluates frame-level streaming predictions. |
+| MLP training | `src/train_mlp.py` | Trains the Dense(16)-Dense(8)-Dense(8) baseline. |
+| MLP evaluation | `src/eval_mlp.py` | Evaluates frame-level MLP predictions. |
 
 ## Outputs
 
@@ -209,6 +215,9 @@ PYTHONPATH=src python src/eval_streaming.py
 | `checkpoints/streaming_best.keras` | Best streaming checkpoint selected by validation macro-F1. |
 | `checkpoints/streaming_final.keras` | Final streaming model. |
 | `checkpoints/streaming_norm_stats.json` | Train-derived feature normalization statistics. |
+| `checkpoints/mlp_best.keras` | Best frame-level MLP checkpoint selected by validation macro-F1. |
+| `checkpoints/mlp_final.keras` | Final frame-level MLP model. |
+| `reports/metrics/mlp_classification_report.json` | MLP test classification report. |
 | `reports/metrics/*_classification_report.json` | Accuracy, macro precision, macro recall, macro-F1, and per-class metrics. |
 | `reports/figures/*confusion_matrix*.png` | Raw and normalized confusion matrices. |
 
