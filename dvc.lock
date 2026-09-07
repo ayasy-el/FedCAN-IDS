@@ -15,19 +15,19 @@ stages:
     outs:
     - path: data/interim/car_hacking_with_session.parquet
       hash: md5
-      md5: 6f5b8ae355aa89e63ed7501c2d3a5562
-      size: 93003126
+      md5: fda0d8c482c8816c9ff1ad4a086ed5d9
+      size: 92995532
   split:
     cmd: PYTHONPATH=src python src/data/split.py
     deps:
     - path: data/interim/car_hacking_with_session.parquet
       hash: md5
-      md5: 6f5b8ae355aa89e63ed7501c2d3a5562
-      size: 93003126
+      md5: fda0d8c482c8816c9ff1ad4a086ed5d9
+      size: 92995532
     - path: src/data/split.py
       hash: md5
-      md5: a947e0746a969565184a64e7673da77a
-      size: 3728
+      md5: a08937394f0abedcda3696c873e44a9d
+      size: 4120
     - path: src/utils/params.py
       hash: md5
       md5: 98e8615f596061dc1866f43886f5072b
@@ -43,35 +43,35 @@ stages:
     outs:
     - path: data/processed/car_hacking/test.parquet
       hash: md5
-      md5: 4f11d5b83c8d122d87e6b0d1a0088d61
-      size: 18210043
+      md5: 02a8393c6c59752c1a42d1e8a3135487
+      size: 18203011
     - path: data/processed/car_hacking/train.parquet
       hash: md5
-      md5: 953cddb8033728457f2d4223511d714e
-      size: 57953687
+      md5: ad2b6627d88a1934236a16fcc7bd3025
+      size: 57929349
     - path: data/processed/car_hacking/val.parquet
       hash: md5
-      md5: 51a174ee9e3c0b687d22a97361b6e063
-      size: 16936948
+      md5: 6c93fb1013b9945f6e17ac8a1f4fbb3f
+      size: 16928898
   feature:
     cmd: PYTHONPATH=src python src/data/feature.py
     deps:
     - path: data/processed/car_hacking/test.parquet
       hash: md5
-      md5: 4f11d5b83c8d122d87e6b0d1a0088d61
-      size: 18210043
+      md5: 02a8393c6c59752c1a42d1e8a3135487
+      size: 18203011
     - path: data/processed/car_hacking/train.parquet
       hash: md5
-      md5: 953cddb8033728457f2d4223511d714e
-      size: 57953687
+      md5: ad2b6627d88a1934236a16fcc7bd3025
+      size: 57929349
     - path: data/processed/car_hacking/val.parquet
       hash: md5
-      md5: 51a174ee9e3c0b687d22a97361b6e063
-      size: 16936948
+      md5: 6c93fb1013b9945f6e17ac8a1f4fbb3f
+      size: 16928898
     - path: src/data/feature.py
       hash: md5
-      md5: da3e77ea9daec90f8727cae3cf30823b
-      size: 1346
+      md5: 56ba1562b2b21dab2b6d3807d575dee5
+      size: 1295
     - path: src/utils/params.py
       hash: md5
       md5: 98e8615f596061dc1866f43886f5072b
@@ -82,27 +82,27 @@ stages:
     outs:
     - path: data/processed/car_hacking/featured/test.parquet
       hash: md5
-      md5: 0ced536d1376082200b1530e3c6c08f9
-      size: 27883894
+      md5: c93dc5d3cf9b56db5c4ba0fab91ee456
+      size: 25122712
     - path: data/processed/car_hacking/featured/train.parquet
       hash: md5
-      md5: aa8f546f386a494b3a459451439710d9
-      size: 86100406
+      md5: 00c21303a0b6eca66921e3c465603724
+      size: 78173531
     - path: data/processed/car_hacking/featured/val.parquet
       hash: md5
-      md5: d74c15ffd2ff3aff85fbe7a8b50d9d36
-      size: 26133065
+      md5: 5274f5839e64c8c3279ad77dc99c58a5
+      size: 23493978
   train_mlp:
     cmd: PYTHONPATH=src python src/train_mlp.py
     deps:
     - path: data/processed/car_hacking/featured/train.parquet
       hash: md5
-      md5: aa8f546f386a494b3a459451439710d9
-      size: 86100406
+      md5: 00c21303a0b6eca66921e3c465603724
+      size: 78173531
     - path: data/processed/car_hacking/featured/val.parquet
       hash: md5
-      md5: d74c15ffd2ff3aff85fbe7a8b50d9d36
-      size: 26133065
+      md5: 5274f5839e64c8c3279ad77dc99c58a5
+      size: 23493978
     - path: src/data/mlp_dataset.py
       hash: md5
       md5: f67ad4699587149df33a9913b3e46e62
@@ -117,16 +117,16 @@ stages:
       size: 646
     - path: src/train_mlp.py
       hash: md5
-      md5: bf71ef8ed3ba818c230da37d4835018f
-      size: 2400
+      md5: 4558c5f9fae172faa4541c0b7b04b602
+      size: 2827
     - path: src/utils/metrics.py
       hash: md5
-      md5: c70e8399a88e6c3ed7d71241dcf73719
-      size: 3168
+      md5: aafe9f821ce70b287fad5f98de57f32e
+      size: 5993
     - path: src/utils/mlflow_utils.py
       hash: md5
-      md5: aecee8f5ec40579dfe1542ad21b20062
-      size: 1708
+      md5: de2a8446ad70b3c687fbbb3c6c17d390
+      size: 4096
     - path: src/utils/params.py
       hash: md5
       md5: 98e8615f596061dc1866f43886f5072b
@@ -144,31 +144,43 @@ stages:
     outs:
     - path: checkpoints/mlp_best.keras
       hash: md5
-      md5: 0c7605716c63d5abec279c9aac4ab5f4
-      size: 40762
+      md5: 30a3f123f10a94b6b6ad340892f1c7e4
+      size: 41103
     - path: checkpoints/mlp_final.keras
       hash: md5
-      md5: 5714246ab80b77f007b4990fcccb85ab
-      size: 40762
+      md5: c27c599f03400f819355e896e3adb178
+      size: 41103
     - path: checkpoints/mlp_norm_stats.json
       hash: md5
       md5: ddc01acadd3ab258f2d91298b91fdd1d
       size: 552
+    - path: reports/metrics/mlp_best_training_metrics.json
+      hash: md5
+      md5: 261dbac49a783b01831e8d7867d86031
+      size: 511
   eval_mlp:
     cmd: PYTHONPATH=src python src/eval_mlp.py
     deps:
     - path: checkpoints/mlp_best.keras
       hash: md5
-      md5: 0c7605716c63d5abec279c9aac4ab5f4
-      size: 40762
+      md5: 30a3f123f10a94b6b6ad340892f1c7e4
+      size: 41103
     - path: checkpoints/mlp_norm_stats.json
       hash: md5
       md5: ddc01acadd3ab258f2d91298b91fdd1d
       size: 552
     - path: data/processed/car_hacking/featured/test.parquet
       hash: md5
-      md5: 0ced536d1376082200b1530e3c6c08f9
-      size: 27883894
+      md5: c93dc5d3cf9b56db5c4ba0fab91ee456
+      size: 25122712
+    - path: data/processed/car_hacking/featured/train.parquet
+      hash: md5
+      md5: 00c21303a0b6eca66921e3c465603724
+      size: 78173531
+    - path: reports/metrics/mlp_best_training_metrics.json
+      hash: md5
+      md5: 261dbac49a783b01831e8d7867d86031
+      size: 511
     - path: src/data/mlp_dataset.py
       hash: md5
       md5: f67ad4699587149df33a9913b3e46e62
@@ -179,16 +191,20 @@ stages:
       size: 4582
     - path: src/eval_mlp.py
       hash: md5
-      md5: 658b633548728d6e6141d79e60444551
-      size: 8023
+      md5: 116c28102600a370e3bdd3eee2d98047
+      size: 7909
+    - path: src/utils/eval_reporting.py
+      hash: md5
+      md5: 7da2803fdc99557e735e9fc7246c12dc
+      size: 9390
     - path: src/utils/metrics.py
       hash: md5
-      md5: c70e8399a88e6c3ed7d71241dcf73719
-      size: 3168
+      md5: aafe9f821ce70b287fad5f98de57f32e
+      size: 5993
     - path: src/utils/mlflow_utils.py
       hash: md5
-      md5: aecee8f5ec40579dfe1542ad21b20062
-      size: 1708
+      md5: de2a8446ad70b3c687fbbb3c6c17d390
+      size: 4096
     - path: src/utils/params.py
       hash: md5
       md5: 98e8615f596061dc1866f43886f5072b
@@ -204,7 +220,27 @@ stages:
           epochs: 20
           learning_rate: 0.001
     outs:
+    - path: reports/figures/mlp_eval_confusion_matrix.png
+      hash: md5
+      md5: f7b760a0d8eaf08b366720f71529e657
+      size: 144288
+    - path: reports/figures/mlp_test_confusion_matrix.png
+      hash: md5
+      md5: 095ff717a3c8ba417b4f99c6d4aee0cb
+      size: 148197
+    - path: reports/figures/mlp_test_confusion_matrix_counts.png
+      hash: md5
+      md5: c5dba47964c38c0c26505a21ea0c3f02
+      size: 148031
+    - path: reports/figures/mlp_train_confusion_matrix.png
+      hash: md5
+      md5: 6d2b7ef7426bf8871c4d549e426816e8
+      size: 149339
     - path: reports/metrics/mlp_classification_report.json
       hash: md5
-      md5: 93a30cd55db938f28241ffcda4efd45c
-      size: 2705
+      md5: 11efb90457182e51c35d44557f67b4f1
+      size: 2325
+    - path: reports/metrics/mlp_classification_report.txt
+      hash: md5
+      md5: bd1bfdbfbcb3c6cae24ce5aed5cd6d91
+      size: 1151

@@ -1,0 +1,29 @@
+Model: mlp
+
+TEST METRICS
+------------
+loss                : 0.156909
+accuracy            : 0.979921
+precision_macro     : 0.775548
+recall_macro        : 0.599623
+f1_macro            : 0.604427
+
+CHECKPOINT VS TEST
+-------------------
+Best checkpoint epoch: 5
+
+split                      loss       accuracy   precision   recall      f1
+best_train                   0.038034   0.990470   0.949776   0.862697   0.889248
+best_validation              0.119096   0.983715   0.766627   0.598761   0.602312
+test                         0.156909   0.979921   0.775548   0.599623   0.604427
+
+CLASSIFICATION REPORT
+----------------------
+class                 precision   recall      f1          support
+Normal                 0.979251   0.999202   0.989126   1,551,210
+Flooding               1.000000   0.999974   0.999987     77,508
+Fuzzing                0.976312   0.967254   0.971762     45,380
+Spoofing               0.042308   0.001903   0.003642      5,780
+Replay                 0.879867   0.029783   0.057615     26,559
+macro avg              0.775547   0.599623   0.604427   1,706,437
+weighted avg           0.975395   0.979921   0.971322   1,706,437
