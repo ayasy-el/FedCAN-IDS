@@ -18,12 +18,21 @@ from utils.params import load_params
 dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
 
+# ==========================================================
+# Load params.yaml
+# ==========================================================
+
 dataset = load_params("dataset")
 model_params = load_params("model.mlp")
 training = load_params("training.mlp")
 mlflow_params = load_params("mlflow")
 stats_path = "checkpoints/mlp_norm_stats.json"
 best_metrics_path = "reports/metrics/mlp_best_training_metrics.json"
+
+
+# ==========================================================
+# Dataset
+# ==========================================================
 
 train = MLPCANDataset(
     f"{dataset['featured_dir']}/train.parquet",
@@ -40,6 +49,12 @@ val = MLPCANDataset(
     model_params["can_id_bits"],
     training["batch_size"],
 )
+
+
+# ==========================================================
+# Model and build
+# ==========================================================
+
 model = build_mlp(train.input_dim, model_params["num_classes"])
 model.compile(
     optimizer=keras.optimizers.Adam(training["learning_rate"]),
@@ -52,6 +67,12 @@ model.compile(
     ],
 )
 model.summary()
+
+
+# ==========================================================
+# MLflow tracking
+# ==========================================================
+
 mlflow.set_tracking_uri(mlflow_params["tracking_uri"])
 mlflow.set_experiment(mlflow_params["experiment_mlp"])
 with mlflow.start_run() as run:

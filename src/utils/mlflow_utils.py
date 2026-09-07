@@ -1,18 +1,3 @@
-"""
-The module provides two main components:
-
-1. `MlflowEpochLogger`
-   A Keras callback that logs all epoch-level metrics and losses to the
-   currently active MLflow run. Used by the training scripts.
-
-2. `save_run_id` / `load_run_id`
-   Persist and retrieve the MLflow run ID so evaluation scripts can resume
-   the same run created during training. This keeps training metrics
-   (e.g. loss and accuracy) and final evaluation metrics (e.g.
-   per-class precision, recall, and F1) in a single MLflow run, making
-   them easier to inspect and compare in the MLflow UI.
-"""
-
 import json
 from pathlib import Path
 
@@ -41,14 +26,6 @@ def log_artifact_organized(path: str | Path, artifact_dir: str | None = None):
 
 
 class MlflowEpochLogger(keras.callbacks.Callback):
-    """
-    Log all metrics reported by Keras at the end of each epoch.
-
-    This includes standard metrics such as `loss`, `val_loss`, and
-    `accuracy`, as well as any custom metrics configured in
-    `model.compile()`.
-    """
-
     def on_epoch_end(self, epoch, logs=None):
         if not logs:
             return
@@ -59,8 +36,6 @@ class MlflowEpochLogger(keras.callbacks.Callback):
 
 
 class BestEpochMetrics(keras.callbacks.Callback):
-    """Persist every metric from the epoch selected by ModelCheckpoint."""
-
     def __init__(self, output_path: str, monitor="val_f1_macro", mode="max"):
         super().__init__()
         self.output_path = Path(output_path)
@@ -74,9 +49,7 @@ class BestEpochMetrics(keras.callbacks.Callback):
         if self.best_value is None:
             return True
         return (
-            value > self.best_value
-            if self.mode == "max"
-            else value < self.best_value
+            value > self.best_value if self.mode == "max" else value < self.best_value
         )
 
     def on_epoch_end(self, epoch, logs=None):

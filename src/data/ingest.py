@@ -1,5 +1,6 @@
-import polars as pl
 from pathlib import Path
+
+import polars as pl
 
 subclass_map = {
     "Normal": 0,
@@ -13,12 +14,6 @@ df = (
     pl.concat(
         (
             # session_id = nama file asal (mis. "Pre_train_D_1").
-            # WAJIB ada sebelum split & feature engineering karena Timestamp
-            # antar file TIDAK sinkron (sebagian relatif ke awal capture,
-            # sebagian epoch absolut, dan beda sesi capture beda pula epoch-nya).
-            # Semua operasi urutan-sensitif (sort, diff, shift, window) di
-            # tahap berikutnya harus dipartisi per session_id, tidak pernah
-            # dibandingkan lintas sesi.
             pl.scan_csv(f).with_columns(
                 pl.lit(f.stem).alias("session_id")
             )
@@ -87,7 +82,7 @@ df = (
         "Class",
     )
 
-    # row_id unik global, berguna untuk unit test anti-leakage
+    # row_id unik global, untuk unit test anti-leakage
     # (memastikan tidak ada baris yang sama muncul di lebih dari satu split)
     .with_row_index("row_id")
 )

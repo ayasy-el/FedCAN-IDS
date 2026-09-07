@@ -1,7 +1,7 @@
 """Dense MLP baseline for frame-level CAN intrusion classification."""
 
-from tensorflow import keras
 from keras import layers
+from tensorflow import keras
 
 
 def build_mlp(input_dim: int, n_classes: int) -> keras.Model:

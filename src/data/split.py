@@ -4,6 +4,10 @@ import polars as pl
 
 from utils.params import load_params
 
+# ==========================================================
+# Load split configuration
+# ==========================================================
+
 _split_params = load_params("split")
 
 VAL_SESSIONS = _split_params["val_sessions"]
@@ -11,6 +15,11 @@ TEST_SESSIONS = _split_params["test_sessions"]
 # Training uses all sessions not explicitly assigned to validation or test.
 
 _dataset_params = load_params("dataset")
+
+
+# ==========================================================
+# Load interim dataset
+# ==========================================================
 
 input_path = Path(_dataset_params["interim_path"])
 output_dir = Path(_dataset_params["processed_dir"])
@@ -20,6 +29,10 @@ df = pl.read_parquet(input_path)
 
 all_sessions = set(df["session_id"].unique().to_list())
 
+
+# ==========================================================
+# Validate session assignments
+# ==========================================================
 
 # Validate that all configured sessions exist in the dataset.
 for name, sessions in [
@@ -43,6 +56,11 @@ if overlap:
 
 train_sessions = sorted(all_sessions - set(VAL_SESSIONS) - set(TEST_SESSIONS))
 
+
+# ==========================================================
+# Prepare split metadata
+# ==========================================================
+
 sessions_by_split = {
     "train": train_sessions,
     "val": VAL_SESSIONS,
@@ -52,6 +70,10 @@ sessions_by_split = {
 expected_classes = set(df["Class"].unique().to_list())
 total_rows = len(df)
 
+
+# ==========================================================
+# Print session statistics
+# ==========================================================
 
 # Collect per-session statistics for reproducibility and sanity checks.
 session_stats = (
@@ -83,11 +105,20 @@ def select_sessions(session_ids: list[str]) -> pl.DataFrame:
     )
 
 
+# ==========================================================
+# Build train, validation, and test datasets
+# ==========================================================
+
 train_df = select_sessions(sessions_by_split["train"])
 val_df = select_sessions(sessions_by_split["val"])
 test_df = select_sessions(sessions_by_split["test"])
 
 splits = {"train": train_df, "val": val_df, "test": test_df}
+
+
+# ==========================================================
+# Audit split proportions and class distribution
+# ==========================================================
 
 print("\nRow proportions:")
 for name, split_df in splits.items():
@@ -137,6 +168,10 @@ if any_missing:
 else:
     print("\nOK: all classes are represented in train, validation, and test.")
 
+
+# ==========================================================
+# Save split datasets
+# ==========================================================
 
 train_df.write_parquet(output_dir / "train.parquet", compression="zstd")
 val_df.write_parquet(output_dir / "val.parquet", compression="zstd")

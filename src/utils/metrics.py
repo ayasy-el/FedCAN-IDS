@@ -1,40 +1,8 @@
-"""
-Custom metric untuk training model streaming.
-
-Metric di modul ini dipakai oleh model MLP dan streaming supaya nama serta
-definisi metric train/validation/test konsisten.
-
-Cara pakai nanti (saat bug #4 dikerjakan):
-
-    from utils.metrics import MacroF1Score, MacroPrecision, MacroRecall
-
-    model.compile(..., metrics=["accuracy", MacroPrecision(5),
-                                MacroRecall(5), MacroF1Score(5)])
-
-    callbacks = [
-        keras.callbacks.ModelCheckpoint(
-            filepath="checkpoints/streaming_best.keras",
-            monitor="val_f1_macro",
-            mode="max",
-            save_best_only=True,
-        ),
-    ]
-"""
-
 import tensorflow as tf
 from tensorflow import keras
 
 
 class MacroF1Score(keras.metrics.Metric):
-    """
-    Macro-averaged F1 score untuk klasifikasi multi-kelas.
-
-    Berbeda dari accuracy, metric ini tidak bias ke kelas mayoritas --
-    kelas minoritas (attack) diberi bobot yang sama dengan kelas mayoritas
-    (Normal) saat dirata-ratakan, sehingga lebih representatif untuk
-    memilih checkpoint terbaik pada dataset yang imbalanced.
-    """
-
     def __init__(self, num_classes: int, name="f1_macro", **kwargs):
         super().__init__(name=name, **kwargs)
 
@@ -93,8 +61,6 @@ class MacroF1Score(keras.metrics.Metric):
 
 
 class _MacroPrecisionRecall(keras.metrics.Metric):
-    """Base metric untuk macro precision/recall berbasis confusion counts."""
-
     result_kind = "precision"
 
     def __init__(self, num_classes: int, name: str, **kwargs):
@@ -152,8 +118,6 @@ class _MacroPrecisionRecall(keras.metrics.Metric):
 
 
 class MacroPrecision(_MacroPrecisionRecall):
-    """Macro-averaged precision untuk klasifikasi multi-kelas."""
-
     result_kind = "precision"
 
     def __init__(self, num_classes: int, name="precision_macro", **kwargs):
@@ -161,8 +125,6 @@ class MacroPrecision(_MacroPrecisionRecall):
 
 
 class MacroRecall(_MacroPrecisionRecall):
-    """Macro-averaged recall untuk klasifikasi multi-kelas."""
-
     result_kind = "recall"
 
     def __init__(self, num_classes: int, name="recall_macro", **kwargs):
