@@ -7,7 +7,12 @@ import numpy as np
 import polars as pl
 import tensorflow as tf
 
-from data.streaming_dataset import _hex
+
+
+def _hex(value, pad=0):
+    if value is None or value == "PAD":
+        return pad
+    return int(value, 16) if isinstance(value, str) else int(value)
 
 
 def _features(df: pl.DataFrame, can_id_bits: int = 11) -> tuple[np.ndarray, np.ndarray]:

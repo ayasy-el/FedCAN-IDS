@@ -1,7 +1,7 @@
 # FedCAN-IDS
 
 <p align="center">
-  <strong>Streaming Causal Intrusion Detection for Controller Area Network traffic</strong>
+  <strong>FedCAN-IDS: CAN intrusion detection with frame and window MLP models</strong>
 </p>
 
 <p align="center">
@@ -13,8 +13,8 @@
 </p>
 
 FedCAN-IDS is a machine-learning pipeline for detecting attacks in automotive
-CAN bus traffic. It uses a lightweight causal model that classifies one frame
-at a time with compressed global and same-ID KV memory.
+CAN bus traffic. It provides a lightweight single-frame MLP baseline and a
+session-aware sliding-window MLP for learning patterns across CAN frames.
 
 The project is built around reproducible data processing with DVC, configurable
 experiments through `params.yaml`, and MLflow tracking through DagsHub.
@@ -43,9 +43,8 @@ experiments through `params.yaml`, and MLflow tracking through DagsHub.
 
 ## Key features
 
-- Single-frame causal inference with global (64) and same-ID (16) KV memory.
-- 11-bit CAN-ID representation projected with Dense(8), plus 11 numerical
-  frame/timing features projected with Dense(24).
+- Single-frame MLP baseline for frame-level classification.
+- Sliding-window MLP using 16 frames with stride 8 and hidden layers [32, 16].
 - Session-aware processing to prevent cross-capture temporal leakage.
 - Chronological train/validation/test splitting with row-level leakage checks.
 - Train-only normalization statistics reused for validation and test data.
@@ -69,27 +68,22 @@ Session-aware chronological split
         ▼
 Temporal feature engineering
         │
-        ├──────────────────────────────┐
-        ▼                              ▼
-Spatial Transformer              Sequence construction
-        │                              │
-        │                              ▼
-        │                         Temporal features
-        │                              │
-        └──────────────┬───────────────┘
-                       ▼
-                 Temporal GRU
-                       │
-                       ▼
-                   Classifier
+        ├───────────────┬───────────────┐
+        ▼               ▼               │
+   Single-frame    16-frame window     │
+      MLP          stride 8            │
+        │               │               │
+        └───────────────┴───────────────┘
+                        ▼
+                    Classifier
 ```
 
-Training uses chronological chunks for truncated backpropagation through time;
-each frame in a chunk is still processed sequentially and causally.
+The window model never crosses a `session_id` boundary and uses the final frame
+in each window as its target label. The single-frame model remains available as
+a baseline.
 
-Temporal normalization statistics are computed from the training split only
-and stored in `checkpoints/temporal_norm_stats.json`. Validation and test data
-reuse those statistics to avoid data leakage.
+Normalization statistics are computed from the training split only. Validation
+and test data reuse the corresponding model statistics to avoid data leakage.
 
 ## Supported classes
 
@@ -112,7 +106,7 @@ FedCAN-IDS/
 ├── scripts/              # Raw-data and feature-data audit utilities
 ├── src/
 │   ├── data/             # Ingestion, splitting, features, dataset loaders
-│   ├── model/            # Streaming model and frame-level MLP
+│   ├── model/            # Single-frame and sliding-window MLP models
 │   ├── train_*.py        # Training entry points
 │   └── eval_*.py         # Evaluation entry points
 ├── tests/                # Data integrity and leakage tests
@@ -183,13 +177,13 @@ python src/data/ingest.py
 PYTHONPATH=src python src/data/split.py
 PYTHONPATH=src python src/data/feature.py
 
-# 2. Train and evaluate the streaming model
-PYTHONPATH=src python src/train_streaming.py
-PYTHONPATH=src python src/eval_streaming.py
-
-# 3. Train and evaluate the MLP baseline
+# 2. Train and evaluate the single-frame MLP baseline
 PYTHONPATH=src python src/train_mlp.py
 PYTHONPATH=src python src/eval_mlp.py
+
+# 3. Train and evaluate the sliding-window MLP
+PYTHONPATH=src python src/train_mlp_window.py
+PYTHONPATH=src python src/eval_mlp_window.py
 ```
 
 
@@ -200,10 +194,10 @@ PYTHONPATH=src python src/eval_mlp.py
 | Ingest | `src/data/ingest.py` | Reads CSV files, normalizes labels, encodes payload bytes, and writes an interim Parquet dataset. |
 | Split | `src/data/split.py` | Creates chronological train, validation, and test splits without duplicated `row_id` values. |
 | Feature | `src/data/feature.py` | Adds per-ID and 20 ms window-level temporal features. |
-| Streaming training | `src/train_streaming.py` | Trains the causal compressed-KV model. |
-| Streaming evaluation | `src/eval_streaming.py` | Evaluates frame-level streaming predictions. |
-| MLP training | `src/train_mlp.py` | Trains the Dense(16)-Dense(8)-Dense(8) baseline. |
-| MLP evaluation | `src/eval_mlp.py` | Evaluates frame-level MLP predictions. |
+| MLP training | `src/train_mlp.py` | Trains the single-frame baseline. |
+| MLP evaluation | `src/eval_mlp.py` | Evaluates single-frame predictions. |
+| Window MLP training | `src/train_mlp_window.py` | Trains the session-aware sliding-window model. |
+| Window MLP evaluation | `src/eval_mlp_window.py` | Evaluates sliding-window predictions. |
 
 ## Outputs
 
@@ -212,11 +206,10 @@ PYTHONPATH=src python src/eval_mlp.py
 | `data/interim/car_hacking_with_session.parquet` | Ingested dataset with session IDs and encoded labels. |
 | `data/processed/car_hacking/{train,val,test}.parquet` | Raw-frame dataset splits. |
 | `data/processed/car_hacking/featured/{train,val,test}.parquet` | Splits with engineered temporal features. |
-| `checkpoints/streaming_best.keras` | Best streaming checkpoint selected by validation macro-F1. |
-| `checkpoints/streaming_final.keras` | Final streaming model. |
-| `checkpoints/streaming_norm_stats.json` | Train-derived feature normalization statistics. |
-| `checkpoints/mlp_best.keras` | Best frame-level MLP checkpoint selected by validation macro-F1. |
-| `checkpoints/mlp_final.keras` | Final frame-level MLP model. |
+| `checkpoints/mlp_best.keras` | Best single-frame MLP checkpoint selected by validation macro-F1. |
+| `checkpoints/mlp_final.keras` | Final single-frame MLP model. |
+| `checkpoints/mlp_window_best.keras` | Best sliding-window MLP checkpoint. |
+| `checkpoints/mlp_window_final.keras` | Final sliding-window MLP model. |
 | `reports/metrics/mlp_classification_report.json` | MLP test classification report. |
 | `reports/metrics/*_classification_report.json` | Accuracy, macro precision, macro recall, macro-F1, and per-class metrics. |
 | `reports/figures/*_confusion_matrix.png` | Percentage confusion matrices by split. |
@@ -229,8 +222,8 @@ All primary settings are defined in [`params.yaml`](params.yaml):
 - dataset paths;
 - validation and test session configuration;
 - temporal feature window size;
-- Spatial Transformer and hybrid model dimensions;
-- sequence length and GRU size;
+- single-frame MLP settings;
+- sliding-window MLP window size, stride, and hidden dimensions;
 - batch sizes, learning rates, and epoch counts;
 - MLflow tracking URI and experiment names.
 

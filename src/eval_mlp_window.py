@@ -3,10 +3,9 @@ from pathlib import Path
 import dagshub
 import mlflow
 import numpy as np
-import tensorflow as tf
+from tensorflow import keras
 
-from data.streaming_dataset import StreamingCANDataset
-from model.streaming_ids import StreamingCANIDS
+from data.mlp_window_dataset import MLPWindowDataset
 from utils.eval_reporting import (
     build_evaluation_report,
     calculate_classification_metrics,
@@ -16,7 +15,9 @@ from utils.eval_reporting import (
     save_confusion_matrix_figure,
     save_json_report,
     save_text_report,
+    stratified_sample_indices,
 )
+from utils.metrics import MacroF1Score, MacroPrecision, MacroRecall
 from utils.mlflow_utils import load_run_id
 from utils.params import load_params
 
@@ -28,8 +29,8 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 # ==========================================================
 
 dataset_params = load_params("dataset")
-model_params = load_params("model.streaming")
-training_params = load_params("training.streaming")
+model_params = load_params("model.mlp_window")
+training_params = load_params("training.mlp_window")
 mlflow_params = load_params("mlflow")
 
 
@@ -38,68 +39,75 @@ mlflow_params = load_params("mlflow")
 # ==========================================================
 
 TEST_PATH = f"{dataset_params['featured_dir']}/test.parquet"
-MODEL_PATH = "checkpoints/streaming_best.keras"
-NORMALIZE_STATS_PATH = "checkpoints/streaming_norm_stats.json"
-RUN_ID_PATH = "checkpoints/streaming_mlflow_run_id.txt"
-BEST_TRAINING_METRICS_PATH = "reports/metrics/streaming_best_training_metrics.json"
+TRAIN_PATH = f"{dataset_params['featured_dir']}/train.parquet"
+MODEL_PATH = "checkpoints/mlp_window_best.keras"
+NORMALIZE_STATS_PATH = "checkpoints/mlp_window_norm_stats.json"
+BEST_TRAINING_METRICS_PATH = "reports/metrics/mlp_window_best_training_metrics.json"
+RUN_ID_PATH = "checkpoints/mlp_window_mlflow_run_id.txt"
 CLASS_NAMES = ["Normal", "Flooding", "Fuzzing", "Spoofing", "Replay"]
+SAMPLE_SIZE = 10_000
+SAMPLE_SEED = 42
 
 # Semua output evaluasi disimpan agar hasil antar-run dapat dibandingkan.
 REPORTS_METRICS_DIR = Path("reports/metrics")
 REPORTS_FIGURES_DIR = Path("reports/figures")
 REPORTS_METRICS_DIR.mkdir(parents=True, exist_ok=True)
 REPORTS_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-METRICS_JSON_PATH = REPORTS_METRICS_DIR / "streaming_classification_report.json"
-METRICS_TEXT_PATH = REPORTS_METRICS_DIR / "streaming_classification_report.txt"
-TEST_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "streaming_test_confusion_matrix.png"
+METRICS_JSON_PATH = REPORTS_METRICS_DIR / "mlp_window_classification_report.json"
+METRICS_TEXT_PATH = REPORTS_METRICS_DIR / "mlp_window_classification_report.txt"
+TRAIN_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "mlp_window_train_confusion_matrix.png"
+EVAL_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "mlp_window_eval_confusion_matrix.png"
+TEST_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "mlp_window_test_confusion_matrix.png"
 TEST_CONFUSION_MATRIX_COUNTS_PATH = (
-    REPORTS_FIGURES_DIR / "streaming_test_confusion_matrix_counts.png"
+    REPORTS_FIGURES_DIR / "mlp_window_test_confusion_matrix_counts.png"
 )
 
 mlflow.set_tracking_uri(mlflow_params["tracking_uri"])
-mlflow.set_experiment(mlflow_params["experiment_streaming"])
+mlflow.set_experiment(mlflow_params["experiment_mlp_window"])
 
 
 # ==========================================================
 # Dataset
 # ==========================================================
 
-test_dataset = StreamingCANDataset(
-    f"{dataset_params['featured_dir']}/test.parquet",
-    chunk_len=training_params["chunk_len"],
+train_dataset = MLPWindowDataset(
+    TRAIN_PATH,
+    normalize_stats_path=NORMALIZE_STATS_PATH,
+    fit_normalize_stats=False,  # gunakan statistik train yang sudah dibuat saat training
+    can_id_bits=model_params["can_id_bits"],
     batch_size=training_params["batch_size"],
     shuffle=False,
+    window_size=model_params["window_size"],
+    stride=model_params["stride"],
+)
+test_dataset = MLPWindowDataset(
+    TEST_PATH,
     normalize_stats_path=NORMALIZE_STATS_PATH,
     fit_normalize_stats=False,  # gunakan statistik train, jangan hitung ulang
+    can_id_bits=model_params["can_id_bits"],
+    batch_size=training_params["batch_size"],
+    shuffle=False,
+    window_size=model_params["window_size"],
+    stride=model_params["stride"],
 )
 test_tf = test_dataset.to_tf_dataset()
 
 
 # ==========================================================
-# Build model, load weights, and initialize streaming state
+# Load model
 # ==========================================================
 
-model = StreamingCANIDS(**model_params)
-model(
-    {
-        "can_id": tf.zeros(
-            (training_params["batch_size"], training_params["chunk_len"]),
-            dtype=tf.int32,
-        ),
-        "numeric": tf.zeros(
-            (training_params["batch_size"], training_params["chunk_len"], 11),
-            dtype=tf.float32,
-        ),
-        "stream_id": tf.fill((training_params["batch_size"],), b"build"),
-        "valid_mask": tf.ones(
-            (training_params["batch_size"], training_params["chunk_len"]),
-            dtype=tf.float32,
-        ),
-    }
-)
+model = keras.models.load_model(MODEL_PATH, compile=False)
 model.summary()
-model.load_weights(MODEL_PATH)
-model.initialize_stream_state(training_params["batch_size"])
+model.compile(
+    loss="sparse_categorical_crossentropy",
+    metrics=[
+        "accuracy",
+        MacroPrecision(model_params["num_classes"]),
+        MacroRecall(model_params["num_classes"]),
+        MacroF1Score(model_params["num_classes"]),
+    ],
+)
 print(f"\nModel loaded successfully: {MODEL_PATH}")
 
 
@@ -107,15 +115,7 @@ print(f"\nModel loaded successfully: {MODEL_PATH}")
 # Compile and evaluate
 # ==========================================================
 
-# State KV persistent adalah resource variable. XLA harus dimatikan agar
-# resource CPU tidak diakses dari graph GPU yang terkompilasi otomatis.
-model.compile(jit_compile=False)
-test_results = model.evaluate(
-    test_tf,
-    steps=test_dataset.num_samples,
-    verbose=1,
-    return_dict=True,
-)
+test_results = model.evaluate(test_tf, verbose=1, return_dict=True)
 
 print("\nKeras evaluation:")
 for name, value in test_results.items():
@@ -126,24 +126,49 @@ for name, value in test_results.items():
 # Predict
 # ==========================================================
 
-model.reset_stream_state()
-logits = model.predict(
-    test_tf,
-    steps=test_dataset.num_samples,
-    verbose=1,
+predictions = model.predict(test_tf, verbose=1)
+y_true = test_dataset.y
+y_pred = np.argmax(np.asarray(predictions), axis=-1)
+
+
+train_sample_indices = stratified_sample_indices(
+    train_dataset.y, SAMPLE_SIZE, SAMPLE_SEED
 )
-
-# Generator deterministic: pass kedua mengambil label dan valid_mask yang
-# sama dengan prediction pass, termasuk filtering padding antar-session.
-y_true_batches, valid_batches = [], []
-for batch, labels in test_dataset.to_tf_dataset():
-    y_true_batches.append(labels.numpy())
-    valid_batches.append(batch["valid_mask"].numpy().astype(bool))
-
-y_true = np.concatenate(y_true_batches, axis=0)
-valid_mask = np.concatenate(valid_batches, axis=0)
-y_pred = np.argmax(np.asarray(logits), axis=-1)
-y_true, y_pred = y_true[valid_mask], y_pred[valid_mask]
+eval_sample_indices = stratified_sample_indices(
+    test_dataset.y, SAMPLE_SIZE, SAMPLE_SEED + 1
+)
+train_sample_predictions = np.argmax(
+    model.predict(train_dataset.x[train_sample_indices], verbose=0), axis=-1
+)
+eval_sample_predictions = np.argmax(
+    model.predict(test_dataset.x[eval_sample_indices], verbose=0), axis=-1
+)
+train_confusion_matrix_counts, train_confusion_matrix = calculate_confusion_matrices(
+    train_dataset.y[train_sample_indices],
+    train_sample_predictions,
+    len(CLASS_NAMES),
+)
+eval_confusion_matrix_counts, eval_confusion_matrix = calculate_confusion_matrices(
+    test_dataset.y[eval_sample_indices],
+    eval_sample_predictions,
+    len(CLASS_NAMES),
+)
+save_confusion_matrix_figure(
+    train_confusion_matrix,
+    TRAIN_CONFUSION_MATRIX_PATH,
+    CLASS_NAMES,
+    "MLP Window Train Confusion Matrix",
+    percentage=True,
+)
+save_confusion_matrix_figure(
+    eval_confusion_matrix,
+    EVAL_CONFUSION_MATRIX_PATH,
+    CLASS_NAMES,
+    "MLP Window Eval Confusion Matrix",
+    percentage=True,
+)
+print(f"Train confusion matrix disimpan ke: {TRAIN_CONFUSION_MATRIX_PATH}")
+print(f"Eval confusion matrix disimpan ke: {EVAL_CONFUSION_MATRIX_PATH}")
 
 
 # ==========================================================
@@ -159,11 +184,6 @@ for key in ("accuracy", "precision_macro", "recall_macro", "f1_macro"):
 print("\nClassification Report\n")
 print(test_metrics["classification_report_text"])
 
-
-# ==========================================================
-# Confusion matrices
-# ==========================================================
-
 test_confusion_matrix_counts, test_confusion_matrix = calculate_confusion_matrices(
     y_true, y_pred, len(CLASS_NAMES)
 )
@@ -173,14 +193,14 @@ save_confusion_matrix_figure(
     test_confusion_matrix_counts,
     TEST_CONFUSION_MATRIX_COUNTS_PATH,
     CLASS_NAMES,
-    "Streaming Test Confusion Matrix Counts",
+    "MLP Window Test Confusion Matrix Counts",
     percentage=False,
 )
 save_confusion_matrix_figure(
     test_confusion_matrix,
     TEST_CONFUSION_MATRIX_PATH,
     CLASS_NAMES,
-    "Streaming Test Confusion Matrix",
+    "MLP Window Test Confusion Matrix",
     percentage=True,
 )
 
@@ -189,11 +209,12 @@ save_confusion_matrix_figure(
 # Save report
 # ==========================================================
 
+best_training_report = load_best_training_metrics(BEST_TRAINING_METRICS_PATH)
 full_report = build_evaluation_report(
-    model_name="causal_compressed_kv",
+    model_name="mlp_window",
     test_results=test_results,
     class_names=CLASS_NAMES,
-    best_training_report=load_best_training_metrics(BEST_TRAINING_METRICS_PATH),
+    best_training_report=best_training_report,
     test_classification_report=test_metrics["classification_report"],
 )
 save_json_report(full_report, METRICS_JSON_PATH)
@@ -213,6 +234,8 @@ run_id = log_evaluation_to_mlflow(
     artifact_paths=[
         TEST_CONFUSION_MATRIX_COUNTS_PATH,
         TEST_CONFUSION_MATRIX_PATH,
+        TRAIN_CONFUSION_MATRIX_PATH,
+        EVAL_CONFUSION_MATRIX_PATH,
         METRICS_TEXT_PATH,
     ],
 )

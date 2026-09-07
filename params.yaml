@@ -17,35 +17,28 @@ feature:
   window_ms: 0
 
 model:
-  streaming:
-    d_model: 32
-    can_id_bits: 11
-    can_id_projection_dim: 8
-    numeric_dim: 11
-    numeric_projection_dim: 24
-    d_qk: 8
-    d_v: 8
-    global_memory: 64
-    same_id_memory: 16
-    num_ids: 2048
-    num_classes: 5
-    dropout: 0.1
   mlp:
     can_id_bits: 11
     num_classes: 5
+  mlp_window:
+    can_id_bits: 11
+    num_classes: 5
+    window_size: 16
+    stride: 8
+    hidden_dims: [32, 16]
+    dropout: 0.2
 
 training:
-  streaming:
-    batch_size: 5
-    chunk_len: 256
+  mlp:
+    batch_size: 256
     epochs: 20
     learning_rate: 0.001
-  mlp:
+  mlp_window:
     batch_size: 256
     epochs: 20
     learning_rate: 0.001
 
 mlflow:
   tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
-  experiment_streaming: "can_ids_streaming"
   experiment_mlp: "can_ids_mlp"
+  experiment_mlp_window: "can_ids_mlp_window"

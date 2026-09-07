@@ -36,62 +36,11 @@ stages:
       - data/processed/car_hacking/featured/val.parquet
       - data/processed/car_hacking/featured/test.parquet
 
-  train_streaming:
-    cmd: PYTHONPATH=src python src/train_streaming.py
-    deps:
-      - src/train_streaming.py
-      - src/data/streaming_dataset.py
-      - src/model/streaming_ids.py
-      - src/utils/eval_reporting.py
-      - src/utils/params.py
-      - src/utils/mlflow_utils.py
-      - src/utils/metrics.py
-      - data/processed/car_hacking/featured/train.parquet
-      - data/processed/car_hacking/featured/val.parquet
-    params:
-      - model.streaming
-      - training.streaming
-    outs:
-      - checkpoints/streaming_best.keras:
-          cache: false
-      - checkpoints/streaming_final.keras:
-          cache: false
-      - checkpoints/streaming_norm_stats.json:
-          cache: false
-      - reports/metrics/streaming_best_training_metrics.json:
-          cache: false
-
-  eval_streaming:
-    cmd: PYTHONPATH=src python src/eval_streaming.py
-    deps:
-      - src/eval_streaming.py
-      - src/data/streaming_dataset.py
-      - src/model/streaming_ids.py
-      - src/utils/eval_reporting.py
-      - src/utils/params.py
-      - src/utils/mlflow_utils.py
-      - src/utils/metrics.py
-      - checkpoints/streaming_best.keras
-      - checkpoints/streaming_norm_stats.json
-      - reports/metrics/streaming_best_training_metrics.json
-      - data/processed/car_hacking/featured/test.parquet
-    metrics:
-      - reports/metrics/streaming_classification_report.json:
-          cache: false
-    outs:
-      - reports/metrics/streaming_classification_report.txt:
-          cache: false
-      - reports/figures/streaming_test_confusion_matrix.png:
-          cache: false
-      - reports/figures/streaming_test_confusion_matrix_counts.png:
-          cache: false
-
   train_mlp:
     cmd: PYTHONPATH=src python src/train_mlp.py
     deps:
       - src/train_mlp.py
       - src/data/mlp_dataset.py
-      - src/data/streaming_dataset.py
       - src/model/mlp.py
       - src/utils/metrics.py
       - src/utils/params.py
@@ -117,7 +66,6 @@ stages:
     deps:
       - src/eval_mlp.py
       - src/data/mlp_dataset.py
-      - src/data/streaming_dataset.py
       - src/utils/eval_reporting.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
@@ -144,4 +92,63 @@ stages:
       - reports/figures/mlp_test_confusion_matrix.png:
           cache: false
       - reports/figures/mlp_test_confusion_matrix_counts.png:
+          cache: false
+
+  train_mlp_window:
+    cmd: PYTHONPATH=src python src/train_mlp_window.py
+    deps:
+      - src/train_mlp_window.py
+      - src/data/mlp_window_dataset.py
+      - src/data/mlp_dataset.py
+      - src/model/mlp_window.py
+      - src/utils/metrics.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - data/processed/car_hacking/featured/train.parquet
+      - data/processed/car_hacking/featured/val.parquet
+    params:
+      - model.mlp_window
+      - training.mlp_window
+      - mlflow.experiment_mlp_window
+    outs:
+      - checkpoints/mlp_window_best.keras:
+          cache: false
+      - checkpoints/mlp_window_final.keras:
+          cache: false
+      - checkpoints/mlp_window_norm_stats.json:
+          cache: false
+      - reports/metrics/mlp_window_best_training_metrics.json:
+          cache: false
+
+  eval_mlp_window:
+    cmd: PYTHONPATH=src python src/eval_mlp_window.py
+    deps:
+      - src/eval_mlp_window.py
+      - src/data/mlp_window_dataset.py
+      - src/data/mlp_dataset.py
+      - src/utils/eval_reporting.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - src/utils/metrics.py
+      - checkpoints/mlp_window_best.keras
+      - checkpoints/mlp_window_norm_stats.json
+      - reports/metrics/mlp_window_best_training_metrics.json
+      - data/processed/car_hacking/featured/test.parquet
+    params:
+      - model.mlp_window
+      - training.mlp_window
+      - mlflow.experiment_mlp_window
+    metrics:
+      - reports/metrics/mlp_window_classification_report.json:
+          cache: false
+    outs:
+      - reports/metrics/mlp_window_classification_report.txt:
+          cache: false
+      - reports/figures/mlp_window_train_confusion_matrix.png:
+          cache: false
+      - reports/figures/mlp_window_eval_confusion_matrix.png:
+          cache: false
+      - reports/figures/mlp_window_test_confusion_matrix.png:
+          cache: false
+      - reports/figures/mlp_window_test_confusion_matrix_counts.png:
           cache: false
