@@ -4,7 +4,7 @@ import tensorflow as tf
 from keras import layers
 from tensorflow import keras
 
-from utils.metrics import MacroF1Score
+from utils.metrics import MacroF1Score, MacroPrecision, MacroRecall
 
 
 class StreamingCANIDS(keras.Model):
@@ -57,6 +57,8 @@ class StreamingCANIDS(keras.Model):
         self.loss_fn = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.accuracy_tracker = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
+        self.precision_macro_tracker = MacroPrecision(num_classes)
+        self.recall_macro_tracker = MacroRecall(num_classes)
         self.macro_f1_tracker = MacroF1Score(num_classes)
         self._state_variables = None
         self._last_stream = None
@@ -64,8 +66,13 @@ class StreamingCANIDS(keras.Model):
     @property
     def metrics(self):
         metrics = [self.loss_tracker, self.accuracy_tracker]
-        if self.macro_f1_tracker is not None:
-            metrics.append(self.macro_f1_tracker)
+        metrics.extend(
+            [
+                self.precision_macro_tracker,
+                self.recall_macro_tracker,
+                self.macro_f1_tracker,
+            ]
+        )
         return metrics
 
     def initialize_stream_state(self, batch_size=1):
@@ -125,6 +132,12 @@ class StreamingCANIDS(keras.Model):
         self._store_stream_state(state, stream_id)
         self.loss_tracker.update_state(loss)
         self.accuracy_tracker.update_state(labels, logits, sample_weight=inputs["valid_mask"])
+        self.precision_macro_tracker.update_state(
+            labels, logits, sample_weight=inputs["valid_mask"]
+        )
+        self.recall_macro_tracker.update_state(
+            labels, logits, sample_weight=inputs["valid_mask"]
+        )
         self.macro_f1_tracker.update_state(labels, logits, sample_weight=inputs["valid_mask"])
         return {metric.name: metric.result() for metric in self.metrics}
 
@@ -140,6 +153,12 @@ class StreamingCANIDS(keras.Model):
         loss = self._masked_loss(labels, logits, inputs["valid_mask"])
         self.loss_tracker.update_state(loss)
         self.accuracy_tracker.update_state(labels, logits, sample_weight=inputs["valid_mask"])
+        self.precision_macro_tracker.update_state(
+            labels, logits, sample_weight=inputs["valid_mask"]
+        )
+        self.recall_macro_tracker.update_state(
+            labels, logits, sample_weight=inputs["valid_mask"]
+        )
         self.macro_f1_tracker.update_state(labels, logits, sample_weight=inputs["valid_mask"])
         return {metric.name: metric.result() for metric in self.metrics}
 

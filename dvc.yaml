@@ -42,6 +42,7 @@ stages:
       - src/train_streaming.py
       - src/data/streaming_dataset.py
       - src/model/streaming_ids.py
+      - src/utils/eval_reporting.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
       - src/utils/metrics.py
@@ -57,22 +58,32 @@ stages:
           cache: false
       - checkpoints/streaming_norm_stats.json:
           cache: false
+      - reports/metrics/streaming_best_training_metrics.json:
+          cache: false
 
   eval_streaming:
     cmd: PYTHONPATH=src python src/eval_streaming.py
     deps:
       - src/eval_streaming.py
+      - src/data/streaming_dataset.py
+      - src/model/streaming_ids.py
+      - src/utils/eval_reporting.py
       - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - src/utils/metrics.py
       - checkpoints/streaming_best.keras
       - checkpoints/streaming_norm_stats.json
+      - reports/metrics/streaming_best_training_metrics.json
       - data/processed/car_hacking/featured/test.parquet
     metrics:
       - reports/metrics/streaming_classification_report.json:
           cache: false
     outs:
-      - reports/figures/streaming_confusion_matrix.png:
+      - reports/metrics/streaming_classification_report.txt:
           cache: false
-      - reports/figures/streaming_confusion_matrix_normalized.png:
+      - reports/figures/streaming_test_confusion_matrix.png:
+          cache: false
+      - reports/figures/streaming_test_confusion_matrix_counts.png:
           cache: false
 
   train_mlp:
@@ -98,6 +109,8 @@ stages:
           cache: false
       - checkpoints/mlp_norm_stats.json:
           cache: false
+      - reports/metrics/mlp_best_training_metrics.json:
+          cache: false
 
   eval_mlp:
     cmd: PYTHONPATH=src python src/eval_mlp.py
@@ -105,11 +118,13 @@ stages:
       - src/eval_mlp.py
       - src/data/mlp_dataset.py
       - src/data/streaming_dataset.py
+      - src/utils/eval_reporting.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
       - src/utils/metrics.py
       - checkpoints/mlp_best.keras
       - checkpoints/mlp_norm_stats.json
+      - reports/metrics/mlp_best_training_metrics.json
       - data/processed/car_hacking/featured/train.parquet
       - data/processed/car_hacking/featured/test.parquet
     params:
@@ -118,4 +133,15 @@ stages:
       - mlflow.experiment_mlp
     metrics:
       - reports/metrics/mlp_classification_report.json:
+          cache: false
+    outs:
+      - reports/metrics/mlp_classification_report.txt:
+          cache: false
+      - reports/figures/mlp_train_confusion_matrix.png:
+          cache: false
+      - reports/figures/mlp_eval_confusion_matrix.png:
+          cache: false
+      - reports/figures/mlp_test_confusion_matrix.png:
+          cache: false
+      - reports/figures/mlp_test_confusion_matrix_counts.png:
           cache: false

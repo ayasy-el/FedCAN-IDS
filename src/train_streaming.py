@@ -7,7 +7,12 @@ from tensorflow import keras
 
 from data.streaming_dataset import StreamingCANDataset
 from model.streaming_ids import StreamingCANIDS
-from utils.mlflow_utils import MlflowEpochLogger, save_run_id
+from utils.mlflow_utils import (
+    BestEpochMetrics,
+    MlflowEpochLogger,
+    log_artifact_organized,
+    save_run_id,
+)
 from utils.params import load_params
 
 dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
@@ -24,6 +29,7 @@ mlflow_params = load_params("mlflow")
 train_path = f"{dataset['featured_dir']}/train.parquet"
 val_path = f"{dataset['featured_dir']}/val.parquet"
 stats_path = "checkpoints/streaming_norm_stats.json"
+best_metrics_path = "reports/metrics/streaming_best_training_metrics.json"
 
 
 # ==========================================================
@@ -82,17 +88,18 @@ class ResetStreamingState(keras.callbacks.Callback):
 callbacks = [
     keras.callbacks.ModelCheckpoint(
         "checkpoints/streaming_best.keras",
-        monitor="val_macro_f1",
+        monitor="val_f1_macro",
         mode="max",
         save_best_only=True,
     ),
     keras.callbacks.EarlyStopping(
-        monitor="val_macro_f1",
+        monitor="val_f1_macro",
         mode="max",
         patience=5,
         min_delta=0.001,
         restore_best_weights=True,
     ),
+    BestEpochMetrics(best_metrics_path, monitor="val_f1_macro", mode="max"),
     keras.callbacks.ReduceLROnPlateau(
         monitor="val_loss",
         factor=0.5,
@@ -113,7 +120,7 @@ with mlflow.start_run() as run:
     mlflow.log_params({f"training.{k}": v for k, v in training.items()})
     # model.fit tetap memproses chunk secara kronologis. State KV diteruskan
     # oleh StreamingCANIDS.train_step() antar-chunk dan di-reset per session.
-    history = model.fit(
+    model.fit(
         train.to_tf_dataset(),
         validation_data=val.to_tf_dataset(),
         epochs=training["epochs"],
@@ -123,7 +130,8 @@ with mlflow.start_run() as run:
         callbacks=callbacks,
     )
     model.save("checkpoints/streaming_final.keras")
-    mlflow.log_artifact("checkpoints/streaming_best.keras")
-    mlflow.log_artifact("checkpoints/streaming_final.keras")
-    mlflow.log_artifact(stats_path)
+    log_artifact_organized("checkpoints/streaming_best.keras")
+    log_artifact_organized("checkpoints/streaming_final.keras")
+    log_artifact_organized(stats_path)
+    log_artifact_organized(best_metrics_path)
 print("Streaming training finished.")

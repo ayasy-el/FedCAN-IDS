@@ -219,7 +219,8 @@ PYTHONPATH=src python src/eval_mlp.py
 | `checkpoints/mlp_final.keras` | Final frame-level MLP model. |
 | `reports/metrics/mlp_classification_report.json` | MLP test classification report. |
 | `reports/metrics/*_classification_report.json` | Accuracy, macro precision, macro recall, macro-F1, and per-class metrics. |
-| `reports/figures/*confusion_matrix*.png` | Raw and normalized confusion matrices. |
+| `reports/figures/*_confusion_matrix.png` | Percentage confusion matrices by split. |
+| `reports/figures/*_confusion_matrix_counts.png` | Confusion matrices with raw counts. |
 
 ## Configuration
 
