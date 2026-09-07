@@ -96,17 +96,36 @@ for name, split_df in splits.items():
 
 print("\nClass distribution by split:")
 any_missing = False
+
 for name, split_df in splits.items():
     actual_classes = set(split_df["Class"].unique().to_list())
     missing_classes = expected_classes - actual_classes
 
     print(f"\n-- {name} --")
-    print(split_df.group_by("Class").len().rename({"len": "count"}).sort("Class"))
+
+    class_distribution = (
+        split_df.group_by("Class")
+        .len()
+        .rename({"len": "count"})
+        .with_columns(
+            (pl.col("count") / pl.col("count").sum() * 100).alias("percentage")
+        )
+        .with_columns(
+            pl.col("percentage").map_elements(
+                lambda x: f"{x:.2f}%",
+                return_dtype=pl.String,
+            )
+        )
+        .sort("Class")
+    )
+
+    print(class_distribution)
 
     if missing_classes:
         any_missing = True
         print(
-            f"  !! WARNING: class {sorted(missing_classes)} is missing in split '{name}'"
+            f"  !! WARNING: class {sorted(missing_classes)} "
+            f"is missing in split '{name}'"
         )
 
 if any_missing:

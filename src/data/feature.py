@@ -21,7 +21,7 @@ def add_streaming_features(df: pl.DataFrame) -> pl.DataFrame:
         .fill_null(0.0)
         .cast(pl.Float32)
         .alias("Delta_Id"),
-    ).with_columns(pl.col("Deltatime").alias("delta_t"))
+    )
 
 
 def build_features(input_path: Path, output_path: Path):

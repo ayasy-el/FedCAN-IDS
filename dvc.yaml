@@ -110,6 +110,7 @@ stages:
       - src/utils/metrics.py
       - checkpoints/mlp_best.keras
       - checkpoints/mlp_norm_stats.json
+      - data/processed/car_hacking/featured/train.parquet
       - data/processed/car_hacking/featured/test.parquet
     params:
       - model.mlp

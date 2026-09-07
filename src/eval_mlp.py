@@ -42,10 +42,13 @@ mlflow_params = load_params("mlflow")
 # ==========================================================
 
 TEST_PATH = f"{dataset_params['featured_dir']}/test.parquet"
+TRAIN_PATH = f"{dataset_params['featured_dir']}/train.parquet"
 MODEL_PATH = "checkpoints/mlp_best.keras"
 NORMALIZE_STATS_PATH = "checkpoints/mlp_norm_stats.json"
 RUN_ID_PATH = "checkpoints/mlp_mlflow_run_id.txt"
 CLASS_NAMES = ["Normal", "Flooding", "Fuzzing", "Spoofing", "Replay"]
+SAMPLE_SIZE = 10_000
+SAMPLE_SEED = 42
 
 # Semua output evaluasi disimpan agar hasil antar-run dapat dibandingkan.
 REPORTS_METRICS_DIR = Path("reports/metrics")
@@ -57,6 +60,12 @@ CONFUSION_MATRIX_PNG_PATH = REPORTS_FIGURES_DIR / "mlp_confusion_matrix.png"
 CONFUSION_MATRIX_NORM_PNG_PATH = (
     REPORTS_FIGURES_DIR / "mlp_confusion_matrix_normalized.png"
 )
+TRAIN_SAMPLE_CM_PERCENT_PNG_PATH = (
+    REPORTS_FIGURES_DIR / "mlp_train_sample_confusion_matrix_percent.png"
+)
+EVAL_SAMPLE_CM_PERCENT_PNG_PATH = (
+    REPORTS_FIGURES_DIR / "mlp_eval_sample_confusion_matrix_percent.png"
+)
 
 mlflow.set_tracking_uri(mlflow_params["tracking_uri"])
 mlflow.set_experiment(mlflow_params["experiment_mlp"])
@@ -66,6 +75,14 @@ mlflow.set_experiment(mlflow_params["experiment_mlp"])
 # Dataset
 # ==========================================================
 
+train_dataset = MLPCANDataset(
+    TRAIN_PATH,
+    normalize_stats_path=NORMALIZE_STATS_PATH,
+    fit_normalize_stats=False,  # gunakan statistik train yang sudah dibuat saat training
+    can_id_bits=model_params["can_id_bits"],
+    batch_size=training_params["batch_size"],
+    shuffle=False,
+)
 test_dataset = MLPCANDataset(
     TEST_PATH,
     normalize_stats_path=NORMALIZE_STATS_PATH,
@@ -108,6 +125,96 @@ for name, value in keras_results.items():
 predictions = model.predict(test_tf, verbose=1)
 y_true = test_dataset.y
 y_pred = np.argmax(np.asarray(predictions), axis=-1)
+
+
+def stratified_sample_indices(y, max_samples, seed):
+    """Ambil sampel tanpa mengubah distribusi kelas secara material."""
+    if len(y) <= max_samples:
+        return np.arange(len(y))
+
+    rng = np.random.default_rng(seed)
+    classes, counts = np.unique(y, return_counts=True)
+    target_counts = counts * max_samples / len(y)
+    sample_counts = np.floor(target_counts).astype(int)
+
+    # Bagikan sisa slot ke kelas dengan pecahan terbesar agar total tepat.
+    remainder = max_samples - int(sample_counts.sum())
+    order = np.argsort(-(target_counts - sample_counts))
+    sample_counts[order[:remainder]] += 1
+
+    selected = []
+    for cls, n in zip(classes, sample_counts):
+        class_indices = np.flatnonzero(y == cls)
+        selected.append(rng.choice(class_indices, size=n, replace=False))
+
+    selected = np.concatenate(selected)
+    rng.shuffle(selected)
+    return selected
+
+
+def sample_confusion_matrix(dataset, seed):
+    indices = stratified_sample_indices(dataset.y, SAMPLE_SIZE, seed)
+    sample_y_true = dataset.y[indices]
+    sample_y_pred = np.argmax(
+        np.asarray(model.predict(dataset.x[indices], verbose=0)), axis=-1
+    )
+    sample_cm = confusion_matrix(
+        sample_y_true,
+        sample_y_pred,
+        labels=np.arange(len(CLASS_NAMES)),
+    )
+    sample_cm_percent = (
+        sample_cm.astype(float)
+        / np.maximum(sample_cm.sum(axis=1, keepdims=True), 1)
+        * 100
+    )
+    return indices, sample_cm, sample_cm_percent
+
+
+train_sample_indices, train_sample_cm, train_sample_cm_percent = (
+    sample_confusion_matrix(train_dataset, SAMPLE_SEED)
+)
+eval_sample_indices, eval_sample_cm, eval_sample_cm_percent = (
+    sample_confusion_matrix(test_dataset, SAMPLE_SEED + 1)
+)
+
+
+def save_sample_confusion_matrix(cm_percent, path, title):
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(
+        cm_percent,
+        annot=True,
+        fmt=".2f",
+        xticklabels=CLASS_NAMES,
+        yticklabels=CLASS_NAMES,
+        cmap="Blues",
+        vmin=0,
+        vmax=100,
+    )
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(path, dpi=300)
+    plt.close()
+
+
+save_sample_confusion_matrix(
+    train_sample_cm_percent,
+    TRAIN_SAMPLE_CM_PERCENT_PNG_PATH,
+    "MLP Train Sample Confusion Matrix (%)",
+)
+save_sample_confusion_matrix(
+    eval_sample_cm_percent,
+    EVAL_SAMPLE_CM_PERCENT_PNG_PATH,
+    "MLP Eval Sample Confusion Matrix (%)",
+)
+print(
+    f"Train sample confusion matrix disimpan ke: {TRAIN_SAMPLE_CM_PERCENT_PNG_PATH}"
+)
+print(
+    f"Eval sample confusion matrix disimpan ke: {EVAL_SAMPLE_CM_PERCENT_PNG_PATH}"
+)
 
 
 # ==========================================================
@@ -204,6 +311,14 @@ full_report = {
     "classification_report": report_dict,
     "confusion_matrix": cm.tolist(),
     "confusion_matrix_normalized_percent": cm_percent.tolist(),
+    "sample_size_limit": SAMPLE_SIZE,
+    "sample_seed": SAMPLE_SEED,
+    "train_sample_size": int(len(train_sample_indices)),
+    "eval_sample_size": int(len(eval_sample_indices)),
+    "train_sample_confusion_matrix": train_sample_cm.tolist(),
+    "train_sample_confusion_matrix_percent": train_sample_cm_percent.tolist(),
+    "eval_sample_confusion_matrix": eval_sample_cm.tolist(),
+    "eval_sample_confusion_matrix_percent": eval_sample_cm_percent.tolist(),
     "class_names": CLASS_NAMES,
 }
 with open(METRICS_JSON_PATH, "w") as file:
@@ -245,5 +360,7 @@ with mlflow.start_run(run_id=existing_run_id) as run:
     mlflow.log_artifact(str(METRICS_JSON_PATH))
     mlflow.log_artifact(str(CONFUSION_MATRIX_PNG_PATH))
     mlflow.log_artifact(str(CONFUSION_MATRIX_NORM_PNG_PATH))
+    mlflow.log_artifact(str(TRAIN_SAMPLE_CM_PERCENT_PNG_PATH))
+    mlflow.log_artifact(str(EVAL_SAMPLE_CM_PERCENT_PNG_PATH))
 
 print(f"Metrik evaluasi di-log ke MLflow run: {run.info.run_id}")

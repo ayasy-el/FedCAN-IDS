@@ -144,18 +144,18 @@ def _(benign_only_toggle, df, go, mo, np, pl):
     _stats = (
         _d
         .filter(
-            pl.col("delta_t") > 0
+            pl.col("Deltatime") > 0
         )
         .group_by("Arbitration_ID")
         .agg(
-            pl.col("delta_t")
+            pl.col("Deltatime")
             .mean()
-            .alias("mean_delta_t")
+            .alias("mean_Deltatime")
         )
         .with_columns(
             (
                 1000.0
-                / pl.col("mean_delta_t")
+                / pl.col("mean_Deltatime")
             ).alias("mean_freq_hz")
         )
         .sort("mean_freq_hz")
@@ -494,7 +494,7 @@ def _(
 
     _rng = np.random.default_rng(42)
 
-    _normal = _sub.filter(pl.col("Class") == 0)["delta_t"].to_numpy() * 1000
+    _normal = _sub.filter(pl.col("Class") == 0)["Deltatime"].to_numpy() * 1000
 
     if len(_normal) > _MAX_POINTS:
         _normal = _rng.choice(
@@ -531,7 +531,7 @@ def _(
         _attack_classes = [attack_class_selector.value]
 
     for _cls_idx in _attack_classes:
-        _attack = _sub.filter(pl.col("Class") == _cls_idx)["delta_t"].to_numpy() * 1000
+        _attack = _sub.filter(pl.col("Class") == _cls_idx)["Deltatime"].to_numpy() * 1000
 
         if len(_attack) == 0:
             continue
