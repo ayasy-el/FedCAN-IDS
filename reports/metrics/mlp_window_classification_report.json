@@ -1,0 +1,86 @@
+{
+  "model": "mlp_window",
+  "test": {
+    "loss": 0.5104416012763977,
+    "accuracy": 0.9669185876846313,
+    "precision_macro": 0.70316082239151,
+    "recall_macro": 0.629423975944519,
+    "f1_macro": 0.6489580273628235,
+    "classification_report": {
+      "Normal": {
+        "precision": 0.9777545627726909,
+        "recall": 0.9862597628001157,
+        "f1-score": 0.9819887468241151,
+        "support": 48398.0
+      },
+      "Flooding": {
+        "precision": 0.9934613812832039,
+        "recall": 0.9983572895277207,
+        "f1-score": 0.9959033183121672,
+        "support": 2435.0
+      },
+      "Fuzzing": {
+        "precision": 0.8076923076923077,
+        "recall": 0.8434309053778081,
+        "f1-score": 0.8251748251748252,
+        "support": 1469.0
+      },
+      "Spoofing": {
+        "precision": 0.463768115942029,
+        "recall": 0.1702127659574468,
+        "f1-score": 0.2490272373540856,
+        "support": 188.0
+      },
+      "Replay": {
+        "precision": 0.27312775330396477,
+        "recall": 0.148859543817527,
+        "f1-score": 0.1926961926961927,
+        "support": 833.0
+      },
+      "accuracy": 0.9669185904769049,
+      "macro avg": {
+        "precision": 0.7031608241988392,
+        "recall": 0.6294240534961235,
+        "f1-score": 0.6489580640722772,
+        "support": 53323.0
+      },
+      "weighted avg": {
+        "precision": 0.9609670801867225,
+        "recall": 0.9669185904769049,
+        "f1-score": 0.9633897345648962,
+        "support": 53323.0
+      }
+    }
+  },
+  "class_names": [
+    "Normal",
+    "Flooding",
+    "Fuzzing",
+    "Spoofing",
+    "Replay"
+  ],
+  "comparison": {
+    "best_epoch": 89,
+    "best_train": {
+      "loss": 0.0013792560203000903,
+      "accuracy": 0.9995183944702148,
+      "precision_macro": 0.9967913627624512,
+      "recall_macro": 0.9967297315597534,
+      "f1_macro": 0.9967604875564575
+    },
+    "best_validation": {
+      "loss": 0.4313260018825531,
+      "accuracy": 0.9697652459144592,
+      "precision_macro": 0.6422075629234314,
+      "recall_macro": 0.6129000782966614,
+      "f1_macro": 0.6174513101577759
+    },
+    "test": {
+      "loss": 0.5104416012763977,
+      "accuracy": 0.9669185876846313,
+      "precision_macro": 0.70316082239151,
+      "recall_macro": 0.629423975944519,
+      "f1_macro": 0.6489580273628235
+    }
+  }
+}

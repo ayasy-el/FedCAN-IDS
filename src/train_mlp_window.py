@@ -100,12 +100,12 @@ with mlflow.start_run() as run:
                 mode="max",
                 save_best_only=True,
             ),
-            keras.callbacks.EarlyStopping(
-                monitor="val_f1_macro",
-                mode="max",
-                patience=5,
-                restore_best_weights=True,
-            ),
+            #keras.callbacks.EarlyStopping(
+            #    monitor="val_f1_macro",
+            #    mode="max",
+            #    patience=5,
+            #    restore_best_weights=True,
+            #),
             BestEpochMetrics(best_metrics_path, monitor="val_f1_macro", mode="max"),
             MlflowEpochLogger(),
         ],

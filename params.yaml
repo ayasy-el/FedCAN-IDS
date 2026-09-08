@@ -23,19 +23,19 @@ model:
   mlp_window:
     can_id_bits: 11
     num_classes: 5
-    window_size: 16
-    stride: 8
+    window_size: 64
+    stride: 32
     hidden_dims: [32, 16]
-    dropout: 0.2
+    dropout: false
 
 training:
   mlp:
     batch_size: 256
-    epochs: 20
+    epochs: 100
     learning_rate: 0.001
   mlp_window:
     batch_size: 256
-    epochs: 20
+    epochs: 100
     learning_rate: 0.001
 
 mlflow:
