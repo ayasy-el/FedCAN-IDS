@@ -76,6 +76,12 @@ class BestEpochMetrics(keras.callbacks.Callback):
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self.output_path.write_text(json.dumps(report, indent=2))
         if mlflow.active_run() is not None:
+            for metric_name, metric_value in self.best_metrics.items():
+                mlflow.log_metric(
+                    f"{metric_name}_best",
+                    metric_value,
+                    step=self.best_epoch,
+                )
             log_artifact_organized(self.output_path, "metrics")
 
 
