@@ -1,22 +1,39 @@
+pipeline:
+  profile: sequence_window
+
 dataset:
   name: car_hacking
   raw_dir: data/raw/Car_Hacking_Challenge_Dataset
-  interim_path: data/interim/car_hacking_with_session.parquet
-  processed_dir: data/processed/car_hacking
-  featured_dir: data/processed/car_hacking/featured
+  default:
+    interim_path: data/interim/car_hacking_with_session.parquet
+    processed_dir: data/processed/car_hacking
+    featured_dir: data/processed/car_hacking/featured
+    val_sessions:
+      - Pre_train_D_1
+      - Pre_train_S_1
+    test_sessions:
+      - Pre_train_D_2
+      - Pre_train_S_2
+  sequence_window:
+    interim_path: data/interim/sequence_window.parquet
+    processed_dir: data/processed/sequence_window
+    featured_dir: data/processed/sequence_window/featured
 
-split:
-  val_sessions:
-    - Pre_train_D_1
-    - Pre_train_S_1
-  test_sessions:
-    - Pre_train_D_2
-    - Pre_train_S_2
-
-feature:
-  window_ms: 0
+data:
+  sequence_window:
+    window_size: 256
+    stride: 1
+    balance_size: 3877
+    random_seed: 42
 
 model:
+  can_bigrubert:
+    max_length: 22
+    num_classes: 10
+    bert_checkpoint: bert-base-uncased
+    tokenizer_checkpoint: bert-base-uncased
+    bigru_hidden_size: 512
+    dropout: 0.1
   mlp:
     can_id_bits: 11
     num_classes: 5
@@ -33,6 +50,13 @@ training:
     batch_size: 256
     epochs: 100
     learning_rate: 0.001
+  can_bigrubert:
+    batch_size: 16
+    epochs: 120
+    learning_rate: 0.001
+    weight_decay: 0.00001
+    early_stopping_patience: 5
+    early_stopping_min_delta: 0.0001
   mlp_window:
     batch_size: 256
     epochs: 100
@@ -42,3 +66,4 @@ mlflow:
   tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
   experiment_mlp: "can_ids_mlp"
   experiment_mlp_window: "can_ids_mlp_window"
+  experiment_can_bigrubert: "can_bigrubert"

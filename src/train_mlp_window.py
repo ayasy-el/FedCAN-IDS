@@ -23,6 +23,7 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 # ==========================================================
 
 dataset = load_params("dataset")
+default_dataset = dataset["default"]
 model_params = load_params("model.mlp_window")
 training = load_params("training.mlp_window")
 mlflow_params = load_params("mlflow")
@@ -35,7 +36,7 @@ best_metrics_path = "reports/metrics/mlp_window_best_training_metrics.json"
 # ==========================================================
 
 train = MLPWindowDataset(
-    f"{dataset['featured_dir']}/train.parquet",
+    f"{default_dataset['featured_dir']}/train.parquet",
     stats_path,
     True,
     model_params["can_id_bits"],
@@ -45,7 +46,7 @@ train = MLPWindowDataset(
     model_params["stride"],
 )
 val = MLPWindowDataset(
-    f"{dataset['featured_dir']}/val.parquet",
+    f"{default_dataset['featured_dir']}/val.parquet",
     stats_path,
     False,
     model_params["can_id_bits"],

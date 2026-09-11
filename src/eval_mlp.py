@@ -29,6 +29,7 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 # ==========================================================
 
 dataset_params = load_params("dataset")
+default_dataset = dataset_params["default"]
 model_params = load_params("model.mlp")
 training_params = load_params("training.mlp")
 mlflow_params = load_params("mlflow")
@@ -38,8 +39,8 @@ mlflow_params = load_params("mlflow")
 # Configuration
 # ==========================================================
 
-TEST_PATH = f"{dataset_params['featured_dir']}/test.parquet"
-TRAIN_PATH = f"{dataset_params['featured_dir']}/train.parquet"
+TEST_PATH = f"{default_dataset['featured_dir']}/test.parquet"
+TRAIN_PATH = f"{default_dataset['featured_dir']}/train.parquet"
 MODEL_PATH = "checkpoints/mlp_best.keras"
 NORMALIZE_STATS_PATH = "checkpoints/mlp_norm_stats.json"
 BEST_TRAINING_METRICS_PATH = "reports/metrics/mlp_best_training_metrics.json"

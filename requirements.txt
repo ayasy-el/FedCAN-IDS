@@ -2,6 +2,8 @@
 # Notebook-specific dependencies are listed separately in `notebooks/requirements.txt` (e.g. marimo, scipy, and plotly).
 
 tensorflow[and-cuda]==2.21.0
+tf-keras>=2.20,<2.22
+transformers>=4.45,<5
 polars==1.42.1
 numpy==2.3.5
 scikit-learn==1.9.0
