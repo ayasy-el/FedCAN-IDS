@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.24.0"
 app = marimo.App(width="full")
 
 
@@ -144,11 +144,11 @@ def _(benign_only_toggle, df, go, mo, np, pl):
     _stats = (
         _d
         .filter(
-            pl.col("Deltatime") > 0
+            pl.col("Delta_Id") > 0
         )
         .group_by("Arbitration_ID")
         .agg(
-            pl.col("Deltatime")
+            pl.col("Delta_Id")
             .mean()
             .alias("mean_Deltatime")
         )
@@ -494,7 +494,7 @@ def _(
 
     _rng = np.random.default_rng(42)
 
-    _normal = _sub.filter(pl.col("Class") == 0)["Deltatime"].to_numpy() * 1000
+    _normal = _sub.filter(pl.col("Class") == 0)["Delta_Id"].to_numpy() * 1000
 
     if len(_normal) > _MAX_POINTS:
         _normal = _rng.choice(
@@ -531,7 +531,7 @@ def _(
         _attack_classes = [attack_class_selector.value]
 
     for _cls_idx in _attack_classes:
-        _attack = _sub.filter(pl.col("Class") == _cls_idx)["Deltatime"].to_numpy() * 1000
+        _attack = _sub.filter(pl.col("Class") == _cls_idx)["Delta_Id"].to_numpy() * 1000
 
         if len(_attack) == 0:
             continue
