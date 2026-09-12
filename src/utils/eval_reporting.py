@@ -228,7 +228,7 @@ def save_text_report(report: dict, path: str | Path):
                 f"{int(values['support']):>8,}"
             )
 
-    for split in ("train", "eval", "test"):
+    for split in ("train", "val", "test"):
         matrix_key = f"{split}_confusion_matrix"
         counts_key = f"{split}_confusion_matrix_counts"
         if matrix_key not in report:

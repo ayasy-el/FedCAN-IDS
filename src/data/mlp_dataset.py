@@ -16,6 +16,14 @@ def _hex(value, pad=0):
 
 
 def _features(df: pl.DataFrame, can_id_bits: int = 11) -> tuple[np.ndarray, np.ndarray]:
+    required = {
+        "Arbitration_ID", "DLC", "Class", "Delta_Id", "Deltatime",
+        *[f"Data_{i}" for i in range(8)],
+    }
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"MLP frame input is missing required columns: {sorted(missing)}")
+
     ids = np.asarray([_hex(value) for value in df["Arbitration_ID"].to_list()], dtype=np.int32)
     bits = ((ids[:, None] >> np.arange(can_id_bits - 1, -1, -1)) & 1).astype(np.float32)
     numeric = np.column_stack([
@@ -28,12 +36,25 @@ def _features(df: pl.DataFrame, can_id_bits: int = 11) -> tuple[np.ndarray, np.n
 
 
 class MLPCANDataset:
+    REQUIRED_COLUMNS = frozenset({
+        "Arbitration_ID", "DLC", "Class", "Delta_Id", "Deltatime",
+        *[f"Data_{i}" for i in range(8)],
+    })
+
     def __init__(self, parquet_path, normalize_stats_path=None, fit_normalize_stats=False,
                  can_id_bits=11, batch_size=256, shuffle=False):
         self.parquet_path = Path(parquet_path)
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.x, self.y = _features(pl.read_parquet(self.parquet_path), can_id_bits)
+        frame_data = pl.read_parquet(self.parquet_path)
+        missing = self.REQUIRED_COLUMNS - set(frame_data.columns)
+        if missing:
+            raise ValueError(
+                f"MLP frame input is missing required columns: {sorted(missing)}"
+            )
+        self.x, self.y = _features(
+            frame_data.select(sorted(self.REQUIRED_COLUMNS)), can_id_bits
+        )
         self._normalize(normalize_stats_path, fit_normalize_stats)
         self.input_dim = self.x.shape[1]
         self.num_classes = int(self.y.max()) + 1 if len(self.y) else 0

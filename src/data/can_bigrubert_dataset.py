@@ -14,6 +14,8 @@ from transformers import AutoTokenizer
 class CANBiGRUBERTDataset:
     """Load balanced window records and tokenize frames lazily by batch."""
 
+    REQUIRED_COLUMNS = frozenset({"frames", "label"})
+
     def __init__(self, parquet_path, tokenizer_checkpoint, window_size, max_length,
                  batch_size=16, shuffle=False, random_seed=42):
         self.parquet_path = Path(parquet_path)
@@ -24,7 +26,7 @@ class CANBiGRUBERTDataset:
         self._rng = np.random.default_rng(int(random_seed))
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_checkpoint, use_fast=True)
         frame_data = pl.read_parquet(self.parquet_path)
-        if not {"frames", "label"}.issubset(frame_data.columns):
+        if not self.REQUIRED_COLUMNS.issubset(frame_data.columns):
             raise ValueError(f"Invalid CAN-BiGRUBERT parquet schema: {frame_data.schema}")
         self.frames = frame_data["frames"].to_list()
         self.y = frame_data["label"].to_numpy().astype(np.int32)

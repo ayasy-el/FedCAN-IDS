@@ -23,7 +23,7 @@ data:
   sequence_window:
     window_size: 256
     stride: 1
-    balance_size: 3877
+    downsample: true
     random_seed: 42
 
 model:

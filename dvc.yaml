@@ -116,6 +116,7 @@ stages:
       - checkpoints/mlp_norm_stats.json
       - reports/metrics/mlp_best_training_metrics.json
       - data/processed/car_hacking/featured/train.parquet
+      - data/processed/car_hacking/featured/val.parquet
       - data/processed/car_hacking/featured/test.parquet
     params:
       - model.mlp
@@ -129,7 +130,7 @@ stages:
           cache: false
       - reports/figures/mlp_train_confusion_matrix.png:
           cache: false
-      - reports/figures/mlp_eval_confusion_matrix.png:
+      - reports/figures/mlp_val_confusion_matrix.png:
           cache: false
       - reports/figures/mlp_test_confusion_matrix.png:
           cache: false
@@ -175,6 +176,7 @@ stages:
       - checkpoints/mlp_window_best.keras
       - checkpoints/mlp_window_norm_stats.json
       - reports/metrics/mlp_window_best_training_metrics.json
+      - data/processed/car_hacking/featured/val.parquet
       - data/processed/car_hacking/featured/test.parquet
     params:
       - model.mlp_window
@@ -188,7 +190,7 @@ stages:
           cache: false
       - reports/figures/mlp_window_train_confusion_matrix.png:
           cache: false
-      - reports/figures/mlp_window_eval_confusion_matrix.png:
+      - reports/figures/mlp_window_val_confusion_matrix.png:
           cache: false
       - reports/figures/mlp_window_test_confusion_matrix.png:
           cache: false
@@ -233,6 +235,7 @@ stages:
       - checkpoints/can_bigrubert_best.keras
       - reports/metrics/can_bigrubert_best_training_metrics.json
       - data/processed/sequence_window/featured/train.parquet
+      - data/processed/sequence_window/featured/val.parquet
       - data/processed/sequence_window/featured/test.parquet
     params:
       - data.sequence_window
@@ -247,7 +250,7 @@ stages:
           cache: false
       - reports/figures/can_bigrubert_train_confusion_matrix.png:
           cache: false
-      - reports/figures/can_bigrubert_eval_confusion_matrix.png:
+      - reports/figures/can_bigrubert_val_confusion_matrix.png:
           cache: false
       - reports/figures/can_bigrubert_test_confusion_matrix.png:
           cache: false

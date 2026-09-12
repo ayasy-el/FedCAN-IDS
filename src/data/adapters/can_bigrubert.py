@@ -7,7 +7,6 @@ import polars as pl
 
 
 ATTACKS = {"Normal": 0, "Flooding": 1, "Fuzzing": 2, "Spoofing": 3, "Replay": 4}
-STATE_OFFSET = {"D": 0, "S": 5}
 CLASS_NAMES = [
     "benign-driving", "DoS-driving", "Fuzzing-driving", "Spoofing-driving", "Replay-driving",
     "benign-stationary", "DoS-stationary", "Fuzzing-stationary", "Spoofing-stationary", "Replay-stationary",
@@ -41,7 +40,6 @@ def _canonical_frame_data(params):
         df = (
             df.with_columns(
                 pl.lit(path.stem).alias("session_id"),
-                pl.lit(state).alias("vehicle_state"),
                 pl.col("DLC").cast(pl.UInt8),
             )
             .with_columns(
@@ -86,14 +84,20 @@ def split(params):
     output_dir = Path(paths["processed_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
     source = pl.read_parquet(paths["interim_path"])
-    balanced = _balanced_windows(
-        source,
-        int(profile["window_size"]),
-        int(profile["stride"]),
-        int(profile["balance_size"]),
-        int(profile["random_seed"]),
-    )
-    splits = _split_balanced_windows(balanced, int(profile["random_seed"]))
+    window_size = int(profile["window_size"])
+    stride = int(profile["stride"])
+    seed = int(profile["random_seed"])
+    target = None
+    if profile["downsample"]:
+        counts = _candidate_counts(source, window_size, stride)
+        if np.any(counts == 0):
+            raise ValueError(
+                f"Cannot downsample: one or more classes have no candidate windows: {counts.tolist()}"
+            )
+        target = int(counts.min())
+        print(f"Automatic downsample target: {target} windows per class")
+    balanced = _balanced_windows(source, window_size, stride, target, seed)
+    splits = _split_balanced_windows(balanced, seed)
     for split_name, records in splits.items():
         pl.DataFrame(records).write_parquet(
             output_dir / f"{split_name}.parquet", compression="zstd"
@@ -129,6 +133,24 @@ def _candidate_starts(labels, target_label, window_size, stride):
     return np.flatnonzero(valid)[::stride]
 
 
+def _candidate_counts(df, window_size, stride):
+    """Count valid candidates per class without materializing their rows."""
+    counts = np.zeros(10, dtype=np.int64)
+    for session in df.partition_by("session_id", maintain_order=True):
+        labels = session["Class"].to_numpy()
+        state = _state_from_name(str(session["session_id"][0]))
+        benign_label = 0 if state == "D" else 5
+        for label in (1, 2, 3, 4, 6, 7, 8, 9):
+            effective_label = label
+            counts[label] += len(
+                _candidate_starts(labels, effective_label, window_size, stride)
+            )
+        counts[benign_label] += len(
+            _candidate_starts(labels, benign_label, window_size, stride)
+        )
+    return counts
+
+
 def _balanced_windows(df, window_size, stride, target, seed):
     """Sample balanced windows without materializing all candidate windows."""
     reservoirs = {label: [] for label in range(10)}
@@ -136,7 +158,7 @@ def _balanced_windows(df, window_size, stride, target, seed):
     rng = np.random.default_rng(seed)
     for session in df.partition_by("session_id", maintain_order=True):
         labels = session["Class"].to_numpy()
-        state = session["vehicle_state"][0]
+        state = _state_from_name(str(session["session_id"][0]))
         benign_label = 0 if state == "D" else 5
         for label in range(10):
             effective_label = benign_label if label in (0, 5) else label
@@ -146,13 +168,17 @@ def _balanced_windows(df, window_size, stride, target, seed):
             for start in starts:
                 seen[label] += 1
                 item = (session, int(start))
-                if len(reservoirs[label]) < target:
+                if target is None or len(reservoirs[label]) < target:
                     reservoirs[label].append(item)
                 else:
                     replacement = int(rng.integers(0, seen[label]))
                     if replacement < target:
                         reservoirs[label][replacement] = item
-    missing = {label: count for label, count in seen.items() if count < target}
+    missing = (
+        {label: count for label, count in seen.items() if count < target}
+        if target is not None
+        else {}
+    )
     if missing:
         raise ValueError(f"Some classes have fewer than {target} windows: {missing}")
     records = []

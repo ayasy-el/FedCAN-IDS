@@ -57,7 +57,7 @@ REPORTS_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 METRICS_JSON_PATH = REPORTS_METRICS_DIR / "mlp_classification_report.json"
 METRICS_TEXT_PATH = REPORTS_METRICS_DIR / "mlp_classification_report.txt"
 TRAIN_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "mlp_train_confusion_matrix.png"
-EVAL_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "mlp_eval_confusion_matrix.png"
+VAL_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "mlp_val_confusion_matrix.png"
 TEST_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "mlp_test_confusion_matrix.png"
 TEST_CONFUSION_MATRIX_COUNTS_PATH = (
     REPORTS_FIGURES_DIR / "mlp_test_confusion_matrix_counts.png"
@@ -79,10 +79,18 @@ train_dataset = MLPCANDataset(
     batch_size=training_params["batch_size"],
     shuffle=False,
 )
+val_dataset = MLPCANDataset(
+    f"{default_dataset['featured_dir']}/val.parquet",
+    normalize_stats_path=NORMALIZE_STATS_PATH,
+    fit_normalize_stats=False,  # gunakan statistik train, jangan hitung ulang
+    can_id_bits=model_params["can_id_bits"],
+    batch_size=training_params["batch_size"],
+    shuffle=False,
+)
 test_dataset = MLPCANDataset(
     TEST_PATH,
     normalize_stats_path=NORMALIZE_STATS_PATH,
-    fit_normalize_stats=False,  # gunakan statistik train, jangan hitung ulang
+    fit_normalize_stats=False,
     can_id_bits=model_params["can_id_bits"],
     batch_size=training_params["batch_size"],
     shuffle=False,
@@ -131,23 +139,23 @@ y_pred = np.argmax(np.asarray(predictions), axis=-1)
 train_sample_indices = stratified_sample_indices(
     train_dataset.y, SAMPLE_SIZE, SAMPLE_SEED
 )
-eval_sample_indices = stratified_sample_indices(
-    test_dataset.y, SAMPLE_SIZE, SAMPLE_SEED + 1
+val_sample_indices = stratified_sample_indices(
+    val_dataset.y, SAMPLE_SIZE, SAMPLE_SEED + 1
 )
 train_sample_predictions = np.argmax(
-    model.predict(train_dataset.x[train_sample_indices], verbose=0), axis=-1
+    model.predict(train_dataset.x[train_sample_indices], verbose=1), axis=-1
 )
-eval_sample_predictions = np.argmax(
-    model.predict(test_dataset.x[eval_sample_indices], verbose=0), axis=-1
+val_sample_predictions = np.argmax(
+    model.predict(val_dataset.x[val_sample_indices], verbose=1), axis=-1
 )
 train_confusion_matrix_counts, train_confusion_matrix = calculate_confusion_matrices(
     train_dataset.y[train_sample_indices],
     train_sample_predictions,
     len(CLASS_NAMES),
 )
-eval_confusion_matrix_counts, eval_confusion_matrix = calculate_confusion_matrices(
-    test_dataset.y[eval_sample_indices],
-    eval_sample_predictions,
+val_confusion_matrix_counts, val_confusion_matrix = calculate_confusion_matrices(
+    val_dataset.y[val_sample_indices],
+    val_sample_predictions,
     len(CLASS_NAMES),
 )
 save_confusion_matrix_figure(
@@ -158,14 +166,14 @@ save_confusion_matrix_figure(
     percentage=True,
 )
 save_confusion_matrix_figure(
-    eval_confusion_matrix,
-    EVAL_CONFUSION_MATRIX_PATH,
+    val_confusion_matrix,
+    VAL_CONFUSION_MATRIX_PATH,
     CLASS_NAMES,
-    "MLP Eval Confusion Matrix",
+    "MLP Validation Confusion Matrix",
     percentage=True,
 )
 print(f"Train confusion matrix disimpan ke: {TRAIN_CONFUSION_MATRIX_PATH}")
-print(f"Eval confusion matrix disimpan ke: {EVAL_CONFUSION_MATRIX_PATH}")
+print(f"Validation confusion matrix disimpan ke: {VAL_CONFUSION_MATRIX_PATH}")
 
 
 # ==========================================================
@@ -232,7 +240,7 @@ run_id = log_evaluation_to_mlflow(
         TEST_CONFUSION_MATRIX_COUNTS_PATH,
         TEST_CONFUSION_MATRIX_PATH,
         TRAIN_CONFUSION_MATRIX_PATH,
-        EVAL_CONFUSION_MATRIX_PATH,
+        VAL_CONFUSION_MATRIX_PATH,
         METRICS_TEXT_PATH,
     ],
 )

@@ -64,7 +64,7 @@ REPORTS_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 METRICS_JSON_PATH = REPORTS_METRICS_DIR / "can_bigrubert_classification_report.json"
 METRICS_TEXT_PATH = REPORTS_METRICS_DIR / "can_bigrubert_classification_report.txt"
 TRAIN_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "can_bigrubert_train_confusion_matrix.png"
-EVAL_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "can_bigrubert_eval_confusion_matrix.png"
+VAL_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "can_bigrubert_val_confusion_matrix.png"
 TEST_CONFUSION_MATRIX_PATH = REPORTS_FIGURES_DIR / "can_bigrubert_test_confusion_matrix.png"
 TEST_CONFUSION_MATRIX_COUNTS_PATH = REPORTS_FIGURES_DIR / "can_bigrubert_test_confusion_matrix_counts.png"
 
@@ -78,6 +78,12 @@ mlflow.set_experiment(mlflow_params["experiment_can_bigrubert"])
 
 train_dataset = CANBiGRUBERTDataset(
     TRAIN_PATH, model_params["tokenizer_checkpoint"], window_size,
+    model_params["max_length"], training_params["batch_size"], False,
+    data_params["random_seed"]
+)
+val_dataset = CANBiGRUBERTDataset(
+    f"{dataset_params['sequence_window']['featured_dir']}/val.parquet",
+    model_params["tokenizer_checkpoint"], window_size,
     model_params["max_length"], training_params["batch_size"], False,
     data_params["random_seed"]
 )
@@ -139,16 +145,22 @@ inference_ms_per_window = elapsed * 1000.0 / max(len(test_dataset.y), 1)
 y_true = test_dataset.y
 y_pred = np.argmax(np.asarray(predictions), axis=-1)
 train_predictions = np.argmax(
-    model.predict(train_dataset.to_tf_dataset(), verbose=0), axis=-1
+    model.predict(train_dataset.to_tf_dataset(), verbose=1), axis=-1
+)
+val_predictions = np.argmax(
+    model.predict(val_dataset.to_tf_dataset(), verbose=1), axis=-1
 )
 train_counts, train_matrix = calculate_confusion_matrices(
     train_dataset.y, train_predictions, len(CLASS_NAMES)
+)
+val_counts, val_matrix = calculate_confusion_matrices(
+    val_dataset.y, val_predictions, len(CLASS_NAMES)
 )
 test_counts, test_matrix = calculate_confusion_matrices(
     y_true, y_pred, len(CLASS_NAMES)
 )
 save_confusion_matrix_figure(train_matrix, TRAIN_CONFUSION_MATRIX_PATH, CLASS_NAMES, "CAN-BiGRUBERT Train Confusion Matrix", True)
-save_confusion_matrix_figure(test_matrix, EVAL_CONFUSION_MATRIX_PATH, CLASS_NAMES, "CAN-BiGRUBERT Eval Confusion Matrix", True)
+save_confusion_matrix_figure(val_matrix, VAL_CONFUSION_MATRIX_PATH, CLASS_NAMES, "CAN-BiGRUBERT Validation Confusion Matrix", True)
 
 
 # ==========================================================
@@ -197,7 +209,7 @@ run_id = log_evaluation_to_mlflow(
         TEST_CONFUSION_MATRIX_COUNTS_PATH,
         TEST_CONFUSION_MATRIX_PATH,
         TRAIN_CONFUSION_MATRIX_PATH,
-        EVAL_CONFUSION_MATRIX_PATH,
+        VAL_CONFUSION_MATRIX_PATH,
         METRICS_TEXT_PATH,
     ],
 )

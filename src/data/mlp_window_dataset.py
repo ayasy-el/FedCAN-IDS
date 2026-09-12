@@ -28,6 +28,11 @@ def _frame_features(df: pl.DataFrame, can_id_bits: int) -> tuple[np.ndarray, np.
 class MLPWindowDataset:
     """Create windows inside each session and label them with the final frame."""
 
+    REQUIRED_COLUMNS = frozenset({
+        "session_id", "Timestamp", "Arbitration_ID", "DLC", "Class",
+        "Delta_Id", "Deltatime", *[f"Data_{i}" for i in range(8)],
+    })
+
     def __init__(self, parquet_path, normalize_stats_path=None, fit_normalize_stats=False,
                  can_id_bits=11, batch_size=256, shuffle=False, window_size=16, stride=8):
         self.parquet_path = Path(parquet_path)
@@ -38,7 +43,13 @@ class MLPWindowDataset:
         if self.window_size < 1 or self.stride < 1:
             raise ValueError("window_size and stride must be positive")
 
-        df = pl.read_parquet(self.parquet_path).sort(["session_id", "Timestamp"])
+        df = pl.read_parquet(self.parquet_path)
+        missing = self.REQUIRED_COLUMNS - set(df.columns)
+        if missing:
+            raise ValueError(
+                f"MLP window input is missing required columns: {sorted(missing)}"
+            )
+        df = df.select(sorted(self.REQUIRED_COLUMNS)).sort(["session_id", "Timestamp"])
         sessions = [
             _frame_features(group, can_id_bits)
             for group in df.partition_by("session_id", maintain_order=True)
