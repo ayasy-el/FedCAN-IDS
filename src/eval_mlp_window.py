@@ -81,6 +81,7 @@ train_dataset = MLPWindowDataset(
     can_id_bits=model_params["can_id_bits"],
     batch_size=training_params["batch_size"],
     shuffle=False,
+    source_path=dataset_params["prepared_path"],
 )
 val_dataset = MLPWindowDataset(
     f"{dataset_params['processed_dir']}/val.parquet",
@@ -89,6 +90,7 @@ val_dataset = MLPWindowDataset(
     can_id_bits=model_params["can_id_bits"],
     batch_size=training_params["batch_size"],
     shuffle=False,
+    source_path=dataset_params["prepared_path"],
 )
 test_dataset = MLPWindowDataset(
     TEST_PATH,
@@ -97,6 +99,7 @@ test_dataset = MLPWindowDataset(
     can_id_bits=model_params["can_id_bits"],
     batch_size=training_params["batch_size"],
     shuffle=False,
+    source_path=dataset_params["prepared_path"],
 )
 test_tf = test_dataset.to_tf_dataset()
 
@@ -146,10 +149,10 @@ val_sample_indices = stratified_sample_indices(
     val_dataset.y, SAMPLE_SIZE, SAMPLE_SEED + 1
 )
 train_sample_predictions = np.argmax(
-    model.predict(train_dataset.x[train_sample_indices], verbose=1), axis=-1
+    model.predict(train_dataset.to_tf_dataset(train_sample_indices), verbose=1), axis=-1
 )
 val_sample_predictions = np.argmax(
-    model.predict(val_dataset.x[val_sample_indices], verbose=1), axis=-1
+    model.predict(val_dataset.to_tf_dataset(val_sample_indices), verbose=1), axis=-1
 )
 train_confusion_matrix_counts, train_confusion_matrix = calculate_confusion_matrices(
     train_dataset.y[train_sample_indices],

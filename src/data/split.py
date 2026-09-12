@@ -1,4 +1,4 @@
-"""Split prepared frames or windows using one configurable data stage."""
+"""Split prepared frames or compact window references."""
 
 from pathlib import Path
 
@@ -46,164 +46,103 @@ def _stratified_frame_split(df, seed):
     return {name: pl.concat(groups) if groups else df.head(0) for name, groups in outputs.items()}
 
 
-def _frame_string(row):
-    values = [str(row["Arbitration_ID"]).upper().removeprefix("0X"), format(int(row["DLC"]), "X")]
-    values.extend(str(row[f"Data_{i}"]).upper() for i in range(8))
-    return " ".join(values)
-
-
 def _candidate_labels(labels, window_size, stride):
-    """Label each window by its first attack frame, or benign otherwise."""
+    """Label windows by the first attack frame, or benign otherwise."""
     labels = np.asarray(labels, dtype=np.int16)
     starts = np.arange(0, len(labels) - window_size + 1, stride, dtype=np.int64)
     if not len(starts):
         return starts, np.empty(0, dtype=np.int16)
-
     attack_positions = np.flatnonzero(~np.isin(labels, (0, 5)))
     next_attack = np.full(len(labels), len(labels), dtype=np.int64)
     next_attack[attack_positions] = attack_positions
     next_attack = np.minimum.accumulate(next_attack[::-1])[::-1]
     first_attack = next_attack[starts]
-    has_attack = first_attack < (starts + window_size)
+    has_attack = first_attack < starts + window_size
     window_labels = labels[starts].copy()
     window_labels[has_attack] = labels[first_attack[has_attack]]
     return starts, window_labels
 
 
-def _window_label(rows):
-    """Use an attack label when any frame in the window is an attack."""
-    for row in rows:
-        label = int(row["Class"])
-        if label not in (0, 5):
-            return label
-    return int(rows[0]["Class"])
-
-
-def _materialize_window_record(session, start, window_size):
-    """Build the wide window row only after its start was sampled."""
-    rows = session.slice(start, window_size).to_dicts()
-    first = rows[0]
-    return {
-        "window_id": f"{first['session_id']}:{first['row_id']}",
-        "session_id": first["session_id"],
-        "start_row_id": int(first["row_id"]),
-        "label": _window_label(rows),
-        "frame_labels": [int(row["Class"]) for row in rows],
-        "frames": [_frame_string(row) for row in rows],
-        "Arbitration_ID": [str(row["Arbitration_ID"]) for row in rows],
-        "DLC": [int(row["DLC"]) for row in rows],
-        **{f"Data_{i}": [str(row[f"Data_{i}"]) for row in rows] for i in range(8)},
-        "Delta_Id": [float(row["Delta_Id"]) for row in rows],
-        "Deltatime": [float(row["Deltatime"]) for row in rows],
-    }
-
-
 def _sample_window_refs(df, window_size, stride, downsample, seed):
-    """Sample lightweight window references before materializing window data."""
+    """Sample compact ``(session index, start)`` references."""
     rng = np.random.default_rng(seed)
     sessions = df.sort(["session_id", "Timestamp"]).partition_by(
         "session_id", maintain_order=True
     )
     counts = {}
     for session in tqdm(sessions, desc="Counting window candidates", unit="session"):
-        labels = session["Class"].to_numpy()
-        if len(labels) < window_size:
-            continue
-        _, candidate_labels = _candidate_labels(labels, window_size, stride)
+        _, candidate_labels = _candidate_labels(
+            session["Class"].to_numpy(), window_size, stride
+        )
         for label in candidate_labels:
             label = int(label)
             counts[label] = counts.get(label, 0) + 1
     if not counts:
         raise ValueError("No candidate windows were found")
 
-    for label, count in sorted(counts.items()):
-        print(f"class {label}: {count:,}")
-
     target = min(counts.values()) if downsample else None
     if target is not None:
         print(f"Automatic downsample target: {target} windows per class")
 
-    reservoirs = {label: [] for label in counts}
+    sample_rng = np.random.default_rng(seed)
+    selected_positions = {
+        label: np.sort(
+            sample_rng.choice(count, size=target, replace=False)
+            if target is not None
+            else np.arange(count, dtype=np.int64)
+        )
+        for label, count in counts.items()
+    }
+    references = {
+        label: np.empty((len(positions), 2), dtype=np.int64)
+        for label, positions in selected_positions.items()
+    }
+    cursors = {label: 0 for label in counts}
     seen = {label: 0 for label in counts}
     for session_index, session in enumerate(
         tqdm(sessions, desc="Sampling window references", unit="session")
     ):
-        labels = session["Class"].to_numpy()
-        starts, candidate_labels = _candidate_labels(labels, window_size, stride)
+        starts, candidate_labels = _candidate_labels(
+            session["Class"].to_numpy(), window_size, stride
+        )
         for start, candidate_label in zip(starts, candidate_labels):
             label = int(candidate_label)
+            position = seen[label]
             seen[label] += 1
-            reference = (session_index, start)
-            if target is None or len(reservoirs[label]) < target:
-                reservoirs[label].append(reference)
-            else:
-                replacement = int(rng.integers(0, seen[label]))
-                if replacement < target:
-                    reservoirs[label][replacement] = reference
-    return sessions, reservoirs
+            cursor = cursors[label]
+            positions = selected_positions[label]
+            if cursor < len(positions) and position == positions[cursor]:
+                references[label][cursor] = (session_index, int(start))
+                cursors[label] += 1
+    return sessions, references
 
 
-def _split_window_refs(references, rng):
-    """Create shuffled train/val/test references without materializing rows."""
-    outputs = {"train": [], "val": [], "test": []}
-    for label, group in references.items():
-        group = list(group)
-        rng.shuffle(group)
-        tagged = [(label, session_index, start) for session_index, start in group]
-        n_train = int(len(tagged) * 0.60)
-        n_val = int(len(tagged) * 0.20)
-        outputs["train"].extend(tagged[:n_train])
-        outputs["val"].extend(tagged[n_train:n_train + n_val])
-        outputs["test"].extend(tagged[n_train + n_val:])
-    for group in outputs.values():
-        rng.shuffle(group)
-    return outputs
-
-
-class _WindowParquetWriters:
-    """Write window records in bounded batches using Arrow Parquet writers."""
-
-    def __init__(self, output_dir, batch_size=64):
+class _CompactParquetWriters:
+    def __init__(self, output_dir, batch_size=10_000):
         self.output_dir = Path(output_dir)
         self.batch_size = batch_size
-        self.buffers = {name: [] for name in ("train", "val", "test")}
         self.writers = {}
-        self.counts = {name: 0 for name in self.buffers}
+        self.counts = {name: 0 for name in ("train", "val", "test")}
         self.empty_table = None
 
-    def append(self, split_name, record):
-        buffer = self.buffers[split_name]
-        buffer.append(record)
-        if len(buffer) >= self.batch_size:
-            self._flush(split_name)
-
-    def _flush(self, split_name):
-        buffer = self.buffers[split_name]
-        if not buffer:
-            return
-        table = pl.DataFrame(buffer).to_arrow()
+    def write(self, name, table):
         if self.empty_table is None:
             self.empty_table = table.slice(0, 0)
-        writer = self.writers.get(split_name)
-        if writer is None:
-            writer = pq.ParquetWriter(
-                self.output_dir / f"{split_name}.parquet",
+        if name not in self.writers:
+            self.writers[name] = pq.ParquetWriter(
+                self.output_dir / f"{name}.parquet",
                 table.schema,
                 compression="zstd",
             )
-            self.writers[split_name] = writer
-        writer.write_table(table)
-        self.counts[split_name] += len(buffer)
-        buffer.clear()
+        self.writers[name].write_table(table)
+        self.counts[name] += table.num_rows
 
     def close(self):
-        for split_name in self.buffers:
-            self._flush(split_name)
         if self.empty_table is not None:
-            for split_name in self.buffers:
-                if split_name not in self.writers:
+            for name in self.counts:
+                if name not in self.writers:
                     writer = pq.ParquetWriter(
-                        self.output_dir / f"{split_name}.parquet",
+                        self.output_dir / f"{name}.parquet",
                         self.empty_table.schema,
                         compression="zstd",
                     )
@@ -213,82 +152,86 @@ class _WindowParquetWriters:
             writer.close()
 
 
-def _write_window_splits(sessions, references, window_size, output_dir):
-    writers = _WindowParquetWriters(output_dir)
-    total = sum(len(group) for group in references.values())
+def _compact_table(sessions, references, window_size, label):
+    session_indices = references[:, 0]
+    starts = references[:, 1]
+    session_ids = [str(sessions[int(index)]["session_id"][0]) for index in session_indices]
+    row_ids = [int(sessions[int(index)]["row_id"][int(start)]) for index, start in references]
+    return pl.DataFrame({
+        "window_id": [f"{session}:{row_id}" for session, row_id in zip(session_ids, row_ids)],
+        "session_id": session_ids,
+        "start_row_id": row_ids,
+        "window_size": [window_size] * len(references),
+        "label": [int(label)] * len(references),
+    }).to_arrow()
+
+
+def _window_split(prepared_path, output_dir, window_size, stride, downsample, seed):
+    source = pl.read_parquet(prepared_path)
+    sessions, references = _sample_window_refs(
+        source, window_size, stride, downsample, seed
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    writers = _CompactParquetWriters(output_dir)
+    split_rng = np.random.default_rng(seed)
     try:
-        with tqdm(total=total, desc="Materializing sampled windows", unit="window") as progress:
-            for split_name, group in references.items():
-                for _, session_index, start in group:
-                    writers.append(
-                        split_name,
-                        _materialize_window_record(
-                            sessions[session_index], start, window_size
-                        ),
-                    )
-                    progress.update(1)
+        for label, group in references.items():
+            order = split_rng.permutation(len(group))
+            n_train = int(len(group) * 0.60)
+            n_val = int(len(group) * 0.20)
+            partitions = {
+                "train": order[:n_train],
+                "val": order[n_train:n_train + n_val],
+                "test": order[n_train + n_val:],
+            }
+            for name, indices in partitions.items():
+                for start in range(0, len(indices), writers.batch_size):
+                    batch = group[indices[start:start + writers.batch_size]]
+                    if len(batch):
+                        writers.write(name, _compact_table(sessions, batch, window_size, label))
     finally:
         writers.close()
+    for name, count in writers.counts.items():
+        print(f"{name}: {count:,} compact window references")
     return writers.counts
-
-
-def _stratified_window_split(prepared_path, window_size, stride, downsample, seed, output_dir):
-    # Read only inside this function so the original frame table can be
-    # released immediately after session partitioning.
-    df = pl.read_parquet(prepared_path)
-    rng = np.random.default_rng(seed)
-    sessions, references = _sample_window_refs(
-        df, window_size, stride, downsample, seed
-    )
-    del df
-    split_references = _split_window_refs(references, rng)
-    return _write_window_splits(sessions, split_references, window_size, output_dir)
 
 
 def run(params):
     dataset = params["dataset"]
     split = params["split"]
     output_dir = Path(dataset["processed_dir"])
-    output_dir.mkdir(parents=True, exist_ok=True)
     unit = split.get("unit", "frame")
     strategy = split.get("strategy", "session_holdout")
     seed = int(split.get("random_seed", 42))
+
     if unit == "window":
         if strategy != "stratified_random":
             raise ValueError("Window unit currently supports strategy='stratified_random' only")
-        print(f"Splitting prepared frames into windows with strategy={strategy!r}")
-        counts = _stratified_window_split(
+        _window_split(
             dataset["prepared_path"],
+            output_dir,
             int(split["window_size"]),
             int(split["stride"]),
             bool(split.get("downsample", False)),
             seed,
-            output_dir,
         )
-        for name, count in counts.items():
-            print(f"{name}: {count:,} {unit}s -> {output_dir / f'{name}.parquet'}")
         return
 
     source = pl.read_parquet(dataset["prepared_path"])
-    print(f"Splitting {len(source):,} prepared {unit}s with strategy={strategy!r}")
-
-    if unit == "frame":
-        if strategy == "session_holdout":
-            outputs = _session_split(source, split)
-        elif strategy == "stratified_random":
-            outputs = _stratified_frame_split(source, seed)
-        else:
-            raise ValueError(f"Unknown frame split strategy: {strategy}")
-    else:
+    print(f"Splitting {len(source):,} prepared frames with strategy={strategy!r}")
+    if unit != "frame":
         raise ValueError("split.unit must be either 'frame' or 'window'")
+    if strategy == "session_holdout":
+        outputs = _session_split(source, split)
+    elif strategy == "stratified_random":
+        outputs = _stratified_frame_split(source, seed)
+    else:
+        raise ValueError(f"Unknown frame split strategy: {strategy}")
 
+    output_dir.mkdir(parents=True, exist_ok=True)
     for name, result in outputs.items():
-        path = output_dir / f"{name}.parquet"
-        if isinstance(result, pl.DataFrame):
-            result.write_parquet(path, compression="zstd")
-        else:
-            pl.DataFrame(result).write_parquet(path, compression="zstd")
-        print(f"{name}: {len(result):,} {unit}s -> {path}")
+        result.write_parquet(output_dir / f"{name}.parquet", compression="zstd")
+        print(f"{name}: {len(result):,} frames")
 
 
 if __name__ == "__main__":

@@ -56,6 +56,7 @@ train = CANBiGRUBERTDataset(
     training["batch_size"],
     True,
     split["random_seed"],
+    source_path=dataset["prepared_path"],
 )
 val = CANBiGRUBERTDataset(
     f"{dataset['processed_dir']}/val.parquet",
@@ -65,6 +66,7 @@ val = CANBiGRUBERTDataset(
     training["batch_size"],
     False,
     split["random_seed"],
+    source_path=dataset["prepared_path"],
 )
 
 

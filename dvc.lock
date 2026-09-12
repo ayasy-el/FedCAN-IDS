@@ -57,3 +57,47 @@ stages:
       hash: md5
       md5: f208e11925bd4975d8ce7a3529dd3755
       size: 103893720
+  split:
+    cmd: PYTHONPATH=src python src/data/split.py
+    deps:
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: f208e11925bd4975d8ce7a3529dd3755
+      size: 103893720
+    - path: src/data/split.py
+      hash: md5
+      md5: ee25830d1f867b6f97fa65497e3cdefe
+      size: 9319
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        dataset.processed_dir: data/processed/current
+        split:
+          unit: window
+          strategy: stratified_random
+          window_size: 256
+          stride: 1
+          downsample: true
+          random_seed: 42
+          val_sessions:
+          - Pre_train_D_1
+          - Pre_train_S_1
+          test_sessions:
+          - Pre_train_D_2
+          - Pre_train_S_2
+    outs:
+    - path: data/processed/current/test.parquet
+      hash: md5
+      md5: 56c118506db53169e6884f96e57b47f7
+      size: 7651019
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: 3611507884ff6fb0037d1a109d5649e3
+      size: 22956099
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: 579754a5c647a79197dde542037f6246
+      size: 7650152

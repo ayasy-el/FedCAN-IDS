@@ -67,7 +67,13 @@ def analyze(path):
     if label_column is None:
         raise ValueError(f"{path} has no 'label' or 'Class' column")
 
-    unit = "window" if "frames" in df.columns or "frame_labels" in df.columns else "frame"
+    unit = (
+        "window"
+        if {"window_id", "window_size", "label"}.issubset(df.columns)
+        or "frames" in df.columns
+        or "frame_labels" in df.columns
+        else "frame"
+    )
     labels = _counts(df, label_column)
     report = {
         "path": str(path),
@@ -89,6 +95,8 @@ def analyze(path):
     if unit == "window":
         if "frames" in df.columns:
             report["window_length_counts"] = _list_length_counts(df, "frames")
+        elif "window_size" in df.columns:
+            report["window_length_counts"] = _counts(df, "window_size")
         report["attack_summary"] = _window_attack_summary(df)
         identifier = "window_id" if "window_id" in df.columns else "start_row_id" if "start_row_id" in df.columns else None
     else:

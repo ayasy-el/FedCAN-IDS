@@ -79,18 +79,18 @@ mlflow.set_experiment(mlflow_params["experiment_can_bigrubert"])
 train_dataset = CANBiGRUBERTDataset(
     TRAIN_PATH, model_params["tokenizer_checkpoint"], window_size,
     model_params["max_length"], training_params["batch_size"], False,
-    split["random_seed"]
+    split["random_seed"], dataset_params["prepared_path"]
 )
 val_dataset = CANBiGRUBERTDataset(
     f"{dataset_params['processed_dir']}/val.parquet",
     model_params["tokenizer_checkpoint"], window_size,
     model_params["max_length"], training_params["batch_size"], False,
-    split["random_seed"]
+    split["random_seed"], dataset_params["prepared_path"]
 )
 test_dataset = CANBiGRUBERTDataset(
     TEST_PATH, model_params["tokenizer_checkpoint"], window_size,
     model_params["max_length"], training_params["batch_size"], False,
-    split["random_seed"]
+    split["random_seed"], dataset_params["prepared_path"]
 )
 
 

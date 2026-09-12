@@ -46,6 +46,7 @@ train = MLPWindowDataset(
     model_params["can_id_bits"],
     training["batch_size"],
     True,
+    source_path=dataset["prepared_path"],
 )
 val = MLPWindowDataset(
     f"{dataset['processed_dir']}/val.parquet",
@@ -54,6 +55,7 @@ val = MLPWindowDataset(
     model_params["can_id_bits"],
     training["batch_size"],
     False,
+    source_path=dataset["prepared_path"],
 )
 
 

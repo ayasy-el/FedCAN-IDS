@@ -110,12 +110,14 @@ stages:
       - src/train_mlp_window.py
       - src/data/task.py
       - src/data/mlp_window_dataset.py
+      - src/data/window_dataset_utils.py
       - src/model/mlp_window.py
       - src/utils/metrics.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
       - data/processed/current/train.parquet
       - data/processed/current/val.parquet
+      - data/interim/prepared.parquet
     params:
       - experiment
       - prepare
@@ -139,6 +141,7 @@ stages:
       - src/eval_mlp_window.py
       - src/data/task.py
       - src/data/mlp_window_dataset.py
+      - src/data/window_dataset_utils.py
       - src/utils/eval_reporting.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
@@ -149,6 +152,7 @@ stages:
       - data/processed/current/train.parquet
       - data/processed/current/val.parquet
       - data/processed/current/test.parquet
+      - data/interim/prepared.parquet
     params:
       - experiment
       - prepare
@@ -176,12 +180,14 @@ stages:
       - src/train_can_bigrubert.py
       - src/data/task.py
       - src/data/can_bigrubert_dataset.py
+      - src/data/window_dataset_utils.py
       - src/model/can_bigrubert.py
       - src/utils/metrics.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
       - data/processed/current/train.parquet
       - data/processed/current/val.parquet
+      - data/interim/prepared.parquet
     params:
       - experiment
       - prepare
@@ -205,6 +211,7 @@ stages:
       - src/eval_can_bigrubert.py
       - src/data/task.py
       - src/data/can_bigrubert_dataset.py
+      - src/data/window_dataset_utils.py
       - src/model/can_bigrubert.py
       - src/utils/eval_reporting.py
       - src/utils/params.py
@@ -215,6 +222,7 @@ stages:
       - data/processed/current/train.parquet
       - data/processed/current/val.parquet
       - data/processed/current/test.parquet
+      - data/interim/prepared.parquet
     params:
       - experiment
       - prepare

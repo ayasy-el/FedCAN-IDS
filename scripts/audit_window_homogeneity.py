@@ -1,33 +1,52 @@
-"""Fail-fast audit for multiple attack labels in a window."""
+"""Fail-fast audit for multiple attack labels in expanded or compact windows."""
 
 import argparse
 
 import polars as pl
 
+from data.window_dataset_utils import load_window_references, materialize_window
 
-def audit(path):
-    df = pl.read_parquet(path)
-    required = {"frames", "label", "frame_labels"}
-    if not required.issubset(df.columns):
-        raise ValueError(
-            "Expected window parquet with frames, frame_labels, and label columns"
-        )
 
+def _expanded_rows(df):
     columns = [
         column
         for column in (
-            "window_id",
-            "session_id",
-            "start_row_id",
-            "label",
-            "frame_labels",
-            "frames",
+            "window_id", "session_id", "start_row_id", "label", "frame_labels", "frames"
         )
         if column in df.columns
     ]
     for row in df.select(columns).iter_rows(named=True):
-        # Labels 0 and 5 are both benign and may coexist. Only distinct
-        # attack labels are invalid.
+        yield row
+
+
+def _compact_rows(index_path, prepared_path):
+    index, sessions = load_window_references(index_path, prepared_path)
+    for row in index.iter_rows(named=True):
+        window = materialize_window(row, sessions)
+        yield {
+            "window_id": row["window_id"],
+            "session_id": row["session_id"],
+            "start_row_id": row["start_row_id"],
+            "label": row["label"],
+            "frame_labels": window["Class"].to_list(),
+            "frames": window.to_dicts(),
+        }
+
+
+def audit(path, prepared_path=None):
+    df = pl.read_parquet(path)
+    if "frame_labels" in df.columns and "frames" in df.columns:
+        rows = _expanded_rows(df)
+    elif {"window_id", "session_id", "start_row_id", "window_size", "label"}.issubset(df.columns):
+        if prepared_path is None:
+            raise ValueError("Compact windows require --prepared PATH for label auditing")
+        rows = _compact_rows(path, prepared_path)
+    else:
+        raise ValueError("Unsupported expanded or compact window schema")
+
+    checked = 0
+    for row in rows:
+        checked += 1
         attack_labels = sorted({
             int(label) for label in row["frame_labels"] if int(label) not in (0, 5)
         })
@@ -36,21 +55,20 @@ def audit(path):
             print("Benign labels 0 and 5 are allowed.")
             print("\n--- multiple-attack window ---")
             print(f"attack_labels: {attack_labels}")
-            for column in columns:
-                print(f"{column}: {row[column]}")
+            for column, value in row.items():
+                print(f"{column}: {value}")
             raise ValueError(f"Window contains multiple attack labels in {path}")
 
-    print(
-        f"{path}: {len(df):,} valid windows; "
-        f"labels={sorted(df['label'].unique().to_list())}"
-    )
-    lengths = df.select(pl.col("frames").list.len().alias("length"))
-    print(lengths.group_by("length").len().sort("length"))
+    print(f"{path}: {checked:,} valid windows")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("path", nargs="+", help="Window parquet files to inspect")
+    parser.add_argument(
+        "--prepared",
+        help="Prepared frame parquet required when auditing compact window indexes",
+    )
     args = parser.parse_args()
     for path in args.path:
-        audit(path)
+        audit(path, args.prepared)
