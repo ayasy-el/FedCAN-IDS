@@ -13,7 +13,7 @@ import numpy as np
 from tensorflow import keras
 
 from data.can_bigrubert_dataset import CANBiGRUBERTDataset
-from model.can_bigrubert import parameter_counts
+from model.can_bigrubert import build_can_bigrubert, parameter_counts
 from utils.eval_reporting import (
     build_evaluation_report,
     calculate_classification_metrics,
@@ -92,7 +92,18 @@ test_dataset = CANBiGRUBERTDataset(
 # Load model
 # ==========================================================
 
-model = keras.models.load_model(MODEL_PATH, compile=False)
+# Rebuild the architecture from source and load only the weights. The .keras
+# checkpoint contains Python Lambda functions whose serialized representation
+# is not callable with current tf-keras model deserialization.
+model = build_can_bigrubert(
+    window_size,
+    model_params["max_length"],
+    model_params["bert_checkpoint"],
+    model_params["bigru_hidden_size"],
+    model_params["dropout"],
+    model_params["num_classes"],
+)
+model.load_weights(MODEL_PATH)
 model.summary()
 model.compile(
     loss="sparse_categorical_crossentropy",
