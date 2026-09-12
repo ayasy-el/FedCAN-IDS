@@ -30,7 +30,7 @@ class CANBiGRUBERTDataset:
             raise ValueError(f"Invalid CAN-BiGRUBERT parquet schema: {frame_data.schema}")
         self.frames = frame_data["frames"].to_list()
         self.y = frame_data["label"].to_numpy().astype(np.int32)
-        self.num_classes = 10
+        self.num_classes = int(self.y.max()) + 1 if len(self.y) else 0
         if any(len(window) != self.window_size for window in self.frames):
             raise ValueError("All windows must have the configured window_size")
 

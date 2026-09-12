@@ -20,6 +20,7 @@ from utils.mlflow_utils import (
     save_run_id,
 )
 from utils.params import load_params
+from data.task import validate_experiment
 
 dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
@@ -30,11 +31,13 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
 params = load_params()
 dataset = params["dataset"]
-data_params = params["data"]["sequence_window"]
+_, task = validate_experiment(params)
+num_classes = task["num_classes"]
+split = params["split"]
 model_params = params["model"]["can_bigrubert"]
 training = params["training"]["can_bigrubert"]
 mlflow_params = params["mlflow"]
-window_size = int(data_params["window_size"])
+window_size = int(split["window_size"])
 best_path = "checkpoints/can_bigrubert_best.keras"
 final_path = "checkpoints/can_bigrubert_final.keras"
 run_id_path = "checkpoints/can_bigrubert_mlflow_run_id.txt"
@@ -46,22 +49,22 @@ best_metrics_path = "reports/metrics/can_bigrubert_best_training_metrics.json"
 # ==========================================================
 
 train = CANBiGRUBERTDataset(
-    f"{dataset['sequence_window']['featured_dir']}/train.parquet",
+    f"{dataset['processed_dir']}/train.parquet",
     model_params["tokenizer_checkpoint"],
     window_size,
     model_params["max_length"],
     training["batch_size"],
     True,
-    data_params["random_seed"],
+    split["random_seed"],
 )
 val = CANBiGRUBERTDataset(
-    f"{dataset['sequence_window']['featured_dir']}/val.parquet",
+    f"{dataset['processed_dir']}/val.parquet",
     model_params["tokenizer_checkpoint"],
     window_size,
     model_params["max_length"],
     training["batch_size"],
     False,
-    data_params["random_seed"],
+    split["random_seed"],
 )
 
 
@@ -75,7 +78,7 @@ model = build_can_bigrubert(
     model_params["bert_checkpoint"],
     model_params["bigru_hidden_size"],
     model_params["dropout"],
-    model_params["num_classes"],
+    num_classes,
 )
 model.compile(
     optimizer=keras.optimizers.AdamW(
@@ -85,9 +88,9 @@ model.compile(
     loss="sparse_categorical_crossentropy",
     metrics=[
         "accuracy",
-        MacroPrecision(model_params["num_classes"]),
-        MacroRecall(model_params["num_classes"]),
-        MacroF1Score(model_params["num_classes"]),
+        MacroPrecision(num_classes),
+        MacroRecall(num_classes),
+        MacroF1Score(num_classes),
     ],
 )
 model.summary()
@@ -103,11 +106,11 @@ mlflow.set_tracking_uri(mlflow_params["tracking_uri"])
 mlflow.set_experiment(mlflow_params["experiment_can_bigrubert"])
 with mlflow.start_run() as run:
     save_run_id(run.info.run_id, run_id_path)
-    mlflow.log_params({f"data.{key}": value for key, value in data_params.items()})
+    mlflow.log_params({f"split.{key}": value for key, value in split.items()})
     mlflow.log_params({f"model.{key}": value for key, value in model_params.items()})
     mlflow.log_params({f"training.{key}": value for key, value in training.items()})
     mlflow.log_param("window_size", window_size)
-    mlflow.log_param("stride", data_params["stride"])
+    mlflow.log_param("stride", split["stride"])
     mlflow.log_metrics({key: float(value) for key, value in counts.items()})
     callbacks = [
         keras.callbacks.ModelCheckpoint(

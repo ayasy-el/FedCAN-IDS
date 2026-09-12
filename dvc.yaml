@@ -4,92 +4,56 @@ stages:
     deps:
       - src/data/ingest.py
       - data/raw/Car_Hacking_Challenge_Dataset
+    params:
+      - dataset.raw_dir
+      - dataset.raw_files
+      - dataset.interim_path
     outs:
-      - data/interim/car_hacking_with_session.parquet
+      - data/interim/canonical.parquet
+
+  prepare:
+    cmd: PYTHONPATH=src python src/data/prepare.py
+    deps:
+      - src/data/prepare.py
+      - src/data/task.py
+      - src/utils/params.py
+      - data/interim/canonical.parquet
+    params:
+      - dataset.prepared_path
+      - prepare
+    outs:
+      - data/interim/prepared.parquet
 
   split:
     cmd: PYTHONPATH=src python src/data/split.py
     deps:
       - src/data/split.py
       - src/utils/params.py
-      - data/interim/car_hacking_with_session.parquet
+      - data/interim/prepared.parquet
     params:
-      - pipeline.profile
-      - dataset.default.val_sessions
-      - dataset.default.test_sessions
+      - dataset.processed_dir
+      - split
     outs:
-      - data/processed/car_hacking/train.parquet
-      - data/processed/car_hacking/val.parquet
-      - data/processed/car_hacking/test.parquet
-
-  feature:
-    cmd: PYTHONPATH=src python src/data/feature.py
-    deps:
-      - src/data/feature.py
-      - src/utils/params.py
-      - data/processed/car_hacking/train.parquet
-      - data/processed/car_hacking/val.parquet
-      - data/processed/car_hacking/test.parquet
-    outs:
-      - data/processed/car_hacking/featured/train.parquet
-      - data/processed/car_hacking/featured/val.parquet
-      - data/processed/car_hacking/featured/test.parquet
-
-  sequence_ingest:
-    cmd: PYTHONPATH=src python src/data/ingest.py --profile sequence_window
-    deps:
-      - src/data/ingest.py
-      - src/data/adapters/can_bigrubert.py
-      - data/raw/Car_Hacking_Challenge_Dataset
-    params:
-      - dataset.raw_dir
-      - dataset.sequence_window.interim_path
-    outs:
-      - data/interim/sequence_window.parquet
-
-  sequence_split:
-    cmd: PYTHONPATH=src python src/data/split.py --profile sequence_window
-    deps:
-      - src/data/split.py
-      - src/data/adapters/can_bigrubert.py
-      - data/interim/sequence_window.parquet
-    params:
-      - data.sequence_window
-      - dataset.sequence_window.processed_dir
-    outs:
-      - data/processed/sequence_window/train.parquet
-      - data/processed/sequence_window/val.parquet
-      - data/processed/sequence_window/test.parquet
-
-  sequence_feature:
-    cmd: PYTHONPATH=src python src/data/feature.py --profile sequence_window
-    deps:
-      - src/data/feature.py
-      - src/data/adapters/can_bigrubert.py
-      - data/interim/sequence_window.parquet
-      - data/processed/sequence_window/train.parquet
-      - data/processed/sequence_window/val.parquet
-      - data/processed/sequence_window/test.parquet
-    params:
-      - data.sequence_window
-      - dataset.sequence_window.featured_dir
-    outs:
-      - data/processed/sequence_window/featured/train.parquet
-      - data/processed/sequence_window/featured/val.parquet
-      - data/processed/sequence_window/featured/test.parquet
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
 
   train_mlp:
     cmd: PYTHONPATH=src python src/train_mlp.py
     deps:
       - src/train_mlp.py
+      - src/data/task.py
       - src/data/mlp_dataset.py
       - src/model/mlp.py
       - src/utils/metrics.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
-      - data/processed/car_hacking/featured/train.parquet
-      - data/processed/car_hacking/featured/val.parquet
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
     params:
+      - experiment
+      - prepare
+      - split
       - model.mlp
       - training.mlp
       - mlflow.experiment_mlp
@@ -107,6 +71,7 @@ stages:
     cmd: PYTHONPATH=src python src/eval_mlp.py
     deps:
       - src/eval_mlp.py
+      - src/data/task.py
       - src/data/mlp_dataset.py
       - src/utils/eval_reporting.py
       - src/utils/params.py
@@ -115,10 +80,12 @@ stages:
       - checkpoints/mlp_best.keras
       - checkpoints/mlp_norm_stats.json
       - reports/metrics/mlp_best_training_metrics.json
-      - data/processed/car_hacking/featured/train.parquet
-      - data/processed/car_hacking/featured/val.parquet
-      - data/processed/car_hacking/featured/test.parquet
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
     params:
+      - experiment
+      - prepare
       - model.mlp
       - training.mlp
       - mlflow.experiment_mlp
@@ -141,15 +108,18 @@ stages:
     cmd: PYTHONPATH=src python src/train_mlp_window.py
     deps:
       - src/train_mlp_window.py
+      - src/data/task.py
       - src/data/mlp_window_dataset.py
-      - src/data/mlp_dataset.py
       - src/model/mlp_window.py
       - src/utils/metrics.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
-      - data/processed/car_hacking/featured/train.parquet
-      - data/processed/car_hacking/featured/val.parquet
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
     params:
+      - experiment
+      - prepare
+      - split
       - model.mlp_window
       - training.mlp_window
       - mlflow.experiment_mlp_window
@@ -167,8 +137,8 @@ stages:
     cmd: PYTHONPATH=src python src/eval_mlp_window.py
     deps:
       - src/eval_mlp_window.py
+      - src/data/task.py
       - src/data/mlp_window_dataset.py
-      - src/data/mlp_dataset.py
       - src/utils/eval_reporting.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
@@ -176,9 +146,12 @@ stages:
       - checkpoints/mlp_window_best.keras
       - checkpoints/mlp_window_norm_stats.json
       - reports/metrics/mlp_window_best_training_metrics.json
-      - data/processed/car_hacking/featured/val.parquet
-      - data/processed/car_hacking/featured/test.parquet
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
     params:
+      - experiment
+      - prepare
       - model.mlp_window
       - training.mlp_window
       - mlflow.experiment_mlp_window
@@ -201,15 +174,18 @@ stages:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:
       - src/train_can_bigrubert.py
+      - src/data/task.py
       - src/data/can_bigrubert_dataset.py
       - src/model/can_bigrubert.py
       - src/utils/metrics.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
-      - data/processed/sequence_window/featured/train.parquet
-      - data/processed/sequence_window/featured/val.parquet
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
     params:
-      - data.sequence_window
+      - experiment
+      - prepare
+      - split
       - model.can_bigrubert
       - training.can_bigrubert
       - mlflow.experiment_can_bigrubert
@@ -227,18 +203,22 @@ stages:
     cmd: PYTHONPATH=src python src/eval_can_bigrubert.py
     deps:
       - src/eval_can_bigrubert.py
+      - src/data/task.py
       - src/data/can_bigrubert_dataset.py
       - src/model/can_bigrubert.py
       - src/utils/eval_reporting.py
       - src/utils/params.py
       - src/utils/mlflow_utils.py
+      - src/utils/metrics.py
       - checkpoints/can_bigrubert_best.keras
       - reports/metrics/can_bigrubert_best_training_metrics.json
-      - data/processed/sequence_window/featured/train.parquet
-      - data/processed/sequence_window/featured/val.parquet
-      - data/processed/sequence_window/featured/test.parquet
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
     params:
-      - data.sequence_window
+      - experiment
+      - prepare
+      - split
       - model.can_bigrubert
       - training.can_bigrubert
       - mlflow.experiment_can_bigrubert

@@ -1,13 +1,8 @@
-import argparse
+"""Backward-compatible entry point; feature generation now lives in prepare."""
 
+from data.prepare import run
 from utils.params import load_params
-from data.adapters import can_bigrubert, default
 
 
-params = load_params()
-parser = argparse.ArgumentParser()
-parser.add_argument("--profile", choices=("default", "sequence_window"))
-args = parser.parse_args()
-profile = args.profile or params.get("pipeline", {}).get("profile", "default")
-adapter = can_bigrubert if profile == "sequence_window" else default
-adapter.feature(params)
+if __name__ == "__main__":
+    run(load_params())

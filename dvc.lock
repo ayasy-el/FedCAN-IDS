@@ -1,7 +1,7 @@
 schema: '2.0'
 stages:
   ingest:
-    cmd: python src/data/ingest.py
+    cmd: PYTHONPATH=src python src/data/ingest.py
     deps:
     - path: data/raw/Car_Hacking_Challenge_Dataset
       hash: md5
@@ -10,397 +10,50 @@ stages:
       nfiles: 9
     - path: src/data/ingest.py
       hash: md5
-      md5: 5224244a3e3c81fc554e62bcb71861c0
-      size: 2010
+      md5: 43832587185f391a0b190becdae80280
+      size: 2518
+    params:
+      params.yaml:
+        dataset.interim_path: data/interim/canonical.parquet
+        dataset.raw_dir: data/raw/Car_Hacking_Challenge_Dataset
+        dataset.raw_files:
+        - Pre_train_D_1.csv
+        - Pre_train_D_2.csv
+        - Pre_submit_D.csv
+        - Pre_train_S_1.csv
+        - Pre_train_S_2.csv
+        - Pre_submit_S.csv
     outs:
-    - path: data/interim/car_hacking_with_session.parquet
+    - path: data/interim/canonical.parquet
       hash: md5
-      md5: fda0d8c482c8816c9ff1ad4a086ed5d9
-      size: 92995532
-  split:
-    cmd: PYTHONPATH=src python src/data/split.py
+      md5: 3ea26caa4c1b01aacc12c3e0685a7b9b
+      size: 74859362
+  prepare:
+    cmd: PYTHONPATH=src python src/data/prepare.py
     deps:
-    - path: data/interim/car_hacking_with_session.parquet
+    - path: data/interim/canonical.parquet
       hash: md5
-      md5: fda0d8c482c8816c9ff1ad4a086ed5d9
-      size: 92995532
-    - path: src/data/split.py
+      md5: 3ea26caa4c1b01aacc12c3e0685a7b9b
+      size: 74859362
+    - path: src/data/prepare.py
       hash: md5
-      md5: a6d582c87bdf8afe07a8f2c27d08d6ce
-      size: 5356
+      md5: e6204e9eb9261c5a63f887049d159270
+      size: 1962
+    - path: src/data/task.py
+      hash: md5
+      md5: cf6e472e70f9b38660d2ffe145222025
+      size: 1979
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
       size: 1180
     params:
       params.yaml:
-        split.test_sessions:
-        - Pre_train_D_2
-        - Pre_train_S_2
-        split.val_sessions:
-        - Pre_train_D_1
-        - Pre_train_S_1
+        dataset.prepared_path: data/interim/prepared.parquet
+        prepare:
+          label_schema: ten_state_attack
     outs:
-    - path: data/processed/car_hacking/test.parquet
+    - path: data/interim/prepared.parquet
       hash: md5
-      md5: 02a8393c6c59752c1a42d1e8a3135487
-      size: 18203011
-    - path: data/processed/car_hacking/train.parquet
-      hash: md5
-      md5: ad2b6627d88a1934236a16fcc7bd3025
-      size: 57929349
-    - path: data/processed/car_hacking/val.parquet
-      hash: md5
-      md5: 6c93fb1013b9945f6e17ac8a1f4fbb3f
-      size: 16928898
-  feature:
-    cmd: PYTHONPATH=src python src/data/feature.py
-    deps:
-    - path: data/processed/car_hacking/test.parquet
-      hash: md5
-      md5: 02a8393c6c59752c1a42d1e8a3135487
-      size: 18203011
-    - path: data/processed/car_hacking/train.parquet
-      hash: md5
-      md5: ad2b6627d88a1934236a16fcc7bd3025
-      size: 57929349
-    - path: data/processed/car_hacking/val.parquet
-      hash: md5
-      md5: 6c93fb1013b9945f6e17ac8a1f4fbb3f
-      size: 16928898
-    - path: src/data/feature.py
-      hash: md5
-      md5: 828031c0951404d9e6694d4014cc3429
-      size: 1301
-    - path: src/utils/params.py
-      hash: md5
-      md5: e12239d6f108a5845bb8c3cf6ba22bb7
-      size: 1180
-    params:
-      params.yaml:
-        feature.window_ms: 0
-    outs:
-    - path: data/processed/car_hacking/featured/test.parquet
-      hash: md5
-      md5: c93dc5d3cf9b56db5c4ba0fab91ee456
-      size: 25122712
-    - path: data/processed/car_hacking/featured/train.parquet
-      hash: md5
-      md5: 00c21303a0b6eca66921e3c465603724
-      size: 78173531
-    - path: data/processed/car_hacking/featured/val.parquet
-      hash: md5
-      md5: 5274f5839e64c8c3279ad77dc99c58a5
-      size: 23493978
-  train_mlp:
-    cmd: PYTHONPATH=src python src/train_mlp.py
-    deps:
-    - path: data/processed/car_hacking/featured/train.parquet
-      hash: md5
-      md5: 00c21303a0b6eca66921e3c465603724
-      size: 78173531
-    - path: data/processed/car_hacking/featured/val.parquet
-      hash: md5
-      md5: 5274f5839e64c8c3279ad77dc99c58a5
-      size: 23493978
-    - path: src/data/mlp_dataset.py
-      hash: md5
-      md5: f67ad4699587149df33a9913b3e46e62
-      size: 2483
-    - path: src/data/streaming_dataset.py
-      hash: md5
-      md5: 7bed4eca2fda3a53e35c6e1a8f742872
-      size: 4582
-    - path: src/model/mlp.py
-      hash: md5
-      md5: 7f9d6f9e408f13529a8f07f936014df3
-      size: 646
-    - path: src/train_mlp.py
-      hash: md5
-      md5: 4558c5f9fae172faa4541c0b7b04b602
-      size: 2827
-    - path: src/utils/metrics.py
-      hash: md5
-      md5: aafe9f821ce70b287fad5f98de57f32e
-      size: 5993
-    - path: src/utils/mlflow_utils.py
-      hash: md5
-      md5: de2a8446ad70b3c687fbbb3c6c17d390
-      size: 4096
-    - path: src/utils/params.py
-      hash: md5
-      md5: 98e8615f596061dc1866f43886f5072b
-      size: 2050
-    params:
-      params.yaml:
-        mlflow.experiment_mlp: can_ids_mlp
-        model.mlp:
-          can_id_bits: 11
-          num_classes: 5
-        training.mlp:
-          batch_size: 256
-          epochs: 20
-          learning_rate: 0.001
-    outs:
-    - path: checkpoints/mlp_best.keras
-      hash: md5
-      md5: 30a3f123f10a94b6b6ad340892f1c7e4
-      size: 41103
-    - path: checkpoints/mlp_final.keras
-      hash: md5
-      md5: c27c599f03400f819355e896e3adb178
-      size: 41103
-    - path: checkpoints/mlp_norm_stats.json
-      hash: md5
-      md5: ddc01acadd3ab258f2d91298b91fdd1d
-      size: 552
-    - path: reports/metrics/mlp_best_training_metrics.json
-      hash: md5
-      md5: 261dbac49a783b01831e8d7867d86031
-      size: 511
-  eval_mlp:
-    cmd: PYTHONPATH=src python src/eval_mlp.py
-    deps:
-    - path: checkpoints/mlp_best.keras
-      hash: md5
-      md5: 30a3f123f10a94b6b6ad340892f1c7e4
-      size: 41103
-    - path: checkpoints/mlp_norm_stats.json
-      hash: md5
-      md5: ddc01acadd3ab258f2d91298b91fdd1d
-      size: 552
-    - path: data/processed/car_hacking/featured/test.parquet
-      hash: md5
-      md5: c93dc5d3cf9b56db5c4ba0fab91ee456
-      size: 25122712
-    - path: data/processed/car_hacking/featured/train.parquet
-      hash: md5
-      md5: 00c21303a0b6eca66921e3c465603724
-      size: 78173531
-    - path: reports/metrics/mlp_best_training_metrics.json
-      hash: md5
-      md5: 261dbac49a783b01831e8d7867d86031
-      size: 511
-    - path: src/data/mlp_dataset.py
-      hash: md5
-      md5: f67ad4699587149df33a9913b3e46e62
-      size: 2483
-    - path: src/data/streaming_dataset.py
-      hash: md5
-      md5: 7bed4eca2fda3a53e35c6e1a8f742872
-      size: 4582
-    - path: src/eval_mlp.py
-      hash: md5
-      md5: 116c28102600a370e3bdd3eee2d98047
-      size: 7909
-    - path: src/utils/eval_reporting.py
-      hash: md5
-      md5: 7da2803fdc99557e735e9fc7246c12dc
-      size: 9390
-    - path: src/utils/metrics.py
-      hash: md5
-      md5: aafe9f821ce70b287fad5f98de57f32e
-      size: 5993
-    - path: src/utils/mlflow_utils.py
-      hash: md5
-      md5: de2a8446ad70b3c687fbbb3c6c17d390
-      size: 4096
-    - path: src/utils/params.py
-      hash: md5
-      md5: 98e8615f596061dc1866f43886f5072b
-      size: 2050
-    params:
-      params.yaml:
-        mlflow.experiment_mlp: can_ids_mlp
-        model.mlp:
-          can_id_bits: 11
-          num_classes: 5
-        training.mlp:
-          batch_size: 256
-          epochs: 20
-          learning_rate: 0.001
-    outs:
-    - path: reports/figures/mlp_eval_confusion_matrix.png
-      hash: md5
-      md5: f7b760a0d8eaf08b366720f71529e657
-      size: 144288
-    - path: reports/figures/mlp_test_confusion_matrix.png
-      hash: md5
-      md5: 095ff717a3c8ba417b4f99c6d4aee0cb
-      size: 148197
-    - path: reports/figures/mlp_test_confusion_matrix_counts.png
-      hash: md5
-      md5: c5dba47964c38c0c26505a21ea0c3f02
-      size: 148031
-    - path: reports/figures/mlp_train_confusion_matrix.png
-      hash: md5
-      md5: 6d2b7ef7426bf8871c4d549e426816e8
-      size: 149339
-    - path: reports/metrics/mlp_classification_report.json
-      hash: md5
-      md5: 11efb90457182e51c35d44557f67b4f1
-      size: 2325
-    - path: reports/metrics/mlp_classification_report.txt
-      hash: md5
-      md5: bd1bfdbfbcb3c6cae24ce5aed5cd6d91
-      size: 1151
-  train_mlp_window:
-    cmd: PYTHONPATH=src python src/train_mlp_window.py
-    deps:
-    - path: data/processed/car_hacking/featured/train.parquet
-      hash: md5
-      md5: 00c21303a0b6eca66921e3c465603724
-      size: 78173531
-    - path: data/processed/car_hacking/featured/val.parquet
-      hash: md5
-      md5: 5274f5839e64c8c3279ad77dc99c58a5
-      size: 23493978
-    - path: src/data/mlp_dataset.py
-      hash: md5
-      md5: ec906b3f1240a4f8edb67b3e3df43f56
-      size: 2596
-    - path: src/data/mlp_window_dataset.py
-      hash: md5
-      md5: 0dfb8e8f79d7a6b1b1cba22e1317d243
-      size: 4207
-    - path: src/model/mlp_window.py
-      hash: md5
-      md5: 45247b7f4ab457db753fa7445932ea83
-      size: 935
-    - path: src/train_mlp_window.py
-      hash: md5
-      md5: 7c5f874605a0e8bdb6e057032940e06f
-      size: 3731
-    - path: src/utils/metrics.py
-      hash: md5
-      md5: d9951f3c38d209e9543f99e2fa5a1762
-      size: 4776
-    - path: src/utils/mlflow_utils.py
-      hash: md5
-      md5: 8bc47aab0fac53adc4078039814a2621
-      size: 3188
-    - path: src/utils/params.py
-      hash: md5
-      md5: e12239d6f108a5845bb8c3cf6ba22bb7
-      size: 1180
-    params:
-      params.yaml:
-        mlflow.experiment_mlp_window: can_ids_mlp_window
-        model.mlp_window:
-          can_id_bits: 11
-          num_classes: 5
-          window_size: 64
-          stride: 32
-          hidden_dims:
-          - 32
-          - 16
-          dropout: false
-        training.mlp_window:
-          batch_size: 256
-          epochs: 100
-          learning_rate: 0.001
-    outs:
-    - path: checkpoints/mlp_window_best.keras
-      hash: md5
-      md5: 05b84a7730bd67234fe7839932ca6f1f
-      size: 582824
-    - path: checkpoints/mlp_window_final.keras
-      hash: md5
-      md5: b4a6c7d82ba86538b2aca8c0d45bb2ee
-      size: 582824
-    - path: checkpoints/mlp_window_norm_stats.json
-      hash: md5
-      md5: e34ae1b59514ca8fec62ddbbd50060be
-      size: 727
-    - path: reports/metrics/mlp_window_best_training_metrics.json
-      hash: md5
-      md5: 05e73b39459428274154ad39b0c4b971
-      size: 514
-  eval_mlp_window:
-    cmd: PYTHONPATH=src python src/eval_mlp_window.py
-    deps:
-    - path: checkpoints/mlp_window_best.keras
-      hash: md5
-      md5: 05b84a7730bd67234fe7839932ca6f1f
-      size: 582824
-    - path: checkpoints/mlp_window_norm_stats.json
-      hash: md5
-      md5: e34ae1b59514ca8fec62ddbbd50060be
-      size: 727
-    - path: data/processed/car_hacking/featured/test.parquet
-      hash: md5
-      md5: c93dc5d3cf9b56db5c4ba0fab91ee456
-      size: 25122712
-    - path: reports/metrics/mlp_window_best_training_metrics.json
-      hash: md5
-      md5: 05e73b39459428274154ad39b0c4b971
-      size: 514
-    - path: src/data/mlp_dataset.py
-      hash: md5
-      md5: ec906b3f1240a4f8edb67b3e3df43f56
-      size: 2596
-    - path: src/data/mlp_window_dataset.py
-      hash: md5
-      md5: 0dfb8e8f79d7a6b1b1cba22e1317d243
-      size: 4207
-    - path: src/eval_mlp_window.py
-      hash: md5
-      md5: e91ef5ae9843c9c2315be53ed65b2ba6
-      size: 8211
-    - path: src/utils/eval_reporting.py
-      hash: md5
-      md5: 7da2803fdc99557e735e9fc7246c12dc
-      size: 9390
-    - path: src/utils/metrics.py
-      hash: md5
-      md5: d9951f3c38d209e9543f99e2fa5a1762
-      size: 4776
-    - path: src/utils/mlflow_utils.py
-      hash: md5
-      md5: 8bc47aab0fac53adc4078039814a2621
-      size: 3188
-    - path: src/utils/params.py
-      hash: md5
-      md5: e12239d6f108a5845bb8c3cf6ba22bb7
-      size: 1180
-    params:
-      params.yaml:
-        mlflow.experiment_mlp_window: can_ids_mlp_window
-        model.mlp_window:
-          can_id_bits: 11
-          num_classes: 5
-          window_size: 64
-          stride: 32
-          hidden_dims:
-          - 32
-          - 16
-          dropout: false
-        training.mlp_window:
-          batch_size: 256
-          epochs: 100
-          learning_rate: 0.001
-    outs:
-    - path: reports/figures/mlp_window_eval_confusion_matrix.png
-      hash: md5
-      md5: 471deb9f6f1285aa1254409ac789bb29
-      size: 158879
-    - path: reports/figures/mlp_window_test_confusion_matrix.png
-      hash: md5
-      md5: c8e967db70bce8136ac2b388a770821c
-      size: 157538
-    - path: reports/figures/mlp_window_test_confusion_matrix_counts.png
-      hash: md5
-      md5: e22f9dce7de5cbb52a09ff5d58e54966
-      size: 142071
-    - path: reports/figures/mlp_window_train_confusion_matrix.png
-      hash: md5
-      md5: cb9ee445a8ae2c616a28cfc4046d7bdc
-      size: 141328
-    - path: reports/metrics/mlp_window_classification_report.json
-      hash: md5
-      md5: 60762b9fb12945f60f3316114933c8b0
-      size: 2330
-    - path: reports/metrics/mlp_window_classification_report.txt
-      hash: md5
-      md5: 4b28215f21f4737e19f9fc4cf36cb8d1
-      size: 1156
+      md5: f208e11925bd4975d8ce7a3529dd3755
+      size: 103893720

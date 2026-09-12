@@ -20,6 +20,7 @@ from utils.eval_reporting import (
 from utils.metrics import MacroF1Score, MacroPrecision, MacroRecall
 from utils.mlflow_utils import load_run_id
 from utils.params import load_params
+from data.task import validate_experiment
 
 dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
@@ -28,8 +29,10 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 # Load params.yaml
 # ==========================================================
 
-dataset_params = load_params("dataset")
-default_dataset = dataset_params["default"]
+params = load_params()
+dataset_params = params["dataset"]
+_, task = validate_experiment(params)
+num_classes = task["num_classes"]
 model_params = load_params("model.mlp_window")
 training_params = load_params("training.mlp_window")
 mlflow_params = load_params("mlflow")
@@ -39,13 +42,13 @@ mlflow_params = load_params("mlflow")
 # Configuration
 # ==========================================================
 
-TEST_PATH = f"{default_dataset['featured_dir']}/test.parquet"
-TRAIN_PATH = f"{default_dataset['featured_dir']}/train.parquet"
+TEST_PATH = f"{dataset_params['processed_dir']}/test.parquet"
+TRAIN_PATH = f"{dataset_params['processed_dir']}/train.parquet"
 MODEL_PATH = "checkpoints/mlp_window_best.keras"
 NORMALIZE_STATS_PATH = "checkpoints/mlp_window_norm_stats.json"
 BEST_TRAINING_METRICS_PATH = "reports/metrics/mlp_window_best_training_metrics.json"
 RUN_ID_PATH = "checkpoints/mlp_window_mlflow_run_id.txt"
-CLASS_NAMES = ["Normal", "Flooding", "Fuzzing", "Spoofing", "Replay"]
+CLASS_NAMES = task["class_names"]
 SAMPLE_SIZE = 10_000
 SAMPLE_SEED = 42
 
@@ -78,18 +81,14 @@ train_dataset = MLPWindowDataset(
     can_id_bits=model_params["can_id_bits"],
     batch_size=training_params["batch_size"],
     shuffle=False,
-    window_size=model_params["window_size"],
-    stride=model_params["stride"],
 )
 val_dataset = MLPWindowDataset(
-    f"{default_dataset['featured_dir']}/val.parquet",
+    f"{dataset_params['processed_dir']}/val.parquet",
     normalize_stats_path=NORMALIZE_STATS_PATH,
     fit_normalize_stats=False,  # gunakan statistik train, jangan hitung ulang
     can_id_bits=model_params["can_id_bits"],
     batch_size=training_params["batch_size"],
     shuffle=False,
-    window_size=model_params["window_size"],
-    stride=model_params["stride"],
 )
 test_dataset = MLPWindowDataset(
     TEST_PATH,
@@ -98,8 +97,6 @@ test_dataset = MLPWindowDataset(
     can_id_bits=model_params["can_id_bits"],
     batch_size=training_params["batch_size"],
     shuffle=False,
-    window_size=model_params["window_size"],
-    stride=model_params["stride"],
 )
 test_tf = test_dataset.to_tf_dataset()
 
@@ -114,9 +111,9 @@ model.compile(
     loss="sparse_categorical_crossentropy",
     metrics=[
         "accuracy",
-        MacroPrecision(model_params["num_classes"]),
-        MacroRecall(model_params["num_classes"]),
-        MacroF1Score(model_params["num_classes"]),
+        MacroPrecision(num_classes),
+        MacroRecall(num_classes),
+        MacroF1Score(num_classes),
     ],
 )
 print(f"\nModel loaded successfully: {MODEL_PATH}")

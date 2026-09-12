@@ -1,47 +1,48 @@
-pipeline:
-  profile: sequence_window
-
 dataset:
   name: car_hacking
   raw_dir: data/raw/Car_Hacking_Challenge_Dataset
-  default:
-    interim_path: data/interim/car_hacking_with_session.parquet
-    processed_dir: data/processed/car_hacking
-    featured_dir: data/processed/car_hacking/featured
-    val_sessions:
-      - Pre_train_D_1
-      - Pre_train_S_1
-    test_sessions:
-      - Pre_train_D_2
-      - Pre_train_S_2
-  sequence_window:
-    interim_path: data/interim/sequence_window.parquet
-    processed_dir: data/processed/sequence_window
-    featured_dir: data/processed/sequence_window/featured
+  raw_files:
+    - Pre_train_D_1.csv
+    - Pre_train_D_2.csv
+    - Pre_submit_D.csv
+    - Pre_train_S_1.csv
+    - Pre_train_S_2.csv
+    - Pre_submit_S.csv
+  interim_path: data/interim/canonical.parquet
+  prepared_path: data/interim/prepared.parquet
+  processed_dir: data/processed/current
 
-data:
-  sequence_window:
-    window_size: 256
-    stride: 1
-    downsample: true
-    random_seed: 42
+prepare:
+  label_schema: ten_state_attack
+
+split:
+  unit: window
+  strategy: stratified_random
+  window_size: 256
+  stride: 1
+  downsample: true
+  random_seed: 42
+  val_sessions:
+    - Pre_train_D_1
+    - Pre_train_S_1
+  test_sessions:
+    - Pre_train_D_2
+    - Pre_train_S_2
+
+experiment:
+  model: can_bigrubert
 
 model:
   can_bigrubert:
     max_length: 22
-    num_classes: 10
     bert_checkpoint: bert-base-uncased
     tokenizer_checkpoint: bert-base-uncased
     bigru_hidden_size: 512
     dropout: 0.1
   mlp:
     can_id_bits: 11
-    num_classes: 5
   mlp_window:
     can_id_bits: 11
-    num_classes: 5
-    window_size: 64
-    stride: 32
     hidden_dims: [32, 16]
     dropout: false
 

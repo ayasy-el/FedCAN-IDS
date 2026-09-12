@@ -27,6 +27,7 @@ from utils.eval_reporting import (
 from utils.mlflow_utils import load_run_id
 from utils.metrics import MacroF1Score, MacroPrecision, MacroRecall
 from utils.params import load_params
+from data.task import validate_experiment
 
 dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
@@ -37,7 +38,9 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
 params = load_params()
 dataset_params = params["dataset"]
-data_params = params["data"]["sequence_window"]
+_, task = validate_experiment(params)
+num_classes = task["num_classes"]
+split = params["split"]
 model_params = params["model"]["can_bigrubert"]
 training_params = params["training"]["can_bigrubert"]
 mlflow_params = params["mlflow"]
@@ -47,16 +50,13 @@ mlflow_params = params["mlflow"]
 # Configuration
 # ==========================================================
 
-window_size = int(data_params["window_size"])
-TRAIN_PATH = f"{dataset_params['sequence_window']['featured_dir']}/train.parquet"
-TEST_PATH = f"{dataset_params['sequence_window']['featured_dir']}/test.parquet"
+window_size = int(split["window_size"])
+TRAIN_PATH = f"{dataset_params['processed_dir']}/train.parquet"
+TEST_PATH = f"{dataset_params['processed_dir']}/test.parquet"
 MODEL_PATH = "checkpoints/can_bigrubert_best.keras"
 BEST_TRAINING_METRICS_PATH = "reports/metrics/can_bigrubert_best_training_metrics.json"
 RUN_ID_PATH = "checkpoints/can_bigrubert_mlflow_run_id.txt"
-CLASS_NAMES = [
-    "benign-driving", "DoS-driving", "Fuzzing-driving", "Spoofing-driving", "Replay-driving",
-    "benign-stationary", "DoS-stationary", "Fuzzing-stationary", "Spoofing-stationary", "Replay-stationary",
-]
+CLASS_NAMES = task["class_names"]
 REPORTS_METRICS_DIR = Path("reports/metrics")
 REPORTS_FIGURES_DIR = Path("reports/figures")
 REPORTS_METRICS_DIR.mkdir(parents=True, exist_ok=True)
@@ -79,18 +79,18 @@ mlflow.set_experiment(mlflow_params["experiment_can_bigrubert"])
 train_dataset = CANBiGRUBERTDataset(
     TRAIN_PATH, model_params["tokenizer_checkpoint"], window_size,
     model_params["max_length"], training_params["batch_size"], False,
-    data_params["random_seed"]
+    split["random_seed"]
 )
 val_dataset = CANBiGRUBERTDataset(
-    f"{dataset_params['sequence_window']['featured_dir']}/val.parquet",
+    f"{dataset_params['processed_dir']}/val.parquet",
     model_params["tokenizer_checkpoint"], window_size,
     model_params["max_length"], training_params["batch_size"], False,
-    data_params["random_seed"]
+    split["random_seed"]
 )
 test_dataset = CANBiGRUBERTDataset(
     TEST_PATH, model_params["tokenizer_checkpoint"], window_size,
     model_params["max_length"], training_params["batch_size"], False,
-    data_params["random_seed"]
+    split["random_seed"]
 )
 
 
@@ -107,7 +107,7 @@ model = build_can_bigrubert(
     model_params["bert_checkpoint"],
     model_params["bigru_hidden_size"],
     model_params["dropout"],
-    model_params["num_classes"],
+    num_classes,
 )
 model.load_weights(MODEL_PATH)
 model.summary()
@@ -115,9 +115,9 @@ model.compile(
     loss="sparse_categorical_crossentropy",
     metrics=[
         "accuracy",
-        MacroPrecision(model_params["num_classes"]),
-        MacroRecall(model_params["num_classes"]),
-        MacroF1Score(model_params["num_classes"]),
+        MacroPrecision(num_classes),
+        MacroRecall(num_classes),
+        MacroF1Score(num_classes),
     ],
 )
 print(f"\nModel loaded successfully: {MODEL_PATH}")
@@ -188,7 +188,7 @@ full_report = build_evaluation_report(
     test_classification_report=test_metrics["classification_report"],
     extra={
         "window_size": window_size,
-        "stride": int(data_params["stride"]),
+        "stride": int(split["stride"]),
         "parameter_counts": parameter_counts(model),
         "inference_ms_per_window": inference_ms_per_window,
     },

@@ -10,6 +10,8 @@ scikit-learn==1.9.0
 matplotlib==3.11.1
 seaborn==0.13.2
 pyyaml==6.0.3
+tqdm>=4.66.0
+pyarrow>=25.0.0
 
 # Data versioning and experiment tracking
 dvc>=3.30.0
