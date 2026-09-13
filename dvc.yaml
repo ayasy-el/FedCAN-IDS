@@ -25,7 +25,7 @@ stages:
       - data/interim/prepared.parquet
 
   split:
-    cmd: PYTHONPATH=src python src/data/split.py
+    cmd: PYTHONPATH=src python src/data/split.py --downsample-size 3877
     deps:
       - src/data/split.py
       - src/utils/params.py

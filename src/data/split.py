@@ -1,5 +1,6 @@
 """Split prepared frames or compact window references."""
 
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -63,7 +64,7 @@ def _candidate_labels(labels, window_size, stride):
     return starts, window_labels
 
 
-def _sample_window_refs(df, window_size, stride, downsample, seed):
+def _sample_window_refs(df, window_size, stride, downsample, seed, downsample_size=None):
     """Sample compact ``(session index, start)`` references."""
     rng = np.random.default_rng(seed)
     sessions = df.sort(["session_id", "Timestamp"]).partition_by(
@@ -80,7 +81,16 @@ def _sample_window_refs(df, window_size, stride, downsample, seed):
     if not counts:
         raise ValueError("No candidate windows were found")
 
-    target = min(counts.values()) if downsample else None
+    if downsample_size is not None:
+        target = int(downsample_size)
+        available = min(counts.values())
+        if target > available:
+            raise ValueError(
+                f"Requested downsample size {target:,} exceeds the smallest class "
+                f"candidate count {available:,}: {counts}"
+            )
+    else:
+        target = min(counts.values()) if downsample else None
     if target is not None:
         print(f"Automatic downsample target: {target} windows per class")
 
@@ -166,10 +176,18 @@ def _compact_table(sessions, references, window_size, label):
     }).to_arrow()
 
 
-def _window_split(prepared_path, output_dir, window_size, stride, downsample, seed):
+def _window_split(
+    prepared_path,
+    output_dir,
+    window_size,
+    stride,
+    downsample,
+    seed,
+    downsample_size=None,
+):
     source = pl.read_parquet(prepared_path)
     sessions, references = _sample_window_refs(
-        source, window_size, stride, downsample, seed
+        source, window_size, stride, downsample, seed, downsample_size
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     writers = _CompactParquetWriters(output_dir)
@@ -196,7 +214,7 @@ def _window_split(prepared_path, output_dir, window_size, stride, downsample, se
     return writers.counts
 
 
-def run(params):
+def run(params, downsample_size=None):
     dataset = params["dataset"]
     split = params["split"]
     output_dir = Path(dataset["processed_dir"])
@@ -214,6 +232,7 @@ def run(params):
             int(split["stride"]),
             bool(split.get("downsample", False)),
             seed,
+            downsample_size,
         )
         return
 
@@ -235,4 +254,14 @@ def run(params):
 
 
 if __name__ == "__main__":
-    run(load_params())
+    parser = argparse.ArgumentParser(description="Split prepared frames or window references")
+    parser.add_argument(
+        "--downsample-size",
+        type=int,
+        default=None,
+        help="Optional exact number of windows to retain per class",
+    )
+    args = parser.parse_args()
+    if args.downsample_size is not None and args.downsample_size <= 0:
+        parser.error("--downsample-size must be a positive integer")
+    run(load_params(), downsample_size=args.downsample_size)
