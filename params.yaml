@@ -53,7 +53,7 @@ training:
     learning_rate: 0.001
   can_bigrubert:
     batch_size: 16
-    epochs: 120
+    epochs: 5
     learning_rate: 0.001
     weight_decay: 0.00001
     early_stopping_patience: 5

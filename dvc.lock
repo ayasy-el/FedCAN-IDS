@@ -58,7 +58,7 @@ stages:
       md5: f208e11925bd4975d8ce7a3529dd3755
       size: 103893720
   split:
-    cmd: PYTHONPATH=src python src/data/split.py
+    cmd: PYTHONPATH=src python src/data/split.py --downsample-size 3877
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
@@ -66,8 +66,8 @@ stages:
       size: 103893720
     - path: src/data/split.py
       hash: md5
-      md5: ee25830d1f867b6f97fa65497e3cdefe
-      size: 9319
+      md5: 6fea9d716d769ca6cd8b8cce84224faa
+      size: 10298
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -91,13 +91,231 @@ stages:
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 56c118506db53169e6884f96e57b47f7
-      size: 7651019
+      md5: b64919e598411c3cad1c3325584982f8
+      size: 96097
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: 3611507884ff6fb0037d1a109d5649e3
-      size: 22956099
+      md5: 4872edcf99c0d61550063d8a0ac9c276
+      size: 269711
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 579754a5c647a79197dde542037f6246
-      size: 7650152
+      md5: 9dceb92374ee94ad3dbca6a7a3abfc47
+      size: 95971
+  train_can_bigrubert:
+    cmd: PYTHONPATH=src python src/train_can_bigrubert.py
+    deps:
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: f208e11925bd4975d8ce7a3529dd3755
+      size: 103893720
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: 4872edcf99c0d61550063d8a0ac9c276
+      size: 269711
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: 9dceb92374ee94ad3dbca6a7a3abfc47
+      size: 95971
+    - path: src/data/can_bigrubert_dataset.py
+      hash: md5
+      md5: 16425ac89a8fbe27a3ed9312a5a41def
+      size: 4028
+    - path: src/data/task.py
+      hash: md5
+      md5: cf6e472e70f9b38660d2ffe145222025
+      size: 1979
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: c5c330bf11e5b37c6ed19ee521b9a637
+      size: 1887
+    - path: src/model/can_bigrubert.py
+      hash: md5
+      md5: c3b817134341b46bf2b214c3b3b54c3a
+      size: 3731
+    - path: src/train_can_bigrubert.py
+      hash: md5
+      md5: cf049ad61d7d8b147b11244309425fde
+      size: 4507
+    - path: src/utils/metrics.py
+      hash: md5
+      md5: d9951f3c38d209e9543f99e2fa5a1762
+      size: 4776
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: d26c37e748513555b674d74962fb4ad4
+      size: 3432
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        experiment:
+          model: can_bigrubert
+        mlflow.experiment_can_bigrubert: can_bigrubert
+        model.can_bigrubert:
+          max_length: 22
+          bert_checkpoint: bert-base-uncased
+          tokenizer_checkpoint: bert-base-uncased
+          bigru_hidden_size: 512
+          dropout: 0.1
+        prepare:
+          label_schema: ten_state_attack
+        split:
+          unit: window
+          strategy: stratified_random
+          window_size: 256
+          stride: 1
+          downsample: true
+          random_seed: 42
+          val_sessions:
+          - Pre_train_D_1
+          - Pre_train_S_1
+          test_sessions:
+          - Pre_train_D_2
+          - Pre_train_S_2
+        training.can_bigrubert:
+          batch_size: 16
+          epochs: 5
+          learning_rate: 0.001
+          weight_decay: 1e-05
+          early_stopping_patience: 5
+          early_stopping_min_delta: 0.0001
+    outs:
+    - path: checkpoints/can_bigrubert_best.keras
+      hash: md5
+      md5: 0f95f4bcbe9520e3946269a3bb571f2d
+      size: 551954192
+    - path: checkpoints/can_bigrubert_final.keras
+      hash: md5
+      md5: e02368983adf5f554aff9641b6074a20
+      size: 551954192
+    - path: checkpoints/can_bigrubert_mlflow_run_id.txt
+      hash: md5
+      md5: 3f8264d4cd1c4c9ba6c9619a9677a446
+      size: 32
+    - path: reports/metrics/can_bigrubert_best_training_metrics.json
+      hash: md5
+      md5: 335659e60deb734246d506154c115a2d
+      size: 507
+  eval_can_bigrubert:
+    cmd: PYTHONPATH=src python src/eval_can_bigrubert.py
+    deps:
+    - path: checkpoints/can_bigrubert_best.keras
+      hash: md5
+      md5: 0f95f4bcbe9520e3946269a3bb571f2d
+      size: 551954192
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: f208e11925bd4975d8ce7a3529dd3755
+      size: 103893720
+    - path: data/processed/current/test.parquet
+      hash: md5
+      md5: b64919e598411c3cad1c3325584982f8
+      size: 96097
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: 4872edcf99c0d61550063d8a0ac9c276
+      size: 269711
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: 9dceb92374ee94ad3dbca6a7a3abfc47
+      size: 95971
+    - path: reports/metrics/can_bigrubert_best_training_metrics.json
+      hash: md5
+      md5: 335659e60deb734246d506154c115a2d
+      size: 507
+    - path: src/data/can_bigrubert_dataset.py
+      hash: md5
+      md5: 16425ac89a8fbe27a3ed9312a5a41def
+      size: 4028
+    - path: src/data/task.py
+      hash: md5
+      md5: cf6e472e70f9b38660d2ffe145222025
+      size: 1979
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: c5c330bf11e5b37c6ed19ee521b9a637
+      size: 1887
+    - path: src/eval_can_bigrubert.py
+      hash: md5
+      md5: e6c1396ea91a49d12f76a24c5f5432be
+      size: 8077
+    - path: src/model/can_bigrubert.py
+      hash: md5
+      md5: c3b817134341b46bf2b214c3b3b54c3a
+      size: 3731
+    - path: src/utils/eval_reporting.py
+      hash: md5
+      md5: a19db51b405d5c208a31dd777f7c676f
+      size: 9389
+    - path: src/utils/metrics.py
+      hash: md5
+      md5: d9951f3c38d209e9543f99e2fa5a1762
+      size: 4776
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: d26c37e748513555b674d74962fb4ad4
+      size: 3432
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        experiment:
+          model: can_bigrubert
+        mlflow.experiment_can_bigrubert: can_bigrubert
+        model.can_bigrubert:
+          max_length: 22
+          bert_checkpoint: bert-base-uncased
+          tokenizer_checkpoint: bert-base-uncased
+          bigru_hidden_size: 512
+          dropout: 0.1
+        prepare:
+          label_schema: ten_state_attack
+        split:
+          unit: window
+          strategy: stratified_random
+          window_size: 256
+          stride: 1
+          downsample: true
+          random_seed: 42
+          val_sessions:
+          - Pre_train_D_1
+          - Pre_train_S_1
+          test_sessions:
+          - Pre_train_D_2
+          - Pre_train_S_2
+        training.can_bigrubert:
+          batch_size: 16
+          epochs: 5
+          learning_rate: 0.001
+          weight_decay: 1e-05
+          early_stopping_patience: 5
+          early_stopping_min_delta: 0.0001
+    outs:
+    - path: reports/figures/can_bigrubert_test_confusion_matrix.png
+      hash: md5
+      md5: 8b7b7dca53d6a9af9968b05c48a73f4d
+      size: 342832
+    - path: reports/figures/can_bigrubert_test_confusion_matrix_counts.png
+      hash: md5
+      md5: 86eed3351fdfd9e79cf800291b1e6831
+      size: 302139
+    - path: reports/figures/can_bigrubert_train_confusion_matrix.png
+      hash: md5
+      md5: 572440c1de7e577bdd72e863ee242852
+      size: 335660
+    - path: reports/figures/can_bigrubert_val_confusion_matrix.png
+      hash: md5
+      md5: a113c8b99e66d3bd8e845092db07a1d1
+      size: 337207
+    - path: reports/metrics/can_bigrubert_classification_report.json
+      hash: md5
+      md5: e76e91540d43c67899c2a8e8e9898a48
+      size: 3590
+    - path: reports/metrics/can_bigrubert_classification_report.txt
+      hash: md5
+      md5: 7c42c1d21bef105a3072f38b695e17d6
+      size: 1483

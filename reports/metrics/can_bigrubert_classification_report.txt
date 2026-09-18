@@ -1,0 +1,34 @@
+Model: can_bigrubert
+
+TEST METRICS
+------------
+loss                : 0.162510
+accuracy            : 0.894974
+precision_macro     : 0.845187
+recall_macro        : 0.894974
+f1_macro            : 0.861846
+
+CHECKPOINT VS TEST
+-------------------
+Best checkpoint epoch: 4
+
+split                      loss       accuracy   precision   recall      f1
+best_train                   0.233048   0.879063   0.878969   0.879063   0.878950
+best_validation              0.158072   0.896903   0.847262   0.896903   0.863793
+test                         0.162510   0.894974   0.845187   0.894974   0.861846
+
+CLASSIFICATION REPORT
+----------------------
+class                 precision   recall      f1          support
+benign-driving         0.498062   0.993557   0.663511        776
+DoS-driving            1.000000   0.996134   0.998063        776
+Fuzzing-driving        1.000000   0.998711   0.999355        776
+Spoofing-driving       0.992308   0.997423   0.994859        776
+Replay-driving         0.000000   0.000000   0.000000        776
+benign-stationary      0.984456   0.979381   0.981912        776
+DoS-stationary         1.000000   1.000000   1.000000        776
+Fuzzing-stationary     1.000000   1.000000   1.000000        776
+Spoofing-stationary    1.000000   0.997423   0.998710        776
+Replay-stationary      0.977041   0.987113   0.982051        776
+macro avg              0.845187   0.894974   0.861846      7,760
+weighted avg           0.845187   0.894974   0.861846      7,760
