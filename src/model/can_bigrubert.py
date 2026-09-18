@@ -1,6 +1,7 @@
 """TensorFlow implementation of the paper's frozen-BERT BiGRU model."""
 
 import os
+
 os.environ.setdefault("TF_USE_LEGACY_KERAS", "1")
 
 import tensorflow as tf
@@ -9,8 +10,15 @@ from tensorflow.keras import layers
 from transformers import TFBertModel
 
 
-def build_can_bigrubert(window_size, max_length, bert_checkpoint,
-                        bigru_hidden_size=512, dropout=0.1, num_classes=10):
+def build_can_bigrubert(
+    window_size,
+    max_length,
+    bert_checkpoint,
+    bigru_hidden_size=512,
+    dropout=0.1,
+    num_classes=10,
+    batch_size=None,
+):
     # The checkpoint currently resolves to Hugging Face PyTorch weights;
     # TensorFlow imports those weights into the frozen TF model.
     bert = TFBertModel.from_pretrained(bert_checkpoint, from_pt=True)
@@ -18,10 +26,16 @@ def build_can_bigrubert(window_size, max_length, bert_checkpoint,
     hidden_size = int(bert.config.hidden_size)
 
     input_ids = keras.Input(
-        shape=(window_size, max_length), dtype=tf.int32, name="input_ids"
+        shape=(window_size, max_length),
+        batch_size=batch_size,
+        dtype=tf.int32,
+        name="input_ids",
     )
     attention_mask = keras.Input(
-        shape=(window_size, max_length), dtype=tf.int32, name="attention_mask"
+        shape=(window_size, max_length),
+        batch_size=batch_size,
+        dtype=tf.int32,
+        name="attention_mask",
     )
     flat_ids = layers.Lambda(
         lambda tensor: tf.reshape(tensor, (-1, max_length)),
@@ -60,7 +74,9 @@ def build_can_bigrubert(window_size, max_length, bert_checkpoint,
     hidden = layers.Dense(512, name="classifier_dense_1")(temporal)
     hidden = layers.ReLU(name="classifier_relu")(hidden)
     hidden = layers.Dense(512, name="classifier_dense_2")(hidden)
-    output = layers.Dense(num_classes, activation="softmax", name="classifier_output")(hidden)
+    output = layers.Dense(num_classes, activation="softmax", name="classifier_output")(
+        hidden
+    )
     return keras.Model(
         inputs={"input_ids": input_ids, "attention_mask": attention_mask},
         outputs=output,
@@ -73,22 +89,18 @@ def parameter_counts(model):
         return int(sum(int(parameter.numpy().size) for parameter in weights))
 
     bert_layers = [
-        layer for layer in model.layers
+        layer
+        for layer in model.layers
         if layer.name.startswith("tf_bert_model") or layer.name.startswith("bert")
     ]
     bigru_layers = [
         layer for layer in model.layers if layer.name.startswith("bigru_layer")
     ]
     classifier_layers = [
-        layer for layer in model.layers
-        if layer.name.startswith("classifier_")
+        layer for layer in model.layers if layer.name.startswith("classifier_")
     ]
-    bert_params = count(
-        [weight for layer in bert_layers for weight in layer.weights]
-    )
-    bigru_params = count(
-        [weight for layer in bigru_layers for weight in layer.weights]
-    )
+    bert_params = count([weight for layer in bert_layers for weight in layer.weights])
+    bigru_params = count([weight for layer in bigru_layers for weight in layer.weights])
     classifier_params = count(
         [weight for layer in classifier_layers for weight in layer.weights]
     )
