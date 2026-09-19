@@ -32,53 +32,51 @@ def _(Path):
     NOTEBOOK_DIR = Path(__file__).resolve().parent
     PROJECT_ROOT = NOTEBOOK_DIR.parent
 
-    FEATURED_SPLIT_PATHS = {
-        "train": PROJECT_ROOT / "data/processed/car_hacking/featured/train.parquet",
-        "val": PROJECT_ROOT / "data/processed/car_hacking/featured/val.parquet",
-        "test": PROJECT_ROOT / "data/processed/car_hacking/featured/test.parquet",
-    }
-
-    CLASS_NAMES = [
-        "Normal",
-        "Flooding",
-        "Fuzzing",
-        "Spoofing",
-        "Replay",
-    ]
-
+    PREPARED_PATH = PROJECT_ROOT / "data/interim/prepared.parquet"
     BYTE_COLUMNS = [f"Data_{i}" for i in range(8)]
+    return BYTE_COLUMNS, PREPARED_PATH
+
+
+@app.cell
+def _(BYTE_COLUMNS, PREPARED_PATH, pl):
+    df_raw = pl.read_parquet(PREPARED_PATH)
+    present_labels = sorted(int(label) for label in df_raw["Class"].unique().to_list())
+
+    if len(present_labels) == 5:
+        CLASS_NAMES = ["Normal", "Flooding", "Fuzzing", "Spoofing", "Replay"]
+        BENIGN_LABELS = {0}
+    elif len(present_labels) == 10:
+        CLASS_NAMES = [
+            "Normal (Driving)",
+            "Flooding (Driving)",
+            "Fuzzing (Driving)",
+            "Spoofing (Driving)",
+            "Replay (Driving)",
+            "Normal (Stationary)",
+            "Flooding (Stationary)",
+            "Fuzzing (Stationary)",
+            "Spoofing (Stationary)",
+            "Replay (Stationary)",
+        ]
+        BENIGN_LABELS = {0, 5}
+    else:
+        raise ValueError(
+            "Expected contiguous five-class or ten-state labels; "
+            f"found {present_labels}"
+        )
 
     # Kontras tinggi dan konsisten di seluruh plot.
-    CLASS_COLORS = {
+    base_colors = {
         "Normal": "#1976D2",
         "Flooding": "#D32F2F",
         "Fuzzing": "#2E7D32",
         "Spoofing": "#FFEA00",
         "Replay": "#F57C00",
     }
-    return BYTE_COLUMNS, CLASS_COLORS, CLASS_NAMES, FEATURED_SPLIT_PATHS
+    CLASS_COLORS = {name: base_colors[name.split(" ")[0]] for name in CLASS_NAMES}
+    CLASS_COLORS["Normal"] = base_colors["Normal"]
 
-
-@app.cell
-def _(mo):
-    split_selector = mo.ui.dropdown(
-        options=[
-            "train",
-            "val",
-            "test",
-        ],
-        value="test",
-        label="Split",
-    )
-
-    split_selector
-    return (split_selector,)
-
-
-@app.cell
-def _(FEATURED_SPLIT_PATHS, pl, split_selector):
-    df_raw = pl.read_parquet(FEATURED_SPLIT_PATHS[split_selector.value])
-    return (df_raw,)
+    return BENIGN_LABELS, CLASS_COLORS, CLASS_NAMES, df_raw
 
 
 @app.cell
@@ -125,14 +123,14 @@ def _(mo):
 
 
 @app.cell
-def _(benign_only_toggle, df, go, mo, np, pl):
+def _(BENIGN_LABELS, benign_only_toggle, df, go, mo, np, pl):
     # ========================================================
     # FILTER
     # ========================================================
 
     if benign_only_toggle.value:
         _d = df.filter(
-            pl.col("Class") == 0
+            pl.col("Class").is_in(BENIGN_LABELS)
         )
     else:
         _d = df
@@ -190,7 +188,7 @@ def _(benign_only_toggle, df, go, mo, np, pl):
     _benign_ids = set(
         df
         .filter(
-            pl.col("Class") == 0
+            pl.col("Class").is_in(BENIGN_LABELS)
         )
         ["Arbitration_ID"]
         .unique()
@@ -200,7 +198,7 @@ def _(benign_only_toggle, df, go, mo, np, pl):
     _attack_ids = set(
         df
         .filter(
-            pl.col("Class") != 0
+            ~pl.col("Class").is_in(BENIGN_LABELS)
         )
         ["Arbitration_ID"]
         .unique()
@@ -358,7 +356,7 @@ def _(mo):
 
 
 @app.cell
-def _(df, mo, pl):
+def _(BENIGN_LABELS, df, mo, pl):
     _id_counts = (
         df.group_by("Arbitration_ID")
         .agg(pl.len().alias("n"))
@@ -380,7 +378,7 @@ def _(df, mo, pl):
 
     _present_classes = sorted(df["Class"].unique().to_list())
 
-    _attack_options = ["All"] + [c for c in _present_classes if c != 0]
+    _attack_options = ["All"] + [c for c in _present_classes if c not in BENIGN_LABELS]
 
     attack_class_selector = mo.ui.dropdown(
         options=_attack_options,
@@ -478,6 +476,7 @@ def _(np):
 def _(
     CLASS_COLORS,
     CLASS_NAMES,
+    BENIGN_LABELS,
     attack_class_selector,
     df,
     go,
@@ -494,7 +493,9 @@ def _(
 
     _rng = np.random.default_rng(42)
 
-    _normal = _sub.filter(pl.col("Class") == 0)["Delta_Id"].to_numpy() * 1000
+    _normal = _sub.filter(
+        pl.col("Class").is_in(BENIGN_LABELS)
+    )["Delta_Id"].to_numpy() * 1000
 
     if len(_normal) > _MAX_POINTS:
         _normal = _rng.choice(
@@ -524,7 +525,8 @@ def _(
 
     if attack_class_selector.value == "All":
         _attack_classes = [
-            c for c in sorted(_sub["Class"].unique().to_list()) if c != 0
+            c for c in sorted(_sub["Class"].unique().to_list())
+            if c not in BENIGN_LABELS
         ]
 
     else:
@@ -1087,6 +1089,7 @@ def _(df, mo):
 
 @app.cell
 def _(
+    BENIGN_LABELS,
     classify_byte_pattern,
     df,
     go,
@@ -1101,7 +1104,7 @@ def _(
     # ========================================================
 
     if heatmap_benign_only.value:
-        _heatmap_df = df.filter(pl.col("Class") == 0)
+        _heatmap_df = df.filter(pl.col("Class").is_in(BENIGN_LABELS))
 
     else:
         _heatmap_df = df
@@ -1409,14 +1412,14 @@ def _(mo):
 
 
 @app.cell
-def _(CLASS_NAMES, df, mo, pl, session_selector):
+def _(BENIGN_LABELS, CLASS_NAMES, df, mo, pl, session_selector):
     _session = session_selector.value
 
     _session_df = df.filter(pl.col("session_id") == _session).sort("Timestamp")
 
     _present_classes = sorted(_session_df["Class"].unique().to_list())
 
-    _attack_classes = [c for c in _present_classes if c != 0]
+    _attack_classes = [c for c in _present_classes if c not in BENIGN_LABELS]
 
     if _attack_classes:
         _attack_text = ", ".join(CLASS_NAMES[c] for c in _attack_classes)
@@ -1697,20 +1700,11 @@ def _(
         # Setiap class mempunyai lane sendiri sehingga
         # class yang sparse tetap terlihat.
         #
-        # 0 = Normal
-        # 1 = Flooding
-        # 2 = Fuzzing
-        # 3 = Spoofing
-        # 4 = Replay
+        # Gunakan label yang benar-benar ada pada session terpilih.
+        # Dengan ten-state, session stationary memakai label 5-9.
         # ====================================================
 
-        _timeline_classes = [
-            0,
-            1,
-            2,
-            3,
-            4,
-        ]
+        _timeline_classes = sorted(set(_classes.tolist()))
 
         for _class_id in _timeline_classes:
             _class_name = CLASS_NAMES[_class_id]
@@ -1807,23 +1801,11 @@ def _(
             row=3,
             col=1,
             tickmode="array",
-            tickvals=[
-                0,
-                1,
-                2,
-                3,
-                4,
-            ],
-            ticktext=[
-                "Normal",
-                "Flooding",
-                "Fuzzing",
-                "Spoofing",
-                "Replay",
-            ],
+            tickvals=_timeline_classes,
+            ticktext=[CLASS_NAMES[_class_id] for _class_id in _timeline_classes],
             range=[
-                -0.6,
-                4.6,
+                min(_timeline_classes) - 0.6,
+                max(_timeline_classes) + 0.6,
             ],
             title="Class",
         )
