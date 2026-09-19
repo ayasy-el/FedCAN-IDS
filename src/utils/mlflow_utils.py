@@ -5,6 +5,50 @@ import mlflow
 from tensorflow import keras
 
 
+def write_model_report(
+    path: str | Path,
+    model_name: str,
+    model: keras.Model,
+    sections: dict,
+    parameter_counts: dict | None = None,
+) -> Path:
+    """Write a reproducible text report for a trained model configuration."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    summary_lines = []
+    model.summary(print_fn=summary_lines.append)
+    counts = parameter_counts or {
+        "total_parameters": int(model.count_params()),
+        "trainable_parameters": int(
+            sum(int(weight.numpy().size) for weight in model.trainable_weights)
+        ),
+        "non_trainable_parameters": int(
+            sum(int(weight.numpy().size) for weight in model.non_trainable_weights)
+        ),
+    }
+
+    lines = [
+        f"Model report: {model_name}",
+        "=" * 80,
+        "",
+        "Configuration",
+        "-------------",
+        json.dumps(sections, indent=2, sort_keys=True, default=str),
+        "",
+        "Parameter counts",
+        "----------------",
+        json.dumps(counts, indent=2, sort_keys=True),
+        "",
+        "Keras model summary",
+        "-------------------",
+        *summary_lines,
+        "",
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
+
+
 def log_artifact_organized(path: str | Path, artifact_dir: str | None = None):
     """Log an artifact under a consistent MLflow folder."""
     path = Path(path)

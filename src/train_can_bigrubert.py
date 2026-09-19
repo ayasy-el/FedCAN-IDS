@@ -18,6 +18,7 @@ from utils.mlflow_utils import (
     MlflowEpochLogger,
     log_artifact_organized,
     save_run_id,
+    write_model_report,
 )
 from utils.params import load_params
 from data.task import validate_experiment
@@ -42,6 +43,7 @@ best_path = "checkpoints/can_bigrubert_best.keras"
 final_path = "checkpoints/can_bigrubert_final.keras"
 run_id_path = "checkpoints/can_bigrubert_mlflow_run_id.txt"
 best_metrics_path = "reports/metrics/can_bigrubert_best_training_metrics.json"
+report_path = "reports/model_summaries/can_bigrubert_model_report.txt"
 
 
 # ==========================================================
@@ -98,6 +100,21 @@ model.compile(
 model.summary()
 counts = parameter_counts(model)
 print(json.dumps(counts, indent=2))
+write_model_report(
+    report_path,
+    "can_bigrubert",
+    model,
+    {
+        "dataset": dataset,
+        "task": task,
+        "split": split,
+        "model": model_params,
+        "training": training,
+        "window_size": window_size,
+        "num_classes": num_classes,
+    },
+    parameter_counts=counts,
+)
 
 
 # ==========================================================
@@ -141,4 +158,5 @@ with mlflow.start_run() as run:
     log_artifact_organized(best_path)
     log_artifact_organized(final_path)
     log_artifact_organized(best_metrics_path)
+    log_artifact_organized(report_path, "reports/model_summaries")
 print("CAN-BiGRUBERT training finished.")

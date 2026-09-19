@@ -12,6 +12,7 @@ from utils.mlflow_utils import (
     MlflowEpochLogger,
     log_artifact_organized,
     save_run_id,
+    write_model_report,
 )
 from utils.params import load_params
 from data.task import label_schema, validate_experiment
@@ -33,6 +34,7 @@ training = load_params("training.mlp")
 mlflow_params = load_params("mlflow")
 stats_path = "checkpoints/mlp_norm_stats.json"
 best_metrics_path = "reports/metrics/mlp_best_training_metrics.json"
+report_path = "reports/model_summaries/mlp_model_report.txt"
 
 
 # ==========================================================
@@ -72,6 +74,20 @@ model.compile(
     ],
 )
 model.summary()
+write_model_report(
+    report_path,
+    "mlp",
+    model,
+    {
+        "dataset": dataset,
+        "task": task,
+        "split": params["split"],
+        "model": model_params,
+        "training": training,
+        "input_dim": train.input_dim,
+        "num_classes": num_classes,
+    },
+)
 
 
 # ==========================================================
@@ -110,4 +126,5 @@ with mlflow.start_run() as run:
     log_artifact_organized("checkpoints/mlp_final.keras")
     log_artifact_organized(stats_path)
     log_artifact_organized(best_metrics_path)
+    log_artifact_organized(report_path, "reports/model_summaries")
 print("MLP training finished.")
