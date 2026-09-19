@@ -47,12 +47,21 @@ class CANBiGRUBERTDataset:
         if self.legacy_frames is None and len(self.index) and not np.all(self.index["window_size"].to_numpy() == self.window_size):
             raise ValueError("Window index size does not match the configured window_size")
 
-    def _frames_at(self, index):
+    def _inputs_at(self, index):
         if self.legacy_frames is not None:
-            return self.legacy_frames[index]
+            raise ValueError(
+                "CAN-BiGRUBERT numeric timing features require compact windows "
+                "with the prepared source parquet"
+            )
         row = self.index.row(index, named=True)
         window = materialize_window(row, self.sessions)
-        return [_frame_string(frame) for frame in window.to_dicts()]
+        rows = window.to_dicts()
+        frames = [_frame_string(frame) for frame in rows]
+        timing = np.asarray(
+            window.select(["Deltatime", "Delta_Id"]).to_numpy(),
+            dtype=np.float32,
+        )
+        return frames, timing
 
     def _batch_generator(self):
         indices = np.arange(len(self.y))
@@ -60,8 +69,8 @@ class CANBiGRUBERTDataset:
             self._rng.shuffle(indices)
         for start in range(0, len(indices), self.batch_size):
             batch_indices = indices[start:start + self.batch_size]
-            batch_windows = [self._frames_at(int(index)) for index in batch_indices]
-            flat_frames = [frame for window in batch_windows for frame in window]
+            batch_inputs = [self._inputs_at(int(index)) for index in batch_indices]
+            flat_frames = [frame for frames, _ in batch_inputs for frame in frames]
             encoded = self.tokenizer(
                 flat_frames,
                 padding="max_length",
@@ -76,9 +85,13 @@ class CANBiGRUBERTDataset:
             attention_mask = encoded["attention_mask"].reshape(
                 batch_size, self.window_size, self.max_length
             ).astype(np.int32)
+            timing_features = np.asarray(
+                [timing for _, timing in batch_inputs], dtype=np.float32
+            )
             yield {
                 "input_ids": input_ids,
                 "attention_mask": attention_mask,
+                "timing_features": timing_features,
             }, self.y[batch_indices]
 
     def to_tf_dataset(self):
@@ -89,6 +102,9 @@ class CANBiGRUBERTDataset:
                 ),
                 "attention_mask": tf.TensorSpec(
                     shape=(None, self.window_size, self.max_length), dtype=tf.int32
+                ),
+                "timing_features": tf.TensorSpec(
+                    shape=(None, self.window_size, 2), dtype=tf.float32
                 ),
             },
             tf.TensorSpec(shape=(None,), dtype=tf.int32),

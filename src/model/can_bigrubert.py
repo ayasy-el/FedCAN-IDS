@@ -37,6 +37,12 @@ def build_can_bigrubert(
         dtype=tf.int32,
         name="attention_mask",
     )
+    timing_features = keras.Input(
+        shape=(window_size, 2),
+        batch_size=batch_size,
+        dtype=tf.float32,
+        name="timing_features",
+    )
     flat_ids = layers.Lambda(
         lambda tensor: tf.reshape(tensor, (-1, max_length)),
         name="flatten_frame_tokens",
@@ -57,6 +63,17 @@ def build_can_bigrubert(
         lambda tensor: tf.reshape(tensor, (-1, window_size, hidden_size)),
         name="frame_sequence",
     )(cls_embeddings)
+    timing_sequence = layers.BatchNormalization(
+        name="timing_normalization"
+    )(timing_features)
+    timing_sequence = layers.Dense(
+        32,
+        activation="relu",
+        name="timing_projection",
+    )(timing_sequence)
+    frame_sequence = layers.Concatenate(
+        name="frame_embeddings_with_timing"
+    )([frame_sequence, timing_sequence])
 
     temporal = layers.Bidirectional(
         layers.GRU(
@@ -78,7 +95,11 @@ def build_can_bigrubert(
         hidden
     )
     return keras.Model(
-        inputs={"input_ids": input_ids, "attention_mask": attention_mask},
+        inputs={
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "timing_features": timing_features,
+        },
         outputs=output,
         name="can_bigrubert",
     )
@@ -96,6 +117,11 @@ def parameter_counts(model):
     bigru_layers = [
         layer for layer in model.layers if layer.name.startswith("bigru_layer")
     ]
+    timing_layers = [
+        layer
+        for layer in model.layers
+        if layer.name.startswith("timing_")
+    ]
     classifier_layers = [
         layer for layer in model.layers if layer.name.startswith("classifier_")
     ]
@@ -104,11 +130,15 @@ def parameter_counts(model):
     classifier_params = count(
         [weight for layer in classifier_layers for weight in layer.weights]
     )
+    timing_params = count(
+        [weight for layer in timing_layers for weight in layer.weights]
+    )
     return {
         "total_parameters": int(model.count_params()),
         "trainable_parameters": count(model.trainable_weights),
         "non_trainable_parameters": count(model.non_trainable_weights),
         "bert_parameters": bert_params,
         "bigru_parameters": bigru_params,
+        "timing_parameters": timing_params,
         "classifier_parameters": classifier_params,
     }
