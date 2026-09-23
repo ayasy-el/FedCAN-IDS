@@ -8,7 +8,12 @@ import polars as pl
 import pyarrow.parquet as pq
 from tqdm import tqdm
 
+from data.task import label_schema
 from utils.params import load_params
+
+
+def _order_columns(df):
+    return ["session_id", "Timestamp"] if "Timestamp" in df.columns else ["session_id", "row_id"]
 
 
 def _session_split(df, split):
@@ -27,7 +32,7 @@ def _session_split(df, split):
         "test": list(test_sessions),
     }
     return {
-        name: df.filter(pl.col("session_id").is_in(sessions)).sort(["session_id", "Timestamp"])
+        name: df.filter(pl.col("session_id").is_in(sessions)).sort(_order_columns(df))
         for name, sessions in assignments.items()
     }
 
@@ -47,13 +52,13 @@ def _stratified_frame_split(df, seed):
     return {name: pl.concat(groups) if groups else df.head(0) for name, groups in outputs.items()}
 
 
-def _candidate_labels(labels, window_size, stride):
+def _candidate_labels(labels, window_size, stride, benign_labels):
     """Label windows by the first attack frame, or benign otherwise."""
     labels = np.asarray(labels, dtype=np.int16)
     starts = np.arange(0, len(labels) - window_size + 1, stride, dtype=np.int64)
     if not len(starts):
         return starts, np.empty(0, dtype=np.int16)
-    attack_positions = np.flatnonzero(~np.isin(labels, (0, 5)))
+    attack_positions = np.flatnonzero(~np.isin(labels, tuple(benign_labels)))
     next_attack = np.full(len(labels), len(labels), dtype=np.int64)
     next_attack[attack_positions] = attack_positions
     next_attack = np.minimum.accumulate(next_attack[::-1])[::-1]
@@ -64,16 +69,18 @@ def _candidate_labels(labels, window_size, stride):
     return starts, window_labels
 
 
-def _sample_window_refs(df, window_size, stride, downsample, seed, downsample_size=None):
+def _sample_window_refs(
+    df, window_size, stride, downsample, seed, benign_labels, downsample_size=None
+):
     """Sample compact ``(session index, start)`` references."""
     rng = np.random.default_rng(seed)
-    sessions = df.sort(["session_id", "Timestamp"]).partition_by(
+    sessions = df.sort(_order_columns(df)).partition_by(
         "session_id", maintain_order=True
     )
     counts = {}
     for session in tqdm(sessions, desc="Counting window candidates", unit="session"):
         _, candidate_labels = _candidate_labels(
-            session["Class"].to_numpy(), window_size, stride
+            session["Class"].to_numpy(), window_size, stride, benign_labels
         )
         for label in candidate_labels:
             label = int(label)
@@ -113,7 +120,7 @@ def _sample_window_refs(df, window_size, stride, downsample, seed, downsample_si
         tqdm(sessions, desc="Sampling window references", unit="session")
     ):
         starts, candidate_labels = _candidate_labels(
-            session["Class"].to_numpy(), window_size, stride
+            session["Class"].to_numpy(), window_size, stride, benign_labels
         )
         for start, candidate_label in zip(starts, candidate_labels):
             label = int(candidate_label)
@@ -183,11 +190,12 @@ def _window_split(
     stride,
     downsample,
     seed,
+    benign_labels,
     downsample_size=None,
 ):
     source = pl.read_parquet(prepared_path)
     sessions, references = _sample_window_refs(
-        source, window_size, stride, downsample, seed, downsample_size
+        source, window_size, stride, downsample, seed, benign_labels, downsample_size
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     writers = _CompactParquetWriters(output_dir)
@@ -221,6 +229,9 @@ def run(params, downsample_size=None):
     unit = split.get("unit", "frame")
     strategy = split.get("strategy", "session_holdout")
     seed = int(split.get("random_seed", 42))
+    benign_labels = label_schema(
+        params.get("prepare", {}).get("label_schema", "five_class")
+    )["benign_labels"]
 
     if unit == "window":
         if strategy != "stratified_random":
@@ -232,6 +243,7 @@ def run(params, downsample_size=None):
             int(split["stride"]),
             bool(split.get("downsample", False)),
             seed,
+            benign_labels,
             downsample_size,
         )
         return

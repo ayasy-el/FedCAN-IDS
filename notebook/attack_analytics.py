@@ -40,6 +40,14 @@ def _(Path):
 @app.cell
 def _(BYTE_COLUMNS, PREPARED_PATH, pl):
     df_raw = pl.read_parquet(PREPARED_PATH)
+    required_columns = {"session_id", "Arbitration_ID", "Class", *BYTE_COLUMNS}
+    missing_columns = required_columns - set(df_raw.columns)
+    if missing_columns:
+        raise ValueError(
+            "prepared.parquet is missing canonical analytics columns: "
+            f"{sorted(missing_columns)}"
+        )
+
     present_labels = sorted(int(label) for label in df_raw["Class"].unique().to_list())
 
     if len(present_labels) == 5:
@@ -60,8 +68,12 @@ def _(BYTE_COLUMNS, PREPARED_PATH, pl):
         ]
         BENIGN_LABELS = {0, 5}
     else:
+        CLASS_NAMES = [f"Class {label}" for label in present_labels]
+        BENIGN_LABELS = {0} if 0 in present_labels else set()
+
+    if present_labels != list(range(len(present_labels))):
         raise ValueError(
-            "Expected contiguous five-class or ten-state labels; "
+            "prepared.parquet must contain contiguous Class labels starting at 0; "
             f"found {present_labels}"
         )
 
@@ -73,10 +85,24 @@ def _(BYTE_COLUMNS, PREPARED_PATH, pl):
         "Spoofing": "#FFEA00",
         "Replay": "#F57C00",
     }
-    CLASS_COLORS = {name: base_colors[name.split(" ")[0]] for name in CLASS_NAMES}
-    CLASS_COLORS["Normal"] = base_colors["Normal"]
+    _fallback_colors = [
+        "#1976D2",
+        "#D32F2F",
+        "#2E7D32",
+        "#FFEA00",
+        "#F57C00",
+        "#7B1FA2",
+        "#00838F",
+        "#6D4C41",
+        "#455A64",
+        "#C2185B",
+    ]
+    CLASS_COLORS = {
+        name: base_colors.get(name.split(" ")[0], _fallback_colors[index % len(_fallback_colors)])
+        for index, name in enumerate(CLASS_NAMES)
+    }
 
-    return BENIGN_LABELS, CLASS_COLORS, CLASS_NAMES, df_raw
+    return BENIGN_LABELS, CLASS_COLORS, CLASS_NAMES, df_raw, present_labels
 
 
 @app.cell
@@ -91,16 +117,38 @@ def _(BYTE_COLUMNS, df_raw, pl):
         for c in BYTE_COLUMNS
     ]
 
-    df = df_raw.with_columns(
+    _has_timestamp = "Timestamp" in df_raw.columns
+    _has_deltatime = "Deltatime" in df_raw.columns
+    _source = df_raw
+    if not _has_timestamp and "row_id" not in df_raw.columns:
+        _source = df_raw.with_row_index("row_id")
+    _order_columns = ["session_id", "Timestamp"] if _has_timestamp else ["session_id", "row_id"]
+    df = _source.sort(_order_columns).with_columns(
         pl.col("Arbitration_ID")
         .map_elements(
-            lambda x: int(x, 16),
+            lambda x: int(str(x), 16),
             return_dtype=pl.Int64,
         )
         .alias("Arbitration_ID_int"),
         *_byte_exprs,
     )
-    return (df,)
+
+    if not _has_timestamp:
+        df = df.with_columns(pl.lit(None, dtype=pl.Float64).alias("Timestamp"))
+        TIME_LABEL = "Time unavailable"
+        TIME_SCALE = 1.0
+    else:
+        df = df.with_columns(pl.col("Timestamp").cast(pl.Float64))
+        TIME_LABEL = "Time (s)"
+        TIME_SCALE = 1000.0
+
+    if "Delta_Id" not in df.columns:
+        df = df.with_columns(pl.lit(None, dtype=pl.Float64).alias("Delta_Id"))
+
+    HAS_TIMESTAMP = _has_timestamp
+    HAS_DELTATIME = _has_deltatime
+    HAS_DELTA_ID = "Delta_Id" in df_raw.columns
+    return HAS_TIMESTAMP, HAS_DELTATIME, HAS_DELTA_ID, TIME_LABEL, TIME_SCALE, df
 
 
 @app.cell
@@ -495,7 +543,7 @@ def _(
 
     _normal = _sub.filter(
         pl.col("Class").is_in(BENIGN_LABELS)
-    )["Delta_Id"].to_numpy() * 1000
+    )["Delta_Id"].drop_nulls().to_numpy() * 1000
 
     if len(_normal) > _MAX_POINTS:
         _normal = _rng.choice(
@@ -505,6 +553,8 @@ def _(
         )
 
     _normal_x = swarm_positions(_normal)
+    _normal_class_id = min(BENIGN_LABELS) if BENIGN_LABELS else 0
+    _normal_name = CLASS_NAMES[_normal_class_id]
 
     fig_swarm = go.Figure()
 
@@ -513,13 +563,13 @@ def _(
             x=_normal_x,
             y=_normal,
             mode="markers",
-            name="Normal",
+            name=_normal_name,
             marker=dict(
                 size=5,
                 opacity=0.55,
-                color=CLASS_COLORS["Normal"],
+                color=CLASS_COLORS.get(_normal_name, "#1976D2"),
             ),
-            hovertemplate=("Normal<br>time=%{y:.3f} ms<extra></extra>"),
+            hovertemplate=(f"{_normal_name}<br>time=%{{y:.3f}} ms<extra></extra>"),
         )
     )
 
@@ -533,7 +583,12 @@ def _(
         _attack_classes = [attack_class_selector.value]
 
     for _cls_idx in _attack_classes:
-        _attack = _sub.filter(pl.col("Class") == _cls_idx)["Delta_Id"].to_numpy() * 1000
+        _attack = (
+            _sub.filter(pl.col("Class") == _cls_idx)["Delta_Id"]
+            .drop_nulls()
+            .to_numpy()
+            * 1000
+        )
 
         if len(_attack) == 0:
             continue
@@ -631,10 +686,10 @@ def _(df, mo):
 
 
 @app.cell
-def _(df, mo, pl, session_selector):
+def _(HAS_TIMESTAMP, df, mo, pl, session_selector):
     _session_df = df.filter(pl.col("session_id") == session_selector.value)
 
-    if len(_session_df) > 0:
+    if HAS_TIMESTAMP and len(_session_df) > 0:
         _t_min = float(_session_df["Timestamp"].min())
 
         _t_max = float(_session_df["Timestamp"].max())
@@ -661,7 +716,7 @@ def _(df, mo, pl, session_selector):
             _range / 1000,
             0.000001,
         ),
-        label="Waktu mulai",
+        label=("Waktu mulai" if HAS_TIMESTAMP else "Waktu mulai (unavailable)"),
         show_value=True,
     )
 
@@ -673,7 +728,7 @@ def _(df, mo, pl, session_selector):
             _range / 1000,
             0.001,
         ),
-        label="Durasi (s)",
+        label=("Durasi (s)" if HAS_TIMESTAMP else "Durasi (unavailable)"),
     )
 
     mo.vstack(
@@ -1412,7 +1467,7 @@ def _(mo):
 
 
 @app.cell
-def _(BENIGN_LABELS, CLASS_NAMES, df, mo, pl, session_selector):
+def _(BENIGN_LABELS, CLASS_NAMES, HAS_TIMESTAMP, df, mo, pl, session_selector):
     _session = session_selector.value
 
     _session_df = df.filter(pl.col("session_id") == _session).sort("Timestamp")
@@ -1426,7 +1481,7 @@ def _(BENIGN_LABELS, CLASS_NAMES, df, mo, pl, session_selector):
     else:
         _attack_text = "None"
 
-    if len(_session_df):
+    if HAS_TIMESTAMP and len(_session_df):
         _t0 = float(_session_df["Timestamp"].min())
 
         _t1 = float(_session_df["Timestamp"].max())
@@ -1437,6 +1492,7 @@ def _(BENIGN_LABELS, CLASS_NAMES, df, mo, pl, session_selector):
         _t0 = 0
         _t1 = 0
         _duration = 0
+    _duration_text = f"`{_duration:.3f} s`" if HAS_TIMESTAMP else "`Unavailable`"
 
     mo.md(
         f"""
@@ -1444,7 +1500,7 @@ def _(BENIGN_LABELS, CLASS_NAMES, df, mo, pl, session_selector):
 
         **Attack classes:** `{_attack_text}`
 
-        **Duration:** `{_duration:.3f} s`
+        **Duration:** {_duration_text}
 
         **Frames:** `{len(_session_df):,}`
         """
@@ -1456,6 +1512,7 @@ def _(BENIGN_LABELS, CLASS_NAMES, df, mo, pl, session_selector):
 def _(
     CLASS_COLORS,
     CLASS_NAMES,
+    HAS_TIMESTAMP,
     df,
     go,
     make_subplots,
@@ -1467,7 +1524,7 @@ def _(
 
     _session_df = df.filter(pl.col("session_id") == _session).sort("Timestamp")
 
-    if len(_session_df) == 0:
+    if not HAS_TIMESTAMP or len(_session_df) == 0:
         fig_session_overview = go.Figure()
 
         fig_session_overview.add_annotation(

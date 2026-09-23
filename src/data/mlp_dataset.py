@@ -17,7 +17,8 @@ def _hex(value, pad=0):
 
 def _features(df: pl.DataFrame, can_id_bits: int = 11) -> tuple[np.ndarray, np.ndarray]:
     required = {
-        "Arbitration_ID", "DLC", "Class", "Delta_Id", "Deltatime",
+        "Arbitration_ID", "DLC", "Class",
+        #  "Delta_Id", "Deltatime",
         *[f"Data_{i}" for i in range(8)],
     }
     missing = required - set(df.columns)
@@ -29,15 +30,16 @@ def _features(df: pl.DataFrame, can_id_bits: int = 11) -> tuple[np.ndarray, np.n
     numeric = np.column_stack([
         df["DLC"].to_numpy(),
         *[np.asarray([_hex(value) for value in df[f"Data_{i}"].to_list()]) for i in range(8)],
-        df["Delta_Id"].to_numpy(),
-        df["Deltatime"].to_numpy(),
+        # df["Delta_Id"].to_numpy(),
+        # df["Deltatime"].to_numpy(),
     ]).astype(np.float32)
     return np.concatenate([bits, numeric], axis=1), df["Class"].to_numpy().astype(np.int32)
 
 
 class MLPCANDataset:
     REQUIRED_COLUMNS = frozenset({
-        "Arbitration_ID", "DLC", "Class", "Delta_Id", "Deltatime",
+        "Arbitration_ID", "DLC", "Class",
+        #  "Delta_Id", "Deltatime",
         *[f"Data_{i}" for i in range(8)],
     })
 

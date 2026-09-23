@@ -4,10 +4,12 @@ LABEL_SCHEMAS = {
     "binary": {
         "num_classes": 2,
         "class_names": ["Normal", "Attack"],
+        "benign_labels": [0],
     },
     "five_class": {
         "num_classes": 5,
         "class_names": ["Normal", "Flooding", "Fuzzing", "Spoofing", "Replay"],
+        "benign_labels": [0],
     },
     "ten_state_attack": {
         "num_classes": 10,
@@ -15,6 +17,17 @@ LABEL_SCHEMAS = {
             "benign-driving", "DoS-driving", "Fuzzing-driving", "Spoofing-driving", "Replay-driving",
             "benign-stationary", "DoS-stationary", "Fuzzing-stationary", "Spoofing-stationary", "Replay-stationary",
         ],
+        "benign_labels": [0, 5],
+    },
+    "CICIoV2024": {
+        "num_classes": 6,
+        "class_names": ["BENIGN", "DoS", "GAS", "RPM", "SPEED", "STEERING_WHEEL"],
+        "benign_labels": [0],
+    },
+    "SurvivalAnalysis": {
+        "num_classes": 4,
+        "class_names": ["Normal", "Flooding", "Fuzzing", "Malfunction"],
+        "benign_labels": [0],
     },
 }
 

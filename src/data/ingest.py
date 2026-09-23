@@ -1,19 +1,41 @@
-"""Single shared ingestion stage for every model."""
+"""Single shared ingestion stage with dataset-format adapters."""
 
+import importlib
 from pathlib import Path
-
-import polars as pl
 
 from utils.params import load_params
 
 
-ATTACK_COLUMNS = ("SubClass", "Class")
+ADAPTERS = {
+    "car_hacking_attack_defense": "data.adapters.car_hacking_attack_defense",
+    "ciciov2024": "data.adapters.ciciov2024",
+    "survival_analysis": "data.adapters.survival_analysis",
+}
+DEFAULT_PATTERNS = {
+    "car_hacking_attack_defense": "*.csv",
+    "ciciov2024": "*.csv",
+    "survival_analysis": "*.txt",
+}
+
+
+def _load_adapter(name):
+    try:
+        module_name = ADAPTERS[name]
+    except KeyError as exc:
+        raise ValueError(
+            f"Unknown dataset.ingest_adapter {name!r}; "
+            f"choose one of {sorted(ADAPTERS)}"
+        ) from exc
+    return importlib.import_module(module_name)
 
 
 def run(params):
     dataset = params["dataset"]
     raw_dir = Path(dataset["raw_dir"])
+    adapter_name = dataset.get("ingest_adapter", "car_hacking_attack_defense")
+    adapter = _load_adapter(adapter_name)
     configured_files = dataset.get("raw_files")
+    pattern = None
     if configured_files:
         files = []
         for name in configured_files:
@@ -26,40 +48,21 @@ def run(params):
                 )
             files.append(matches[0])
     else:
-        files = sorted(raw_dir.rglob("*.csv"))
+        pattern = DEFAULT_PATTERNS[adapter_name]
+        files = [
+            path for path in sorted(raw_dir.rglob(pattern))
+            if not path.name.startswith(".")
+        ]
     if not files:
-        raise FileNotFoundError(f"No CSV files found under {raw_dir}")
+        raise FileNotFoundError(
+            f"No raw files matching {pattern or 'configured file list'!r} "
+            f"found under {raw_dir}"
+        )
     missing = [str(path) for path in files if not path.exists()]
     if missing:
         raise FileNotFoundError(f"Configured raw files do not exist: {missing}")
 
-    frames = []
-    for path in files:
-        df = pl.read_csv(path, infer_schema_length=1000)
-        source_label = next((column for column in ATTACK_COLUMNS if column in df.columns), None)
-        if source_label is None:
-            df = df.with_columns(pl.lit("Normal").alias("attack_type"))
-        else:
-            df = df.with_columns(
-                pl.col(source_label).fill_null("Normal").cast(pl.String).alias("attack_type")
-            )
-        frames.append(df.with_columns(pl.lit(path.stem).alias("session_id")))
-
-    result = pl.concat(frames, how="diagonal")
-    result = (
-        result.with_columns(pl.col("DLC").cast(pl.UInt8))
-        .with_columns(
-            pl.col("Data")
-            .str.split(" ")
-            .list.to_struct(fields=[f"Data_{i}" for i in range(8)])
-            .alias("Bytes")
-        )
-        .unnest("Bytes")
-        .with_columns(*[pl.col(f"Data_{i}").fill_null("PAD") for i in range(8)])
-        .drop("Class", "SubClass", "Data", strict=False)
-        .select("session_id", "Timestamp", "Arbitration_ID", "DLC", *[f"Data_{i}" for i in range(8)], "attack_type")
-        .with_row_index("row_id")
-    )
+    result = adapter.read(files).with_row_index("row_id")
     output = Path(dataset["interim_path"])
     output.parent.mkdir(parents=True, exist_ok=True)
     result.write_parquet(output, compression="zstd")

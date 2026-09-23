@@ -14,10 +14,17 @@ SOURCE_COLUMNS = {
 }
 
 
+def _order_columns(df):
+    return ["session_id", "Timestamp"] if "Timestamp" in df.columns else ["session_id", "row_id"]
+
+
 @lru_cache(maxsize=2)
 def _load_sessions(prepared_path):
-    source = pl.read_parquet(prepared_path, columns=sorted(SOURCE_COLUMNS)).sort(
-        ["session_id", "Timestamp"]
+    schema = pl.read_parquet(prepared_path, n_rows=0)
+    available = set(schema.columns)
+    columns = sorted(SOURCE_COLUMNS & available)
+    source = pl.read_parquet(prepared_path, columns=columns).sort(
+        _order_columns(schema)
     )
     return {
         str(session["session_id"][0]): session

@@ -1,86 +1,93 @@
 {
   "model": "mlp",
   "test": {
-    "loss": 0.1569092720746994,
-    "accuracy": 0.9799213409423828,
-    "precision_macro": 0.7755475044250488,
-    "recall_macro": 0.5996232628822327,
-    "f1_macro": 0.6044265627861023,
+    "loss": 0.0029817097820341587,
+    "accuracy": 0.9999893307685852,
+    "precision_macro": 0.9999153017997742,
+    "recall_macro": 0.9999014735221863,
+    "f1_macro": 0.9999082684516907,
     "classification_report": {
-      "Normal": {
-        "precision": 0.97925149717623,
-        "recall": 0.9992019133450661,
-        "f1-score": 0.989126116815352,
-        "support": 1551210.0
+      "BENIGN": {
+        "precision": 0.9999918283963227,
+        "recall": 1.0,
+        "f1-score": 0.9999959141814675,
+        "support": 244748.0
       },
-      "Flooding": {
+      "DoS": {
         "precision": 1.0,
-        "recall": 0.9999741962120039,
-        "f1-score": 0.999987097939541,
-        "support": 77508.0
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 14934.0
       },
-      "Fuzzing": {
-        "precision": 0.976311750706199,
-        "recall": 0.9672542970471574,
-        "f1-score": 0.9717619189940114,
-        "support": 45380.0
+      "GAS": {
+        "precision": 0.9995,
+        "recall": 1.0,
+        "f1-score": 0.9997499374843711,
+        "support": 1999.0
       },
-      "Spoofing": {
-        "precision": 0.04230769230769231,
-        "recall": 0.0019031141868512112,
-        "f1-score": 0.003642384105960265,
-        "support": 5780.0
+      "RPM": {
+        "precision": 1.0,
+        "recall": 0.9999089253187614,
+        "f1-score": 0.9999544605856369,
+        "support": 10980.0
       },
-      "Replay": {
-        "precision": 0.8798665183537263,
-        "recall": 0.029782747844421854,
-        "f1-score": 0.05761526695316483,
-        "support": 26559.0
+      "SPEED": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 4991.0
       },
-      "accuracy": 0.979921321443452,
+      "STEERING_WHEEL": {
+        "precision": 1.0,
+        "recall": 0.9994994994994995,
+        "f1-score": 0.9997496871088861,
+        "support": 3996.0
+      },
+      "accuracy": 0.9999893484065216,
       "macro avg": {
-        "precision": 0.7755474917087695,
-        "recall": 0.5996232537271001,
-        "f1-score": 0.6044265569616059,
-        "support": 1706437.0
+        "precision": 0.9999153047327205,
+        "recall": 0.9999014041363768,
+        "f1-score": 0.9999083332267268,
+        "support": 281648.0
       },
       "weighted avg": {
-        "precision": 0.9753953152119194,
-        "recall": 0.979921321443452,
-        "f1-score": 0.9713216112820632,
-        "support": 1706437.0
+        "precision": 0.9999893502398141,
+        "recall": 0.9999893484065216,
+        "f1-score": 0.9999893478953673,
+        "support": 281648.0
       }
     }
   },
   "class_names": [
-    "Normal",
-    "Flooding",
-    "Fuzzing",
-    "Spoofing",
-    "Replay"
+    "BENIGN",
+    "DoS",
+    "GAS",
+    "RPM",
+    "SPEED",
+    "STEERING_WHEEL"
   ],
   "comparison": {
-    "best_epoch": 5,
+    "best_epoch": 1,
     "best_train": {
-      "loss": 0.03803442791104317,
-      "accuracy": 0.9904702305793762,
-      "precision_macro": 0.9497759938240051,
-      "recall_macro": 0.8626965284347534,
-      "f1_macro": 0.889247715473175
+      "loss": 0.04791102930903435,
+      "accuracy": 0.9885954856872559,
+      "precision_macro": 0.9301130175590515,
+      "recall_macro": 0.8515270352363586,
+      "f1_macro": 0.8852429986000061
     },
     "best_validation": {
-      "loss": 0.11909575015306473,
-      "accuracy": 0.9837153553962708,
-      "precision_macro": 0.7666266560554504,
-      "recall_macro": 0.5987609624862671,
-      "f1_macro": 0.6023120880126953
+      "loss": 0.0029704177286475897,
+      "accuracy": 1.0,
+      "precision_macro": 1.0,
+      "recall_macro": 1.0,
+      "f1_macro": 1.0
     },
     "test": {
-      "loss": 0.1569092720746994,
-      "accuracy": 0.9799213409423828,
-      "precision_macro": 0.7755475044250488,
-      "recall_macro": 0.5996232628822327,
-      "f1_macro": 0.6044265627861023
+      "loss": 0.0029817097820341587,
+      "accuracy": 0.9999893307685852,
+      "precision_macro": 0.9999153017997742,
+      "recall_macro": 0.9999014735221863,
+      "f1_macro": 0.9999082684516907
     }
   }
 }

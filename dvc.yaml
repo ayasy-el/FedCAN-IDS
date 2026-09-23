@@ -3,10 +3,12 @@ stages:
     cmd: PYTHONPATH=src python src/data/ingest.py
     deps:
       - src/data/ingest.py
-      - data/raw/Car_Hacking_Challenge_Dataset
+      - src/data/adapters
+      - data/raw
     params:
       - dataset.raw_dir
       - dataset.raw_files
+      - dataset.ingest_adapter
       - dataset.interim_path
     outs:
       - data/interim/canonical.parquet

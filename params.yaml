@@ -1,36 +1,32 @@
 dataset:
-  name: car_hacking
-  raw_dir: data/raw/Car_Hacking_Challenge_Dataset
-  raw_files:
-    - Pre_train_D_1.csv
-    - Pre_train_D_2.csv
-    - Pre_submit_D.csv
-    - Pre_train_S_1.csv
-    - Pre_train_S_2.csv
-    - Pre_submit_S.csv
+  name: CICIoV2024
+  raw_dir: data/raw/CICIoV2024/hexadecimal
+  ingest_adapter: ciciov2024
+  raw_files: null
   interim_path: data/interim/canonical.parquet
   prepared_path: data/interim/prepared.parquet
   processed_dir: data/processed/current
 
 prepare:
-  label_schema: ten_state_attack
+  label_schema: CICIoV2024
+  features: []
 
 split:
-  unit: window
-  strategy: stratified_random
-  window_size: 256
-  stride: 128
-  downsample: true
+  unit: frame
+  # window_size: 256
+  # stride: 1
+  downsample: false
   random_seed: 42
-  val_sessions:
-    - Pre_train_D_1
-    - Pre_train_S_1
-  test_sessions:
-    - Pre_train_D_2
-    - Pre_train_S_2
+  strategy: stratified_random
+  # val_sessions:
+  #   - Pre_train_D_1
+  #   - Pre_train_S_1
+  # test_sessions:
+  #   - Pre_train_D_2
+  #   - Pre_train_S_2
 
 experiment:
-  model: can_bigrubert
+  model: mlp
 
 model:
   can_bigrubert:
