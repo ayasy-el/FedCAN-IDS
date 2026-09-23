@@ -19,7 +19,7 @@ split:
   unit: window
   strategy: stratified_random
   window_size: 256
-  stride: 1
+  stride: 128
   downsample: true
   random_seed: 42
   val_sessions:
@@ -53,10 +53,10 @@ training:
     learning_rate: 0.001
   can_bigrubert:
     batch_size: 16
-    epochs: 5
+    epochs: 20
     learning_rate: 0.001
     weight_decay: 0.00001
-    early_stopping_patience: 5
+    early_stopping_patience: 10
     early_stopping_min_delta: 0.0001
   mlp_window:
     batch_size: 256

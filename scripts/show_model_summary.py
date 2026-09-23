@@ -1,7 +1,9 @@
 """Show configured TensorFlow model summaries without training or MLflow."""
 
 import argparse
+import math
 import sys
+import time
 from pathlib import Path
 
 import yaml
@@ -58,6 +60,107 @@ def _print_batch_info(params, model_name, input_shape, output_classes):
     return batch_size
 
 
+def _format_duration(seconds):
+    seconds = int(round(seconds))
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
+
+
+def _training_dataset(params, model_name):
+    dataset = params["dataset"]
+    split = params["split"]
+    model_params = params["model"][model_name]
+    training = params["training"][model_name]
+    train_path = str(PROJECT_ROOT / dataset["processed_dir"] / "train.parquet")
+
+    if model_name == "mlp":
+        from data.mlp_dataset import MLPCANDataset
+
+        return MLPCANDataset(
+            train_path,
+            "checkpoints/mlp_norm_stats.json",
+            False,
+            model_params["can_id_bits"],
+            training["batch_size"],
+            False,
+        )
+    if model_name == "mlp_window":
+        from data.mlp_window_dataset import MLPWindowDataset
+
+        return MLPWindowDataset(
+            train_path,
+            "checkpoints/mlp_window_norm_stats.json",
+            False,
+            model_params["can_id_bits"],
+            training["batch_size"],
+            False,
+            source_path=PROJECT_ROOT / dataset["prepared_path"],
+        )
+    if model_name == "can_bigrubert":
+        from data.can_bigrubert_dataset import CANBiGRUBERTDataset
+
+        return CANBiGRUBERTDataset(
+            train_path,
+            model_params["tokenizer_checkpoint"],
+            int(split["window_size"]),
+            int(model_params["max_length"]),
+            training["batch_size"],
+            False,
+            split["random_seed"],
+            source_path=PROJECT_ROOT / dataset["prepared_path"],
+        )
+    raise ValueError(f"Unsupported model: {model_name}")
+
+
+def print_training_estimate(params, model_name, model, benchmark_steps):
+    from tensorflow import keras
+
+    training = params.get("training", {}).get(model_name, {})
+    batch_size = int(training["batch_size"])
+    epochs = int(training["epochs"])
+    dataset = _training_dataset(params, model_name)
+    samples = len(dataset.y)
+    steps_per_epoch = math.ceil(samples / batch_size)
+    optimizer = keras.optimizers.Adam(training["learning_rate"])
+    if model_name == "can_bigrubert":
+        optimizer = keras.optimizers.AdamW(
+            learning_rate=training["learning_rate"],
+            weight_decay=training["weight_decay"],
+        )
+    model.compile(optimizer=optimizer, loss="sparse_categorical_crossentropy")
+    batches = iter(dataset.to_tf_dataset())
+    try:
+        warmup_batch = next(batches)
+        model.train_on_batch(*warmup_batch)
+        elapsed_steps = []
+        for _ in range(benchmark_steps):
+            start = time.perf_counter()
+            batch = next(batches)
+            model.train_on_batch(*batch)
+            elapsed_steps.append(time.perf_counter() - start)
+    except StopIteration as exc:
+        raise ValueError(
+            "Training dataset has fewer batches than benchmark steps"
+        ) from exc
+    seconds_per_step = sum(elapsed_steps) / len(elapsed_steps)
+    seconds_per_epoch = steps_per_epoch * seconds_per_step
+    total_seconds = seconds_per_epoch * epochs
+    print("Training time estimate:")
+    print(f"  Training samples: {samples:,}")
+    print(f"  Batch size: {batch_size}")
+    print(f"  Steps per epoch: {steps_per_epoch:,}")
+    print(f"  Benchmark steps: {benchmark_steps} (+ 1 warm-up step)")
+    print(f"  Measured average seconds per step: {seconds_per_step:.3f}")
+    print(f"  Estimated one epoch: {_format_duration(seconds_per_epoch)}")
+    print(f"  Configured epochs: {epochs}")
+    print(f"  Estimated training total: {_format_duration(total_seconds)}")
+
+
 def show_mlp_summary(params, schema, split):
     model_params = params["model"]["mlp"]
     input_dim = int(model_params["can_id_bits"]) + 11
@@ -70,6 +173,7 @@ def show_mlp_summary(params, schema, split):
     _print_batch_info(params, "mlp", (input_dim,), schema["num_classes"])
     model.summary()
     print(f"Total parameters: {model.count_params():,}")
+    return model
 
 
 def show_mlp_window_summary(params, schema, split):
@@ -95,6 +199,7 @@ def show_mlp_window_summary(params, schema, split):
     _print_batch_info(params, "mlp_window", (input_dim,), schema["num_classes"])
     model.summary()
     print(f"Total parameters: {model.count_params():,}")
+    return model
 
 
 def show_can_bigrubert_summary(params, schema, split):
@@ -126,6 +231,7 @@ def show_can_bigrubert_summary(params, schema, split):
     model.summary()
     for name, value in parameter_counts(model).items():
         print(f"{name}: {value:,}")
+    return model
 
 
 def main():
@@ -139,16 +245,49 @@ def main():
         default="all",
         help="Model summary to show (default: all).",
     )
+    parser.add_argument(
+        "--estimate-time",
+        action="store_true",
+        help="Benchmark a few real training steps and estimate epoch/total time.",
+    )
+    parser.add_argument(
+        "--benchmark-steps",
+        type=int,
+        default=3,
+        metavar="N",
+        help="Measured steps after one warm-up step (default: 3).",
+    )
     args = parser.parse_args()
+    if args.benchmark_steps < 1:
+        parser.error("--benchmark-steps must be at least 1")
     params = load_project_params()
     schema, split = _task_info(params)
 
     if args.model in ("mlp", "all"):
-        show_mlp_summary(params, schema, split)
+        model = show_mlp_summary(params, schema, split)
+        if args.estimate_time:
+            try:
+                print_training_estimate(params, "mlp", model, args.benchmark_steps)
+            except (FileNotFoundError, ValueError) as exc:
+                print(f"Time estimate skipped for mlp: {exc}")
     if args.model in ("mlp_window", "all"):
-        show_mlp_window_summary(params, schema, split)
+        model = show_mlp_window_summary(params, schema, split)
+        if args.estimate_time:
+            try:
+                print_training_estimate(
+                    params, "mlp_window", model, args.benchmark_steps
+                )
+            except (FileNotFoundError, ValueError) as exc:
+                print(f"Time estimate skipped for mlp_window: {exc}")
     if args.model in ("can_bigrubert", "all"):
-        show_can_bigrubert_summary(params, schema, split)
+        model = show_can_bigrubert_summary(params, schema, split)
+        if args.estimate_time:
+            try:
+                print_training_estimate(
+                    params, "can_bigrubert", model, args.benchmark_steps
+                )
+            except (FileNotFoundError, ValueError) as exc:
+                print(f"Time estimate skipped for can_bigrubert: {exc}")
 
 
 if __name__ == "__main__":

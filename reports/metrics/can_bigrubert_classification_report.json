@@ -1,84 +1,84 @@
 {
   "model": "can_bigrubert",
   "test": {
-    "loss": 0.16250990331172943,
-    "accuracy": 0.8949742317199707,
-    "precision_macro": 0.8451865911483765,
-    "recall_macro": 0.8949742317199707,
-    "f1_macro": 0.8618461489677429,
+    "loss": 0.14072908461093903,
+    "accuracy": 0.9419729113578796,
+    "precision_macro": 0.9421311616897583,
+    "recall_macro": 0.9419729113578796,
+    "f1_macro": 0.9419977068901062,
     "classification_report": {
       "benign-driving": {
-        "precision": 0.49806201550387597,
-        "recall": 0.9935567010309279,
-        "f1-score": 0.6635111876075731,
-        "support": 776.0
+        "precision": 0.748995983935743,
+        "recall": 0.7214700193423598,
+        "f1-score": 0.734975369458128,
+        "support": 517.0
       },
       "DoS-driving": {
         "precision": 1.0,
-        "recall": 0.9961340206185567,
-        "f1-score": 0.9980632666236281,
-        "support": 776.0
+        "recall": 0.9980657640232108,
+        "f1-score": 0.9990319457889641,
+        "support": 517.0
       },
       "Fuzzing-driving": {
-        "precision": 1.0,
-        "recall": 0.9987113402061856,
-        "f1-score": 0.9993552546744036,
-        "support": 776.0
+        "precision": 0.9980694980694981,
+        "recall": 1.0,
+        "f1-score": 0.9990338164251208,
+        "support": 517.0
       },
       "Spoofing-driving": {
-        "precision": 0.9923076923076923,
-        "recall": 0.9974226804123711,
-        "f1-score": 0.9948586118251928,
-        "support": 776.0
+        "precision": 0.9941860465116279,
+        "recall": 0.9922630560928434,
+        "f1-score": 0.9932236205227493,
+        "support": 517.0
       },
       "Replay-driving": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 776.0
+        "precision": 0.7243947858472998,
+        "recall": 0.7524177949709865,
+        "f1-score": 0.7381404174573055,
+        "support": 517.0
       },
       "benign-stationary": {
-        "precision": 0.9844559585492227,
-        "recall": 0.979381443298969,
-        "f1-score": 0.9819121447028424,
-        "support": 776.0
+        "precision": 0.976878612716763,
+        "recall": 0.9806576402321083,
+        "f1-score": 0.9787644787644788,
+        "support": 517.0
       },
       "DoS-stationary": {
         "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 776.0
+        "recall": 0.9980657640232108,
+        "f1-score": 0.9990319457889641,
+        "support": 517.0
       },
       "Fuzzing-stationary": {
         "precision": 1.0,
         "recall": 1.0,
         "f1-score": 1.0,
-        "support": 776.0
+        "support": 517.0
       },
       "Spoofing-stationary": {
-        "precision": 1.0,
-        "recall": 0.9974226804123711,
-        "f1-score": 0.9987096774193548,
-        "support": 776.0
+        "precision": 0.9980544747081712,
+        "recall": 0.9922630560928434,
+        "f1-score": 0.9951503394762367,
+        "support": 517.0
       },
       "Replay-stationary": {
-        "precision": 0.9770408163265306,
-        "recall": 0.9871134020618557,
-        "f1-score": 0.982051282051282,
-        "support": 776.0
+        "precision": 0.9807321772639692,
+        "recall": 0.9845261121856866,
+        "f1-score": 0.9826254826254827,
+        "support": 517.0
       },
-      "accuracy": 0.8949742268041238,
+      "accuracy": 0.941972920696325,
       "macro avg": {
-        "precision": 0.8451866482687322,
-        "recall": 0.8949742268041238,
-        "f1-score": 0.8618461424904277,
-        "support": 7760.0
+        "precision": 0.9421311579053071,
+        "recall": 0.941972920696325,
+        "f1-score": 0.941997741630743,
+        "support": 5170.0
       },
       "weighted avg": {
-        "precision": 0.8451866482687322,
-        "recall": 0.8949742268041238,
-        "f1-score": 0.8618461424904276,
-        "support": 7760.0
+        "precision": 0.9421311579053072,
+        "recall": 0.941972920696325,
+        "f1-score": 0.9419977416307429,
+        "support": 5170.0
       }
     }
   },
@@ -95,38 +95,39 @@
     "Replay-stationary"
   ],
   "comparison": {
-    "best_epoch": 4,
+    "best_epoch": 3,
     "best_train": {
-      "loss": 0.2330484539270401,
-      "accuracy": 0.8790627717971802,
-      "precision_macro": 0.8789688348770142,
-      "recall_macro": 0.8790627717971802,
-      "f1_macro": 0.8789501190185547
+      "loss": 0.16665144264698029,
+      "accuracy": 0.921151340007782,
+      "precision_macro": 0.9209573864936829,
+      "recall_macro": 0.921151340007782,
+      "f1_macro": 0.9210188984870911
     },
     "best_validation": {
-      "loss": 0.15807221829891205,
-      "accuracy": 0.8969032168388367,
-      "precision_macro": 0.8472617268562317,
-      "recall_macro": 0.8969032168388367,
-      "f1_macro": 0.8637931942939758
+      "loss": 0.1322883814573288,
+      "accuracy": 0.9450485706329346,
+      "precision_macro": 0.945051372051239,
+      "recall_macro": 0.9450485110282898,
+      "f1_macro": 0.9449892044067383
     },
     "test": {
-      "loss": 0.16250990331172943,
-      "accuracy": 0.8949742317199707,
-      "precision_macro": 0.8451865911483765,
-      "recall_macro": 0.8949742317199707,
-      "f1_macro": 0.8618461489677429
+      "loss": 0.14072908461093903,
+      "accuracy": 0.9419729113578796,
+      "precision_macro": 0.9421311616897583,
+      "recall_macro": 0.9419729113578796,
+      "f1_macro": 0.9419977068901062
     }
   },
   "window_size": 256,
-  "stride": 1,
+  "stride": 128,
   "parameter_counts": {
-    "total_parameters": 118937866,
-    "trainable_parameters": 9455626,
-    "non_trainable_parameters": 109482240,
+    "total_parameters": 119036274,
+    "trainable_parameters": 9554030,
+    "non_trainable_parameters": 109482244,
     "bert_parameters": 109482240,
-    "bigru_parameters": 8663040,
+    "bigru_parameters": 8761344,
+    "timing_parameters": 104,
     "classifier_parameters": 792586
   },
-  "inference_ms_per_window": 109.00095210269036
+  "inference_ms_per_window": 109.2647399783956
 }

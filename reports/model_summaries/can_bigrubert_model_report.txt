@@ -1,0 +1,150 @@
+Model report: can_bigrubert
+================================================================================
+
+Configuration
+-------------
+{
+  "dataset": {
+    "interim_path": "data/interim/canonical.parquet",
+    "name": "car_hacking",
+    "prepared_path": "data/interim/prepared.parquet",
+    "processed_dir": "data/processed/current",
+    "raw_dir": "data/raw/Car_Hacking_Challenge_Dataset",
+    "raw_files": [
+      "Pre_train_D_1.csv",
+      "Pre_train_D_2.csv",
+      "Pre_submit_D.csv",
+      "Pre_train_S_1.csv",
+      "Pre_train_S_2.csv",
+      "Pre_submit_S.csv"
+    ]
+  },
+  "model": {
+    "bert_checkpoint": "bert-base-uncased",
+    "bigru_hidden_size": 512,
+    "dropout": 0.1,
+    "max_length": 22,
+    "tokenizer_checkpoint": "bert-base-uncased"
+  },
+  "num_classes": 10,
+  "split": {
+    "downsample": true,
+    "random_seed": 42,
+    "strategy": "stratified_random",
+    "stride": 128,
+    "test_sessions": [
+      "Pre_train_D_2",
+      "Pre_train_S_2"
+    ],
+    "unit": "window",
+    "val_sessions": [
+      "Pre_train_D_1",
+      "Pre_train_S_1"
+    ],
+    "window_size": 256
+  },
+  "task": {
+    "class_names": [
+      "benign-driving",
+      "DoS-driving",
+      "Fuzzing-driving",
+      "Spoofing-driving",
+      "Replay-driving",
+      "benign-stationary",
+      "DoS-stationary",
+      "Fuzzing-stationary",
+      "Spoofing-stationary",
+      "Replay-stationary"
+    ],
+    "num_classes": 10
+  },
+  "training": {
+    "batch_size": 16,
+    "early_stopping_min_delta": 0.0001,
+    "early_stopping_patience": 10,
+    "epochs": 20,
+    "learning_rate": 0.001,
+    "weight_decay": 1e-05
+  },
+  "window_size": 256
+}
+
+Parameter counts
+----------------
+{
+  "bert_parameters": 109482240,
+  "bigru_parameters": 8761344,
+  "classifier_parameters": 792586,
+  "non_trainable_parameters": 109482244,
+  "timing_parameters": 104,
+  "total_parameters": 119036274,
+  "trainable_parameters": 9554030
+}
+
+Keras model summary
+-------------------
+Model: "can_bigrubert"
+__________________________________________________________________________________________________
+ Layer (type)                Output Shape                 Param #   Connected to                  
+==================================================================================================
+ input_ids (InputLayer)      [(None, 256, 22)]            0         []                            
+                                                                                                  
+ attention_mask (InputLayer  [(None, 256, 22)]            0         []                            
+ )                                                                                                
+                                                                                                  
+ flatten_frame_tokens (Lamb  (None, 22)                   0         ['input_ids[0][0]']           
+ da)                                                                                              
+                                                                                                  
+ flatten_frame_masks (Lambd  (None, 22)                   0         ['attention_mask[0][0]']      
+ a)                                                                                               
+                                                                                                  
+ tf_bert_model (TFBertModel  TFBaseModelOutputWithPooli   1094822   ['flatten_frame_tokens[0][0]',
+ )                           ngAndCrossAttentions(last_   40         'flatten_frame_masks[0][0]'] 
+                             hidden_state=(None, 22, 76                                           
+                             8),                                                                  
+                              pooler_output=(None, 768)                                           
+                             , past_key_values=None, hi                                           
+                             dden_states=None, attentio                                           
+                             ns=None, cross_attentions=                                           
+                             None)                                                                
+                                                                                                  
+ timing_features (InputLaye  [(None, 256, 2)]             0         []                            
+ r)                                                                                               
+                                                                                                  
+ cls_embedding (Lambda)      (None, 768)                  0         ['tf_bert_model[0][0]']       
+                                                                                                  
+ timing_normalization (Batc  (None, 256, 2)               8         ['timing_features[0][0]']     
+ hNormalization)                                                                                  
+                                                                                                  
+ frame_sequence (Lambda)     (None, 256, 768)             0         ['cls_embedding[0][0]']       
+                                                                                                  
+ timing_projection (Dense)   (None, 256, 32)              96        ['timing_normalization[0][0]']
+                                                                                                  
+ frame_embeddings_with_timi  (None, 256, 800)             0         ['frame_sequence[0][0]',      
+ ng (Concatenate)                                                    'timing_projection[0][0]']   
+                                                                                                  
+ bigru_layer_1 (Bidirection  (None, 256, 1024)            4036608   ['frame_embeddings_with_timing
+ al)                                                                [0][0]']                      
+                                                                                                  
+ bigru_layer_1_dropout (Dro  (None, 256, 1024)            0         ['bigru_layer_1[0][0]']       
+ pout)                                                                                            
+                                                                                                  
+ bigru_layer_2 (Bidirection  (None, 1024)                 4724736   ['bigru_layer_1_dropout[0][0]'
+ al)                                                                ]                             
+                                                                                                  
+ bigru_output_dropout (Drop  (None, 1024)                 0         ['bigru_layer_2[0][0]']       
+ out)                                                                                             
+                                                                                                  
+ classifier_dense_1 (Dense)  (None, 512)                  524800    ['bigru_output_dropout[0][0]']
+                                                                                                  
+ classifier_relu (ReLU)      (None, 512)                  0         ['classifier_dense_1[0][0]']  
+                                                                                                  
+ classifier_dense_2 (Dense)  (None, 512)                  262656    ['classifier_relu[0][0]']     
+                                                                                                  
+ classifier_output (Dense)   (None, 10)                   5130      ['classifier_dense_2[0][0]']  
+                                                                                                  
+==================================================================================================
+Total params: 119036274 (454.09 MB)
+Trainable params: 9554030 (36.45 MB)
+Non-trainable params: 109482244 (417.64 MB)
+__________________________________________________________________________________________________

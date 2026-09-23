@@ -130,7 +130,6 @@ with mlflow.start_run() as run:
     mlflow.log_params({f"training.{key}": value for key, value in training.items()})
     mlflow.log_param("window_size", window_size)
     mlflow.log_param("stride", split["stride"])
-    mlflow.log_metrics({key: float(value) for key, value in counts.items()})
     callbacks = [
         keras.callbacks.ModelCheckpoint(
             best_path,

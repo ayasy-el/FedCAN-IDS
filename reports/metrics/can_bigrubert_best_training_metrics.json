@@ -3,17 +3,17 @@
     "monitor": "val_loss",
     "mode": "min"
   },
-  "best_epoch": 4,
+  "best_epoch": 3,
   "best_metrics": {
-    "loss": 0.2330484539270401,
-    "accuracy": 0.8790627717971802,
-    "precision_macro": 0.8789688348770142,
-    "recall_macro": 0.8790627717971802,
-    "f1_macro": 0.8789501190185547,
-    "val_loss": 0.15807221829891205,
-    "val_accuracy": 0.8969032168388367,
-    "val_precision_macro": 0.8472617268562317,
-    "val_recall_macro": 0.8969032168388367,
-    "val_f1_macro": 0.8637931942939758
+    "loss": 0.16665144264698029,
+    "accuracy": 0.921151340007782,
+    "precision_macro": 0.9209573864936829,
+    "recall_macro": 0.921151340007782,
+    "f1_macro": 0.9210188984870911,
+    "val_loss": 0.1322883814573288,
+    "val_accuracy": 0.9450485706329346,
+    "val_precision_macro": 0.945051372051239,
+    "val_recall_macro": 0.9450485110282898,
+    "val_f1_macro": 0.9449892044067383
   }
 }
