@@ -29,6 +29,11 @@ LABEL_SCHEMAS = {
         "class_names": ["Normal", "Flooding", "Fuzzing", "Malfunction"],
         "benign_labels": [0],
     },
+    "HCRLCarHacking": {
+        "num_classes": 5,
+        "class_names": ["Normal", "DoS", "Fuzzy", "Gear", "RPM"],
+        "benign_labels": [0],
+    },
 }
 
 MODEL_CONTRACTS = {

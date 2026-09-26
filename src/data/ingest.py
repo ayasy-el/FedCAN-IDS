@@ -8,11 +8,13 @@ from utils.params import load_params
 
 ADAPTERS = {
     "car_hacking_attack_defense": "data.adapters.car_hacking_attack_defense",
+    "hcrl_carhacking": "data.adapters.hcrl_carhacking",
     "ciciov2024": "data.adapters.ciciov2024",
     "survival_analysis": "data.adapters.survival_analysis",
 }
 DEFAULT_PATTERNS = {
     "car_hacking_attack_defense": "*.csv",
+    "hcrl_carhacking": ("*.csv", "*.txt"),
     "ciciov2024": "*.csv",
     "survival_analysis": "*.txt",
 }
@@ -48,11 +50,17 @@ def run(params):
                 )
             files.append(matches[0])
     else:
-        pattern = DEFAULT_PATTERNS[adapter_name]
-        files = [
-            path for path in sorted(raw_dir.rglob(pattern))
-            if not path.name.startswith(".")
-        ]
+        patterns = DEFAULT_PATTERNS[adapter_name]
+        if isinstance(patterns, str):
+            patterns = (patterns,)
+        files = sorted(
+            {
+                path
+                for pattern in patterns
+                for path in raw_dir.rglob(pattern)
+                if not path.name.startswith(".")
+            }
+        )
     if not files:
         raise FileNotFoundError(
             f"No raw files matching {pattern or 'configured file list'!r} "

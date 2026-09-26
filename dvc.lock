@@ -3,46 +3,46 @@ stages:
   ingest:
     cmd: PYTHONPATH=src python src/data/ingest.py
     deps:
-    - path: data/raw/Car_Hacking_Challenge_Dataset
+    - path: data/raw
       hash: md5
-      md5: 5f72c1ed9abefb3e32cd3a651dd34ddb.dir
-      size: 523722619
-      nfiles: 9
+      md5: 90e5248ca636e452aa618cd8ebb646ab.dir
+      size: 2175459426
+      nfiles: 55
+    - path: src/data/adapters
+      hash: md5
+      md5: 80f16f9d60a1db71164797ed163720ba.dir
+      size: 13787
+      nfiles: 5
     - path: src/data/ingest.py
       hash: md5
-      md5: 43832587185f391a0b190becdae80280
-      size: 2518
+      md5: c8f1ca10c09ce5cd1bc5cd4948d0a231
+      size: 2655
     params:
       params.yaml:
+        dataset.ingest_adapter: hcrl_carhacking
         dataset.interim_path: data/interim/canonical.parquet
-        dataset.raw_dir: data/raw/Car_Hacking_Challenge_Dataset
+        dataset.raw_dir: data/raw/9) Car-Hacking Dataset
         dataset.raw_files:
-        - Pre_train_D_1.csv
-        - Pre_train_D_2.csv
-        - Pre_submit_D.csv
-        - Pre_train_S_1.csv
-        - Pre_train_S_2.csv
-        - Pre_submit_S.csv
     outs:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 3ea26caa4c1b01aacc12c3e0685a7b9b
-      size: 74859362
+      md5: eadbff3ceefda95dae01c16e4aeec050
+      size: 146340074
   prepare:
     cmd: PYTHONPATH=src python src/data/prepare.py
     deps:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 3ea26caa4c1b01aacc12c3e0685a7b9b
-      size: 74859362
+      md5: eadbff3ceefda95dae01c16e4aeec050
+      size: 146340074
     - path: src/data/prepare.py
       hash: md5
-      md5: e6204e9eb9261c5a63f887049d159270
-      size: 1962
+      md5: fa368d8817e3a5c0db6128541e920c46
+      size: 3829
     - path: src/data/task.py
       hash: md5
-      md5: cf6e472e70f9b38660d2ffe145222025
-      size: 1979
+      md5: ffea33613158410eb3c636bc20f07138
+      size: 2558
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -51,23 +51,24 @@ stages:
       params.yaml:
         dataset.prepared_path: data/interim/prepared.parquet
         prepare:
-          label_schema: ten_state_attack
+          label_schema: HCRLCarHacking
+          features: []
     outs:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: f208e11925bd4975d8ce7a3529dd3755
-      size: 103893720
+      md5: 09440888bd6300ac4e006e583dfacfe5
+      size: 146334771
   split:
     cmd: PYTHONPATH=src python src/data/split.py
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: f208e11925bd4975d8ce7a3529dd3755
-      size: 103893720
+      md5: 09440888bd6300ac4e006e583dfacfe5
+      size: 146334771
     - path: src/data/split.py
       hash: md5
-      md5: 6fea9d716d769ca6cd8b8cce84224faa
-      size: 10298
+      md5: d8baf5ffc245c9797e3da17f82b1a769
+      size: 10705
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -76,31 +77,23 @@ stages:
       params.yaml:
         dataset.processed_dir: data/processed/current
         split:
-          unit: window
-          strategy: stratified_random
-          window_size: 256
-          stride: 128
-          downsample: true
+          unit: frame
+          downsample: false
           random_seed: 42
-          val_sessions:
-          - Pre_train_D_1
-          - Pre_train_S_1
-          test_sessions:
-          - Pre_train_D_2
-          - Pre_train_S_2
+          strategy: stratified_random
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 97cfb9650fa457dcd6f81d9b6b79a481
-      size: 65312
+      md5: beab2a89b14781cce23ac0a3f41895c8
+      size: 49580018
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: 481946629cbcc227d6a708a9987fdb9d
-      size: 169707
+      md5: 93dc6ed45e8e1a6e905c17711dca76db
+      size: 148566209
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: caabd245202e570e68e9c61250c64f67
-      size: 65034
+      md5: cd0dce8765ff2716ac2f8f443b853ca5
+      size: 49563964
   train_can_bigrubert:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:

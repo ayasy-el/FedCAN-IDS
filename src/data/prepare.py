@@ -22,6 +22,13 @@ SURVIVAL_ANALYSIS_IDS = {
     "Fuzzing": 2,
     "Malfunction": 3,
 }
+CAR_HACKING_SCENARIOS_IDS = {
+    "Normal": 0,
+    "DoS": 1,
+    "Fuzzy": 2,
+    "Gear": 3,
+    "RPM": 4,
+}
 
 
 def _state_from_session(session):
@@ -46,6 +53,8 @@ def _label_expr(schema_name):
         return pl.col("attack_type").replace_strict(CICIOV2024_IDS).cast(pl.UInt8)
     if schema_name == "SurvivalAnalysis":
         return pl.col("attack_type").replace_strict(SURVIVAL_ANALYSIS_IDS).cast(pl.UInt8)
+    if schema_name == "HCRLCarHacking":
+        return pl.col("attack_type").replace_strict(CAR_HACKING_SCENARIOS_IDS).cast(pl.UInt8)
     label_schema(schema_name)
     raise AssertionError("unreachable")
 

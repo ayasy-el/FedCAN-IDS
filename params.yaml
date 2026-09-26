@@ -1,14 +1,14 @@
 dataset:
-  name: CICIoV2024
-  raw_dir: data/raw/CICIoV2024/hexadecimal
-  ingest_adapter: ciciov2024
+  name: HCRLCarHacking
+  raw_dir: "data/raw/9) Car-Hacking Dataset"
+  ingest_adapter: hcrl_carhacking
   raw_files: null
   interim_path: data/interim/canonical.parquet
   prepared_path: data/interim/prepared.parquet
   processed_dir: data/processed/current
 
 prepare:
-  label_schema: CICIoV2024
+  label_schema: HCRLCarHacking
   features: []
 
 split:
