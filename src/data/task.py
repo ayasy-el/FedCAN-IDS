@@ -36,6 +36,19 @@ LABEL_SCHEMAS = {
     },
 }
 
+ROAD_SCHEMAS = {
+    "fabrication": {
+        "num_classes": 7,
+        "class_names": ["Normal", "MEC", "Fuzzing", "MS", "RLOn", "RLOff", "CS"],
+        "benign_labels": [0],
+    },
+    "masquerade": {
+        "num_classes": 6,
+        "class_names": ["Normal", "MEC", "MS", "RLOn", "RLOff", "CS"],
+        "benign_labels": [0],
+    },
+}
+
 MODEL_CONTRACTS = {
     "mlp": {"unit": "frame"},
     "mlp_window": {"unit": "window"},
@@ -43,12 +56,20 @@ MODEL_CONTRACTS = {
 }
 
 
-def label_schema(name):
+def label_schema(name, variant=None):
+    if name == "road":
+        try:
+            return ROAD_SCHEMAS[variant]
+        except KeyError as exc:
+            raise ValueError(
+                "label_schema='road' requires dataset.variant='fabrication' "
+                "or 'masquerade'"
+            ) from exc
     try:
         return LABEL_SCHEMAS[name]
     except KeyError as exc:
         raise ValueError(
-            f"Unknown label schema {name!r}; choose one of {sorted(LABEL_SCHEMAS)}"
+            f"Unknown label schema {name!r}; choose one of {sorted((*LABEL_SCHEMAS, 'road'))}"
         ) from exc
 
 
@@ -56,7 +77,10 @@ def validate_experiment(params):
     experiment = params.get("experiment", {})
     model_name = experiment.get("model")
     split = params.get("split", {})
-    schema = label_schema(params.get("prepare", {}).get("label_schema", "five_class"))
+    schema = label_schema(
+        params.get("prepare", {}).get("label_schema", "five_class"),
+        params.get("dataset", {}).get("variant"),
+    )
     if model_name not in MODEL_CONTRACTS:
         raise ValueError(f"Unknown model {model_name!r}; choose one of {sorted(MODEL_CONTRACTS)}")
     unit = split.get("unit", "frame")

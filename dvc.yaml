@@ -9,6 +9,7 @@ stages:
       - dataset.raw_dir
       - dataset.raw_files
       - dataset.ingest_adapter
+      - dataset.variant
       - dataset.interim_path
     outs:
       - data/interim/canonical.parquet
@@ -22,6 +23,7 @@ stages:
       - data/interim/canonical.parquet
     params:
       - dataset.prepared_path
+      - dataset.variant
       - prepare
     outs:
       - data/interim/prepared.parquet
@@ -34,6 +36,8 @@ stages:
       - data/interim/prepared.parquet
     params:
       - dataset.processed_dir
+      - dataset.variant
+      - prepare.label_schema
       - split
     outs:
       - data/processed/current/train.parquet

@@ -25,7 +25,7 @@ def load_project_params() -> dict:
 
 def _task_info(params):
     schema_name = params.get("prepare", {}).get("label_schema", "five_class")
-    schema = label_schema(schema_name)
+    schema = label_schema(schema_name, params.get("dataset", {}).get("variant"))
     split = params.get("split", {})
     print(f"Label schema: {schema_name} ({schema['num_classes']} classes)")
     print(f"Configured split unit: {split.get('unit', 'frame')}")

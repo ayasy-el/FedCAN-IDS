@@ -1,14 +1,15 @@
 dataset:
-  name: HCRLCarHacking
-  raw_dir: "data/raw/9) Car-Hacking Dataset"
-  ingest_adapter: hcrl_carhacking
+  name: ROAD
+  raw_dir: data/raw/road
+  ingest_adapter: road_raw
+  variant: fabrication
   raw_files: null
   interim_path: data/interim/canonical.parquet
   prepared_path: data/interim/prepared.parquet
   processed_dir: data/processed/current
 
 prepare:
-  label_schema: HCRLCarHacking
+  label_schema: road
   features: []
 
 split:

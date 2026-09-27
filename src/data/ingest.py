@@ -9,12 +9,14 @@ from utils.params import load_params
 ADAPTERS = {
     "car_hacking_attack_defense": "data.adapters.car_hacking_attack_defense",
     "hcrl_carhacking": "data.adapters.hcrl_carhacking",
+    "road_raw": "data.adapters.road_raw",
     "ciciov2024": "data.adapters.ciciov2024",
     "survival_analysis": "data.adapters.survival_analysis",
 }
 DEFAULT_PATTERNS = {
     "car_hacking_attack_defense": "*.csv",
     "hcrl_carhacking": ("*.csv", "*.txt"),
+    "road_raw": "*.log",
     "ciciov2024": "*.csv",
     "survival_analysis": "*.txt",
 }
@@ -70,9 +72,23 @@ def run(params):
     if missing:
         raise FileNotFoundError(f"Configured raw files do not exist: {missing}")
 
-    result = adapter.read(files).with_row_index("row_id")
+    selector = getattr(adapter, "select_files", None)
+    if selector is not None:
+        files = selector(files, dataset.get("variant"))
+        if not files:
+            raise ValueError(
+                f"No files remain for {adapter_name!r} variant={dataset.get('variant')!r}"
+            )
+
     output = Path(dataset["interim_path"])
     output.parent.mkdir(parents=True, exist_ok=True)
+    streaming_writer = getattr(adapter, "write", None)
+    if streaming_writer is not None:
+        row_count = streaming_writer(files, output)
+        print(f"Ingested {len(files)} raw files and {row_count:,} frames")
+        return
+
+    result = adapter.read(files).with_row_index("row_id")
     result.write_parquet(output, compression="zstd")
     print(f"Ingested {len(files)} raw files and {len(result):,} frames")
 

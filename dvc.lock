@@ -5,44 +5,45 @@ stages:
     deps:
     - path: data/raw
       hash: md5
-      md5: 90e5248ca636e452aa618cd8ebb646ab.dir
-      size: 2175459426
-      nfiles: 55
+      md5: ba8a328bcb5aaba223105b49c75f90a0.dir
+      size: 5848311999
+      nfiles: 156
     - path: src/data/adapters
       hash: md5
-      md5: 80f16f9d60a1db71164797ed163720ba.dir
-      size: 13787
-      nfiles: 5
+      md5: 2bd1c5f58abf8d063e7c0a273fb51f4d.dir
+      size: 22547
+      nfiles: 6
     - path: src/data/ingest.py
       hash: md5
-      md5: c8f1ca10c09ce5cd1bc5cd4948d0a231
-      size: 2655
+      md5: df1c0f43195f947ebd0bc32ccb06b889
+      size: 3236
     params:
       params.yaml:
-        dataset.ingest_adapter: hcrl_carhacking
+        dataset.ingest_adapter: road_raw
         dataset.interim_path: data/interim/canonical.parquet
-        dataset.raw_dir: data/raw/9) Car-Hacking Dataset
+        dataset.raw_dir: data/raw/road
         dataset.raw_files:
+        dataset.variant: fabrication
     outs:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: eadbff3ceefda95dae01c16e4aeec050
-      size: 146340074
+      md5: c4dbf086865e77b4da2c6c9e7bd6bd7f
+      size: 17529819
   prepare:
     cmd: PYTHONPATH=src python src/data/prepare.py
     deps:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: eadbff3ceefda95dae01c16e4aeec050
-      size: 146340074
+      md5: c4dbf086865e77b4da2c6c9e7bd6bd7f
+      size: 17529819
     - path: src/data/prepare.py
       hash: md5
-      md5: fa368d8817e3a5c0db6128541e920c46
-      size: 3829
+      md5: 35c0c8aaff3a5d7c48105132fd150e08
+      size: 5973
     - path: src/data/task.py
       hash: md5
-      md5: ffea33613158410eb3c636bc20f07138
-      size: 2558
+      md5: 8ab4cc4a5ffe56de1bffd9db40c19940
+      size: 3257
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -50,25 +51,26 @@ stages:
     params:
       params.yaml:
         dataset.prepared_path: data/interim/prepared.parquet
+        dataset.variant: fabrication
         prepare:
-          label_schema: HCRLCarHacking
+          label_schema: road
           features: []
     outs:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 09440888bd6300ac4e006e583dfacfe5
-      size: 146334771
+      md5: babdd6510d36e6b37cfc8d39c5a827bc
+      size: 10723261
   split:
     cmd: PYTHONPATH=src python src/data/split.py
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 09440888bd6300ac4e006e583dfacfe5
-      size: 146334771
+      md5: babdd6510d36e6b37cfc8d39c5a827bc
+      size: 10723261
     - path: src/data/split.py
       hash: md5
-      md5: d8baf5ffc245c9797e3da17f82b1a769
-      size: 10705
+      md5: d4cce0b13ad4ec4369789d02e77b0f24
+      size: 24725
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -76,6 +78,8 @@ stages:
     params:
       params.yaml:
         dataset.processed_dir: data/processed/current
+        dataset.variant: fabrication
+        prepare.label_schema: road
         split:
           unit: frame
           downsample: false
@@ -84,16 +88,16 @@ stages:
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: beab2a89b14781cce23ac0a3f41895c8
-      size: 49580018
+      md5: 2c47346e6929e3d86ceb18c6cf48157b
+      size: 4366835
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: 93dc6ed45e8e1a6e905c17711dca76db
-      size: 148566209
+      md5: cc01c660786e904d832486b1bde70d07
+      size: 11975028
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: cd0dce8765ff2716ac2f8f443b853ca5
-      size: 49563964
+      md5: 5c302a1311fa64adebf761ecde982412
+      size: 4378025
   train_can_bigrubert:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:
