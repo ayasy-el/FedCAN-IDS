@@ -22,8 +22,10 @@ import seaborn as sns
 from utils.mlflow_utils import log_artifact_organized
 
 
-def stratified_sample_indices(y, max_samples: int, seed: int) -> np.ndarray:
-    """Select at most ``max_samples`` rows while preserving class proportions."""
+def stratified_sample_indices(y, max_samples: int | None, seed: int) -> np.ndarray:
+    """Select rows proportionally, or all rows when ``max_samples`` is None."""
+    if max_samples is None:
+        return np.arange(len(y))
     if len(y) <= max_samples:
         return np.arange(len(y))
 
