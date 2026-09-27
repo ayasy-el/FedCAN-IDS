@@ -142,24 +142,26 @@ y_pred = np.argmax(np.asarray(predictions), axis=-1)
 train_sample_indices = stratified_sample_indices(
     train_dataset.y, SAMPLE_SIZE, SAMPLE_SEED
 )
-val_sample_indices = stratified_sample_indices(
-    val_dataset.y, SAMPLE_SIZE, SAMPLE_SEED + 1
-)
 train_sample_predictions = np.argmax(
     model.predict(train_dataset.x[train_sample_indices], verbose=1), axis=-1
 )
-val_sample_predictions = np.argmax(
-    model.predict(val_dataset.x[val_sample_indices], verbose=1), axis=-1
-)
+if len(val_dataset.y):
+    val_sample_indices = stratified_sample_indices(
+        val_dataset.y, SAMPLE_SIZE, SAMPLE_SEED + 1
+    )
+    val_sample_predictions = np.argmax(
+        model.predict(val_dataset.x[val_sample_indices], verbose=1), axis=-1
+    )
+else:
+    val_sample_indices = np.empty(0, dtype=np.int64)
+    val_sample_predictions = np.empty(0, dtype=np.int64)
 train_confusion_matrix_counts, train_confusion_matrix = calculate_confusion_matrices(
     train_dataset.y[train_sample_indices],
     train_sample_predictions,
     len(CLASS_NAMES),
 )
 val_confusion_matrix_counts, val_confusion_matrix = calculate_confusion_matrices(
-    val_dataset.y[val_sample_indices],
-    val_sample_predictions,
-    len(CLASS_NAMES),
+    val_dataset.y[val_sample_indices], val_sample_predictions, len(CLASS_NAMES)
 )
 save_confusion_matrix_figure(
     train_confusion_matrix,

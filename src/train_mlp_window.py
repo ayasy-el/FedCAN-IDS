@@ -59,6 +59,8 @@ val = MLPWindowDataset(
     False,
     source_path=dataset["prepared_path"],
 )
+has_validation = len(val.y) > 0
+monitor = "val_f1_macro" if has_validation else "f1_macro"
 
 
 # ==========================================================
@@ -108,14 +110,10 @@ with mlflow.start_run() as run:
     save_run_id(run.info.run_id, "checkpoints/mlp_window_mlflow_run_id.txt")
     mlflow.log_params({f"model.{key}": value for key, value in model_params.items()})
     mlflow.log_params({f"training.{key}": value for key, value in training.items()})
-    model.fit(
-        train.to_tf_dataset(),
-        validation_data=val.to_tf_dataset(),
-        epochs=training["epochs"],
-        callbacks=[
+    callbacks = [
             keras.callbacks.ModelCheckpoint(
                 "checkpoints/mlp_window_best.keras",
-                monitor="val_f1_macro",
+                monitor=monitor,
                 mode="max",
                 save_best_only=True,
             ),
@@ -125,10 +123,13 @@ with mlflow.start_run() as run:
             #    patience=5,
             #    restore_best_weights=True,
             #),
-            BestEpochMetrics(best_metrics_path, monitor="val_f1_macro", mode="max"),
+            BestEpochMetrics(best_metrics_path, monitor=monitor, mode="max"),
             MlflowEpochLogger(),
-        ],
-    )
+        ]
+    fit_kwargs = {"epochs": training["epochs"], "callbacks": callbacks}
+    if has_validation:
+        fit_kwargs["validation_data"] = val.to_tf_dataset()
+    model.fit(train.to_tf_dataset(), **fit_kwargs)
     model.save("checkpoints/mlp_window_final.keras")
     log_artifact_organized("checkpoints/mlp_window_best.keras")
     log_artifact_organized("checkpoints/mlp_window_final.keras")

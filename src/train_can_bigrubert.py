@@ -70,6 +70,8 @@ val = CANBiGRUBERTDataset(
     split["random_seed"],
     source_path=dataset["prepared_path"],
 )
+has_validation = len(val.y) > 0
+monitor = "val_loss" if has_validation else "loss"
 
 
 # ==========================================================
@@ -133,26 +135,24 @@ with mlflow.start_run() as run:
     callbacks = [
         keras.callbacks.ModelCheckpoint(
             best_path,
-            monitor="val_loss",
+            monitor=monitor,
             mode="min",
             save_best_only=True,
         ),
         keras.callbacks.EarlyStopping(
-            monitor="val_loss",
+            monitor=monitor,
             mode="min",
             patience=training["early_stopping_patience"],
             min_delta=training["early_stopping_min_delta"],
             restore_best_weights=True,
         ),
-        BestEpochMetrics(best_metrics_path, monitor="val_loss", mode="min"),
+        BestEpochMetrics(best_metrics_path, monitor=monitor, mode="min"),
         MlflowEpochLogger(),
     ]
-    model.fit(
-        train.to_tf_dataset(),
-        validation_data=val.to_tf_dataset(),
-        epochs=training["epochs"],
-        callbacks=callbacks,
-    )
+    fit_kwargs = {"epochs": training["epochs"], "callbacks": callbacks}
+    if has_validation:
+        fit_kwargs["validation_data"] = val.to_tf_dataset()
+    model.fit(train.to_tf_dataset(), **fit_kwargs)
     model.save(final_path)
     log_artifact_organized(best_path)
     log_artifact_organized(final_path)

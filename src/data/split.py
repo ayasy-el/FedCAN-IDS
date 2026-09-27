@@ -39,19 +39,28 @@ def _session_split(df, split):
     }
 
 
-def _stratified_frame_split(df, seed):
+def _stratified_frame_split(df, seed, val_ratio, test_ratio):
     rng = np.random.default_rng(seed)
     outputs = {"train": [], "val": [], "test": []}
     for label in sorted(df["Class"].unique().to_list()):
         group = df.filter(pl.col("Class") == label)
         indices = np.arange(len(group))
         rng.shuffle(indices)
-        n_train = int(len(indices) * 0.60)
-        n_val = int(len(indices) * 0.20)
+        n_train, n_val = _partition_counts(len(indices), val_ratio, test_ratio)
         outputs["train"].append(group[indices[:n_train]])
         outputs["val"].append(group[indices[n_train:n_train + n_val]])
         outputs["test"].append(group[indices[n_train + n_val:]])
     return {name: pl.concat(groups) if groups else df.head(0) for name, groups in outputs.items()}
+
+
+def _partition_counts(size, val_ratio, test_ratio):
+    if not 0 <= val_ratio < 1 or not 0 <= test_ratio < 1:
+        raise ValueError("split.val_ratio and split.test_ratio must be in [0, 1)")
+    if val_ratio + test_ratio >= 1:
+        raise ValueError("split.val_ratio + split.test_ratio must be less than 1")
+    n_val = int(size * val_ratio)
+    n_test = int(size * test_ratio)
+    return size - n_val - n_test, n_val
 
 
 def _sink_lazy_frame(query, output):
@@ -85,7 +94,7 @@ def _count_parquet_rows(path):
     )
 
 
-def _road_stratified_frame_split(prepared_path, output_dir, seed):
+def _road_stratified_frame_split(prepared_path, output_dir, seed, val_ratio, test_ratio):
     """Split ROAD frames exactly by class using bounded Arrow batches."""
     parquet = pq.ParquetFile(prepared_path)
     batch_size = 100_000
@@ -142,8 +151,7 @@ def _road_stratified_frame_split(prepared_path, output_dir, seed):
                 rank = _permuted_rank(
                     label_positions, counts[label], seed, label, stream=2
                 )
-                n_train = int(counts[label] * 0.60)
-                n_val = int(counts[label] * 0.20)
+                n_train, n_val = _partition_counts(counts[label], val_ratio, test_ratio)
                 split_masks["train"][label_mask] = rank < n_train
                 split_masks["val"][label_mask] = (
                     (rank >= n_train) & (rank < n_train + n_val)
@@ -215,7 +223,13 @@ def _road_frame_split(prepared_path, output_dir, strategy, split, seed):
             for name, names in assignments.items()
         }
     elif strategy == "stratified_random":
-        return _road_stratified_frame_split(prepared_path, output_dir, seed)
+        return _road_stratified_frame_split(
+            prepared_path,
+            output_dir,
+            seed,
+            float(split.get("val_ratio", 0.2)),
+            float(split.get("test_ratio", 0.2)),
+        )
     else:
         raise ValueError(f"Unknown frame split strategy: {strategy}")
 
@@ -390,6 +404,8 @@ def _road_window_split(
     seed,
     benign_labels,
     downsample_size=None,
+    val_ratio=0.2,
+    test_ratio=0.2,
 ):
     """Create ROAD window references with bounded per-session memory."""
     counts = {}
@@ -456,8 +472,7 @@ def _road_window_split(
                     positions, split_size, seed, label, stream=1
                 )
                 window_row_ids = row_ids[label_starts]
-                n_train = int(split_size * 0.60)
-                n_val = int(split_size * 0.20)
+                n_train, n_val = _partition_counts(split_size, val_ratio, test_ratio)
                 partitions = {
                     "train": split_rank < n_train,
                     "val": (split_rank >= n_train) & (split_rank < n_train + n_val),
@@ -537,6 +552,8 @@ def _window_split(
     seed,
     benign_labels,
     downsample_size=None,
+    val_ratio=0.2,
+    test_ratio=0.2,
 ):
     source = pl.read_parquet(prepared_path)
     sessions, references = _sample_window_refs(
@@ -548,8 +565,7 @@ def _window_split(
     try:
         for label, group in references.items():
             order = split_rng.permutation(len(group))
-            n_train = int(len(group) * 0.60)
-            n_val = int(len(group) * 0.20)
+            n_train, n_val = _partition_counts(len(group), val_ratio, test_ratio)
             partitions = {
                 "train": order[:n_train],
                 "val": order[n_train:n_train + n_val],
@@ -593,6 +609,8 @@ def run(params, downsample_size=None):
                 seed,
                 benign_labels,
                 downsample_size,
+                float(split.get("val_ratio", 0.2)),
+                float(split.get("test_ratio", 0.2)),
             )
             return
         _window_split(
@@ -604,6 +622,8 @@ def run(params, downsample_size=None):
             seed,
             benign_labels,
             downsample_size,
+            float(split.get("val_ratio", 0.2)),
+            float(split.get("test_ratio", 0.2)),
         )
         return
 
@@ -622,7 +642,12 @@ def run(params, downsample_size=None):
     if strategy == "session_holdout":
         outputs = _session_split(source, split)
     elif strategy == "stratified_random":
-        outputs = _stratified_frame_split(source, seed)
+        outputs = _stratified_frame_split(
+            source,
+            seed,
+            float(split.get("val_ratio", 0.2)),
+            float(split.get("test_ratio", 0.2)),
+        )
     else:
         raise ValueError(f"Unknown frame split strategy: {strategy}")
 

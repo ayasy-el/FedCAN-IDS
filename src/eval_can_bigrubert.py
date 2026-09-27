@@ -147,9 +147,12 @@ y_pred = np.argmax(np.asarray(predictions), axis=-1)
 train_predictions = np.argmax(
     model.predict(train_dataset.to_tf_dataset(), verbose=1), axis=-1
 )
-val_predictions = np.argmax(
-    model.predict(val_dataset.to_tf_dataset(), verbose=1), axis=-1
-)
+if len(val_dataset.y):
+    val_predictions = np.argmax(
+        model.predict(val_dataset.to_tf_dataset(), verbose=1), axis=-1
+    )
+else:
+    val_predictions = np.empty(0, dtype=np.int64)
 train_counts, train_matrix = calculate_confusion_matrices(
     train_dataset.y, train_predictions, len(CLASS_NAMES)
 )
