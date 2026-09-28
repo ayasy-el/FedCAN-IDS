@@ -57,8 +57,6 @@ def _attack_family(path: Path):
         return "Masquerade"
     if "suspension_attacks" in relative_parts:
         return "Suspension"
-    if stem.startswith("multiple_attacks_"):
-        return None
     if "fuzzing" in stem:
         return "Fuzzing"
     if "dos" in stem:
@@ -70,10 +68,21 @@ def _attack_family(path: Path):
     raise ValueError(f"Cannot infer CAN-MIRGU family from path: {path}")
 
 
+def _frame_attack_type(
+    stem: str, family: str, can_id: str, rel_timestamp: float
+) -> str:
+    if stem == "fuzzing_valid_ids_dos":
+        return "DoS" if can_id == "000" else "Fuzzing"
+    if stem == "reverse_speedometer_fuzzing_attack":
+        return "Spoofing" if rel_timestamp < 70.0 else "Fuzzing"
+    if stem == "multiple_attacks_2":
+        return "Fuzzing" if rel_timestamp >= 880.0 else "Spoofing"
+    return family
+
+
 def _iter_chunks(path: Path, chunk_size=CHUNK_SIZE):
     family = _attack_family(path)
-    if family is None:
-        raise ValueError(f"Multiple-attack file must be filtered before reading: {path}")
+    stem = path.stem.lower()
     rows = []
     malformed = 0
     first_timestamp = None
@@ -90,20 +99,24 @@ def _iter_chunks(path: Path, chunk_size=CHUNK_SIZE):
             timestamp = float(match.group("timestamp"))
             if first_timestamp is None:
                 first_timestamp = timestamp
+            rel_timestamp = timestamp - first_timestamp
+            can_id = _can_id(match.group("arbitration_id"))
             payload = _payload(match.group("payload"))
             flag = int(match.group("flag"))
             rows.append(
                 {
                     "session_id": path.stem,
-                    "Timestamp": timestamp - first_timestamp,
-                    "Arbitration_ID": _can_id(match.group("arbitration_id")),
+                    "Timestamp": rel_timestamp,
+                    "Arbitration_ID": can_id,
                     "DLC": len(match.group("payload")) // 2,
                     **{
                         f"Data_{index}": value
                         for index, value in enumerate(_payload_bytes(payload))
                     },
                     "attack_type": (
-                        "Normal" if family == "Normal" or flag == 0 else family
+                        "Normal"
+                        if family == "Normal" or flag == 0
+                        else _frame_attack_type(stem, family, can_id, rel_timestamp)
                     ),
                 }
             )
