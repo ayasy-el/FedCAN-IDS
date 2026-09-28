@@ -49,7 +49,7 @@ NORMALIZE_STATS_PATH = "checkpoints/mlp_window_norm_stats.json"
 BEST_TRAINING_METRICS_PATH = "reports/metrics/mlp_window_best_training_metrics.json"
 RUN_ID_PATH = "checkpoints/mlp_window_mlflow_run_id.txt"
 CLASS_NAMES = task["class_names"]
-SAMPLE_SIZE = 10_000
+SAMPLE_SIZE = None
 SAMPLE_SEED = 42
 
 # Semua output evaluasi disimpan agar hasil antar-run dapat dibandingkan.
