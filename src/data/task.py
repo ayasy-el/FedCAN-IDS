@@ -36,6 +36,22 @@ LABEL_SCHEMAS = {
     },
 }
 
+CAN_MIRGU_SCHEMAS = {
+    "real": {
+        "num_classes": 5,
+        "class_names": ["Normal", "DoS", "Fuzzing", "Spoofing", "Replay"],
+        "benign_labels": [0],
+    },
+    "extended": {
+        "num_classes": 7,
+        "class_names": [
+            "Normal", "DoS", "Fuzzing", "Spoofing", "Replay",
+            "Masquerade", "Suspension",
+        ],
+        "benign_labels": [0],
+    },
+}
+
 ROAD_SCHEMAS = {
     "fabrication": {
         "num_classes": 7,
@@ -57,6 +73,14 @@ MODEL_CONTRACTS = {
 
 
 def label_schema(name, variant=None):
+    if name == "CANMIRGU":
+        try:
+            return CAN_MIRGU_SCHEMAS[variant]
+        except KeyError as exc:
+            raise ValueError(
+                "label_schema='CANMIRGU' requires dataset.variant='real' "
+                "or 'extended'"
+            ) from exc
     if name == "road":
         try:
             return ROAD_SCHEMAS[variant]
@@ -69,7 +93,8 @@ def label_schema(name, variant=None):
         return LABEL_SCHEMAS[name]
     except KeyError as exc:
         raise ValueError(
-            f"Unknown label schema {name!r}; choose one of {sorted((*LABEL_SCHEMAS, 'road'))}"
+            f"Unknown label schema {name!r}; choose one of "
+            f"{sorted((*LABEL_SCHEMAS, 'road', 'CANMIRGU'))}"
         ) from exc
 
 

@@ -594,7 +594,7 @@ def run(params, downsample_size=None):
         params.get("prepare", {}).get("label_schema", "five_class"),
         dataset.get("variant"),
     )["benign_labels"]
-    road_adapter = dataset.get("ingest_adapter") == "road_raw"
+    road_adapter = dataset.get("ingest_adapter") in {"road_raw", "can_mirgu"}
 
     if unit == "window":
         if strategy != "stratified_random":

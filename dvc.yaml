@@ -7,7 +7,7 @@ stages:
       - data/raw
     params:
       - dataset.raw_dir
-      - dataset.raw_files
+      - dataset.exclude_files
       - dataset.ingest_adapter
       - dataset.variant
       - dataset.interim_path

@@ -48,6 +48,15 @@ ROAD_MASQUERADE_IDS = {
     "RLOff": 4,
     "CS": 5,
 }
+CAN_MIRGU_IDS = {
+    "Normal": 0,
+    "DoS": 1,
+    "Fuzzing": 2,
+    "Spoofing": 3,
+    "Replay": 4,
+    "Masquerade": 5,
+    "Suspension": 6,
+}
 
 
 def _state_from_session(session):
@@ -80,6 +89,10 @@ def _label_expr(schema_name, variant=None):
         if variant == "masquerade":
             return pl.col("attack_type").replace_strict(ROAD_MASQUERADE_IDS).cast(pl.UInt8)
         raise ValueError("ROAD requires variant='fabrication' or 'masquerade'")
+    if schema_name == "CANMIRGU":
+        schema = label_schema(schema_name, variant)
+        allowed = {name: index for index, name in enumerate(schema["class_names"])}
+        return pl.col("attack_type").replace_strict(allowed).cast(pl.UInt8)
     label_schema(schema_name, variant)
     raise AssertionError("unreachable")
 
@@ -105,7 +118,7 @@ def run(params):
         )
     label_schema(schema_name, variant)
 
-    streaming_road = dataset.get("ingest_adapter") == "road_raw"
+    streaming_road = dataset.get("ingest_adapter") in {"road_raw", "can_mirgu"}
     if streaming_road:
         # road_raw writes one session per file, in timestamp order. A global
         # sort here would materialize the whole ROAD dataset and cause OOM.

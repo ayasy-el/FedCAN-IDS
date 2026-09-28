@@ -5,45 +5,46 @@ stages:
     deps:
     - path: data/raw
       hash: md5
-      md5: ba8a328bcb5aaba223105b49c75f90a0.dir
-      size: 5848311999
-      nfiles: 156
+      md5: db8ebaf809ec8a9b08531599d401a028.dir
+      size: 11194627463
+      nfiles: 204
     - path: src/data/adapters
       hash: md5
-      md5: 2bd1c5f58abf8d063e7c0a273fb51f4d.dir
-      size: 22547
-      nfiles: 6
+      md5: 10b653fbc262e1c3b5df55b08d19159f.dir
+      size: 28946
+      nfiles: 7
     - path: src/data/ingest.py
       hash: md5
-      md5: df1c0f43195f947ebd0bc32ccb06b889
-      size: 3236
+      md5: 86c8ef2b7229552f1d5f53ff3c7534cf
+      size: 3737
     params:
       params.yaml:
-        dataset.ingest_adapter: road_raw
+        dataset.exclude_files:
+        - Benign/**/*.log
+        dataset.ingest_adapter: can_mirgu
         dataset.interim_path: data/interim/canonical.parquet
-        dataset.raw_dir: data/raw/road
-        dataset.raw_files:
-        dataset.variant: fabrication
+        dataset.raw_dir: data/raw/CAN-MIRGU
+        dataset.variant: real
     outs:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: c4dbf086865e77b4da2c6c9e7bd6bd7f
-      size: 17529819
+      md5: 5288d59e5552adf396459b591d0d3109
+      size: 124771391
   prepare:
     cmd: PYTHONPATH=src python src/data/prepare.py
     deps:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: c4dbf086865e77b4da2c6c9e7bd6bd7f
-      size: 17529819
+      md5: 5288d59e5552adf396459b591d0d3109
+      size: 124771391
     - path: src/data/prepare.py
       hash: md5
-      md5: 35c0c8aaff3a5d7c48105132fd150e08
-      size: 5973
+      md5: b6400771225b2363f10bc0b4822d66ad
+      size: 6381
     - path: src/data/task.py
       hash: md5
-      md5: 8ab4cc4a5ffe56de1bffd9db40c19940
-      size: 3257
+      md5: 4bb06807790b7a73f674c0a355b72898
+      size: 3959
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -51,26 +52,26 @@ stages:
     params:
       params.yaml:
         dataset.prepared_path: data/interim/prepared.parquet
-        dataset.variant: fabrication
+        dataset.variant: real
         prepare:
-          label_schema: road
+          label_schema: CANMIRGU
           features: []
     outs:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: babdd6510d36e6b37cfc8d39c5a827bc
-      size: 10723261
+      md5: fd18477612be28c217def0c82f245398
+      size: 78870832
   split:
     cmd: PYTHONPATH=src python src/data/split.py
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: babdd6510d36e6b37cfc8d39c5a827bc
-      size: 10723261
+      md5: fd18477612be28c217def0c82f245398
+      size: 78870832
     - path: src/data/split.py
       hash: md5
-      md5: d4cce0b13ad4ec4369789d02e77b0f24
-      size: 24725
+      md5: 998467eb7c67939b317962cd2778c971
+      size: 25733
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -78,26 +79,28 @@ stages:
     params:
       params.yaml:
         dataset.processed_dir: data/processed/current
-        dataset.variant: fabrication
-        prepare.label_schema: road
+        dataset.variant: real
+        prepare.label_schema: CANMIRGU
         split:
           unit: frame
+          val_ratio: 0.2
+          test_ratio: 0.2
           downsample: false
           random_seed: 42
           strategy: stratified_random
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 2c47346e6929e3d86ceb18c6cf48157b
-      size: 4366835
+      md5: e27908d6ebd067ca4538367dd5ca85c4
+      size: 29550632
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: cc01c660786e904d832486b1bde70d07
-      size: 11975028
+      md5: 15ed9d5286ddf54abe857dc373172bb5
+      size: 82020940
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 5c302a1311fa64adebf761ecde982412
-      size: 4378025
+      md5: 28ac369b33e0633a59573fb462dcab29
+      size: 29555487
   train_can_bigrubert:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:
