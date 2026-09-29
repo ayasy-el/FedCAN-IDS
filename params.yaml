@@ -1,17 +1,18 @@
 dataset:
-  name: CAN-MIRGU
-  raw_dir: data/raw/CAN-MIRGU
-  ingest_adapter: can_mirgu
-  variant: real
-  exclude_files:
-    - Benign/**/*.log
+  name: ROAD
+  raw_dir: data/raw/road
+  ingest_adapter: road_raw
+  variant: fabrication
+  exclude_files: null
   interim_path: data/interim/canonical.parquet
   prepared_path: data/interim/prepared.parquet
   processed_dir: data/processed/current
 
 prepare:
-  label_schema: CANMIRGU
-  features: []
+  label_schema: road
+  features:
+    - deltatime
+    - delta_id
 
 split:
   unit: frame

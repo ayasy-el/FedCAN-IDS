@@ -84,13 +84,19 @@ def _capture_metadata(path: Path):
     return metadata.get(path.stem, {})
 
 
+def _matches_payload_pattern(payload: str, pattern: str) -> bool:
+    if len(payload) != len(pattern):
+        return False
+    return all(p == pat for p, pat in zip(payload, pattern) if pat != "X")
+
+
 def _matches_reference_rule(attack_name, metadata, relative_time, aid, payload):
     interval = metadata.get("injection_interval")
     pattern = metadata.get("injection_data_str")
     target = metadata.get("injection_id")
     if not interval or not pattern:
         return False
-    if not interval[0] <= relative_time <= interval[1]:
+    if not interval[0] <= round(relative_time, 6) <= interval[1]:
         return False
 
     pattern = pattern.upper()
@@ -98,13 +104,7 @@ def _matches_reference_rule(attack_name, metadata, relative_time, aid, payload):
     if target and target != "XXX" and aid != _can_id(target):
         return False
 
-    if target == "XXX":
-        return payload == pattern
-    if attack_name == "CS":
-        return payload == pattern
-    if attack_name in {"MEC", "MS"}:
-        return payload[10:12] == pattern[10:12]
-    return payload[4:6] == pattern[4:6]
+    return _matches_payload_pattern(payload, pattern)
 
 
 def _iter_log_chunks(path: Path, chunk_size: int = CHUNK_SIZE):
