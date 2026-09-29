@@ -250,3 +250,75 @@ stages:
           cache: false
       - reports/figures/can_bigrubert_test_confusion_matrix_counts.png:
           cache: false
+
+  train_can_ae_transformer:
+    cmd: PYTHONPATH=src python src/train_can_ae_transformer.py
+    deps:
+      - src/train_can_ae_transformer.py
+      - src/data/task.py
+      - src/data/can_ae_transformer_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/can_ae_transformer.py
+      - src/utils/metrics.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/interim/prepared.parquet
+    params:
+      - experiment
+      - prepare
+      - split
+      - model.can_ae_transformer
+      - training.can_ae_transformer
+      - mlflow.experiment_can_ae_transformer
+    outs:
+      - checkpoints/can_ae_transformer_best.keras:
+          cache: false
+      - checkpoints/can_ae_transformer_final.keras:
+          cache: false
+      - checkpoints/can_ae_transformer_mlflow_run_id.txt:
+          cache: false
+      - reports/metrics/can_ae_transformer_best_training_metrics.json:
+          cache: false
+
+  eval_can_ae_transformer:
+    cmd: PYTHONPATH=src python src/eval_can_ae_transformer.py
+    deps:
+      - src/eval_can_ae_transformer.py
+      - src/data/task.py
+      - src/data/can_ae_transformer_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/can_ae_transformer.py
+      - src/utils/eval_reporting.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - src/utils/metrics.py
+      - checkpoints/can_ae_transformer_best.keras
+      - reports/metrics/can_ae_transformer_best_training_metrics.json
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
+      - data/interim/prepared.parquet
+    params:
+      - experiment
+      - prepare
+      - split
+      - model.can_ae_transformer
+      - training.can_ae_transformer
+      - mlflow.experiment_can_ae_transformer
+    metrics:
+      - reports/metrics/can_ae_transformer_classification_report.json:
+          cache: false
+    outs:
+      - reports/metrics/can_ae_transformer_classification_report.txt:
+          cache: false
+      - reports/figures/can_ae_transformer_train_confusion_matrix.png:
+          cache: false
+      - reports/figures/can_ae_transformer_val_confusion_matrix.png:
+          cache: false
+      - reports/figures/can_ae_transformer_test_confusion_matrix.png:
+          cache: false
+      - reports/figures/can_ae_transformer_test_confusion_matrix_counts.png:
+          cache: false
+

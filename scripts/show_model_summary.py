@@ -2,9 +2,12 @@
 
 import argparse
 import math
+import os
 import sys
 import time
 from pathlib import Path
+
+os.environ.setdefault("TF_USE_LEGACY_KERAS", "1")
 
 import yaml
 
@@ -13,6 +16,10 @@ SRC_DIR = PROJECT_ROOT / "src"
 sys.path.insert(0, str(SRC_DIR))
 
 from data.task import MODEL_CONTRACTS, label_schema
+from model.can_ae_transformer import (
+    build_can_ae_transformer,
+    parameter_counts as can_ae_transformer_parameter_counts,
+)
 from model.can_bigrubert import build_can_bigrubert, parameter_counts
 from model.mlp import build_mlp
 from model.mlp_window import build_mlp_window
@@ -112,6 +119,20 @@ def _training_dataset(params, model_name):
             training["batch_size"],
             False,
             split["random_seed"],
+            source_path=PROJECT_ROOT / dataset["prepared_path"],
+        )
+    if model_name == "can_ae_transformer":
+        from data.can_ae_transformer_dataset import CANAeTransformerDataset
+
+        return CANAeTransformerDataset(
+            train_path,
+            window_size=int(split["window_size"]),
+            d_model=int(model_params["d_model"]),
+            granularity=float(model_params.get("granularity", 1e-8)),
+            max_time_position=int(model_params.get("max_time_position", 10000)),
+            batch_size=training["batch_size"],
+            shuffle=False,
+            random_seed=split["random_seed"],
             source_path=PROJECT_ROOT / dataset["prepared_path"],
         )
     raise ValueError(f"Unsupported model: {model_name}")
@@ -234,6 +255,41 @@ def show_can_bigrubert_summary(params, schema, split):
     return model
 
 
+def show_can_ae_transformer_summary(params, schema, split):
+    model_params = params["model"]["can_ae_transformer"]
+    window_size = int(split["window_size"])
+    model = build_can_ae_transformer(
+        window_size=window_size,
+        d_model=int(model_params["d_model"]),
+        num_heads=int(model_params["num_heads"]),
+        num_layers=int(model_params["num_layers"]),
+        dim_feedforward=int(model_params["dim_feedforward"]),
+        dropout=float(model_params["dropout"]),
+        num_classes=schema["num_classes"],
+        batch_size=_batch_size(params, "can_ae_transformer"),
+    )
+    print("\n=== CAN-AE-Transformer window classifier ===")
+    _print_contract("can_ae_transformer", split)
+    print(f"Window size: {window_size}")
+    print(f"Stride: {split['stride']}")
+    print(f"Embedding dimension (d_model): {model_params['d_model']}")
+    print(f"Attention heads: {model_params['num_heads']}")
+    print(f"Encoder layers: {model_params['num_layers']}")
+    print(f"Feedforward dimension: {model_params['dim_feedforward']}")
+    print(f"Smooth factor (granularity): {model_params.get('granularity', 1e-8)}")
+    print(f"Dropout: {model_params['dropout']}")
+    _print_batch_info(
+        params,
+        "can_ae_transformer",
+        (window_size, 12),
+        schema["num_classes"],
+    )
+    model.summary()
+    for name, value in can_ae_transformer_parameter_counts(model).items():
+        print(f"{name}: {value:,}")
+    return model
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Show configured model summaries without training or MLflow."
@@ -241,7 +297,7 @@ def main():
     parser.add_argument(
         "model",
         nargs="?",
-        choices=("mlp", "mlp_window", "can_bigrubert", "all"),
+        choices=("mlp", "mlp_window", "can_bigrubert", "can_ae_transformer", "all"),
         default="all",
         help="Model summary to show (default: all).",
     )
@@ -288,6 +344,15 @@ def main():
                 )
             except (FileNotFoundError, ValueError) as exc:
                 print(f"Time estimate skipped for can_bigrubert: {exc}")
+    if args.model in ("can_ae_transformer", "all"):
+        model = show_can_ae_transformer_summary(params, schema, split)
+        if args.estimate_time:
+            try:
+                print_training_estimate(
+                    params, "can_ae_transformer", model, args.benchmark_steps
+                )
+            except (FileNotFoundError, ValueError) as exc:
+                print(f"Time estimate skipped for can_ae_transformer: {exc}")
 
 
 if __name__ == "__main__":

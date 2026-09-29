@@ -10,16 +10,14 @@ dataset:
 
 prepare:
   label_schema: road
-  features:
-    - deltatime
-    - delta_id
+  features: []
 
 split:
-  unit: frame
+  unit: window
   val_ratio: 0.2
   test_ratio: 0.2
-  # window_size: 256
-  # stride: 1
+  window_size: 15
+  stride: 15
   downsample: false
   random_seed: 42
   strategy: stratified_random
@@ -31,9 +29,17 @@ split:
   #   - Pre_train_S_2
 
 experiment:
-  model: mlp
+  model: can_ae_transformer
 
 model:
+  can_ae_transformer:
+    d_model: 10
+    num_heads: 10
+    num_layers: 6
+    dim_feedforward: 2048
+    dropout: 0.1
+    granularity: 1e-8
+    max_time_position: 10000
   can_bigrubert:
     max_length: 22
     bert_checkpoint: bert-base-uncased
@@ -48,6 +54,11 @@ model:
     dropout: false
 
 training:
+  can_ae_transformer:
+    batch_size: 32
+    epochs: 100
+    learning_rate: 0.0001
+    warmup_steps: 100
   mlp:
     batch_size: 256
     epochs: 100
@@ -66,6 +77,7 @@ training:
 
 mlflow:
   tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
+  experiment_can_ae_transformer: "can_ae_transformer"
   experiment_mlp: "can_ids_mlp"
   experiment_mlp_window: "can_ids_mlp_window"
   experiment_can_bigrubert: "can_bigrubert"

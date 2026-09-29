@@ -69,6 +69,7 @@ MODEL_CONTRACTS = {
     "mlp": {"unit": "frame"},
     "mlp_window": {"unit": "window"},
     "can_bigrubert": {"unit": "window"},
+    "can_ae_transformer": {"unit": "window"},
 }
 
 
