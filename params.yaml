@@ -2,7 +2,7 @@ dataset:
   name: ROAD
   raw_dir: data/raw/road
   ingest_adapter: road_raw
-  variant: fabrication
+  variant: masquerade
   exclude_files: null
   interim_path: data/interim/canonical.parquet
   prepared_path: data/interim/prepared.parquet
@@ -10,7 +10,9 @@ dataset:
 
 prepare:
   label_schema: road
-  features: []
+  features: 
+    - deltatime
+    - delta_id
 
 split:
   unit: window
@@ -29,7 +31,7 @@ split:
   #   - Pre_train_S_2
 
 experiment:
-  model: can_ae_transformer
+  model: mlp_window
 
 model:
   can_ae_transformer:
@@ -71,7 +73,7 @@ training:
     early_stopping_patience: 10
     early_stopping_min_delta: 0.0001
   mlp_window:
-    batch_size: 256
+    batch_size: 32
     epochs: 100
     learning_rate: 0.001
 
