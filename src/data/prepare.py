@@ -118,10 +118,17 @@ def run(params):
         )
     label_schema(schema_name, variant)
 
-    streaming_road = dataset.get("ingest_adapter") in {"road_raw", "can_mirgu"}
-    if streaming_road:
-        # road_raw writes one session per file, in timestamp order. A global
-        # sort here would materialize the whole ROAD dataset and cause OOM.
+    streaming_adapter = dataset.get("ingest_adapter") in {
+        "road_raw",
+        "can_mirgu",
+        "hcrl_carhacking",
+        "ciciov2024",
+        "car_hacking_attack_defense",
+        "survival_analysis",
+    }
+    if streaming_adapter:
+        # Streaming adapters write one session per file, in timestamp/file order.
+        # A global sort here would materialize the whole dataset and cause OOM.
         frame_data = pl.scan_parquet(source)
         source_columns = frame_data.collect_schema().names()
     else:
@@ -155,7 +162,7 @@ def run(params):
             .alias("Delta_Id")
         )
     output.parent.mkdir(parents=True, exist_ok=True)
-    if streaming_road:
+    if streaming_adapter:
         temporary = tempfile.NamedTemporaryFile(
             prefix=f".{output.name}.",
             suffix=".tmp",

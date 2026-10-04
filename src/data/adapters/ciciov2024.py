@@ -1,8 +1,11 @@
-"""Adapter for CICIoV2024 hexadecimal CSV files."""
+"""Streaming adapter for CICIoV2024 hexadecimal CSV files."""
 
+import os
+import tempfile
 from pathlib import Path
 
 import polars as pl
+import pyarrow.parquet as pq
 
 
 DATA_COLUMNS = [f"DATA_{i}" for i in range(8)]
@@ -52,50 +55,135 @@ def _can_id(value):
     return f"{number:03X}"
 
 
+def _iter_chunks(path: Path):
+    lf = pl.scan_csv(path, infer_schema_length=0)
+    schema_cols = set(lf.collect_schema().names())
+    missing = REQUIRED_COLUMNS - schema_cols
+    if missing:
+        raise ValueError(
+            f"{path} is missing CICIoV2024 columns: {sorted(missing)}"
+        )
+
+    can_id_expr = (
+        pl.col("ID")
+        .str.strip_chars()
+        .str.to_uppercase()
+        .str.replace("^0X", "")
+        .str.replace(r"\.[0-9]+$", "")
+        .str.strip_chars_start("0")
+        .str.zfill(3)
+        .alias("Arbitration_ID")
+    )
+    atk_expr = (
+        pl.when(pl.col("specific_class").str.strip_chars().str.to_uppercase() == "BENIGN")
+        .then(pl.lit("BENIGN"))
+        .when(pl.col("specific_class").str.strip_chars().str.to_uppercase() == "DOS")
+        .then(pl.lit("DoS"))
+        .otherwise(pl.col("specific_class").str.strip_chars().str.to_uppercase())
+        .alias("attack_type")
+    )
+    if "DLC" in schema_cols:
+        dlc_expr = (
+            pl.when(
+                pl.col("DLC").is_null()
+                | (pl.col("DLC").str.strip_chars("[] \t\r\n") == "")
+            )
+            .then(pl.lit(8, dtype=pl.UInt8))
+            .otherwise(
+                pl.col("DLC")
+                .str.strip_chars("[] \t\r\n")
+                .str.replace(r"\.[0-9]+$", "")
+                .cast(pl.UInt8)
+            )
+            .alias("DLC")
+        )
+    else:
+        dlc_expr = pl.lit(8, dtype=pl.UInt8).alias("DLC")
+
+    data_exprs = [
+        pl.when(
+            pl.col(f"DATA_{i}").is_null()
+            | (pl.col(f"DATA_{i}").str.strip_chars() == "")
+        )
+        .then(pl.lit("PAD"))
+        .otherwise(
+            pl.col(f"DATA_{i}")
+            .str.strip_chars()
+            .str.to_uppercase()
+            .str.replace("^0X", "")
+            .str.replace(r"\.[0-9]+$", "")
+            .str.zfill(2)
+        )
+        .alias(f"Data_{i}")
+        for i in range(8)
+    ]
+
+    transformed = lf.with_columns(
+        pl.lit(path.stem).alias("session_id"),
+        can_id_expr,
+        atk_expr,
+        dlc_expr,
+        *data_exprs,
+    ).select(
+        "session_id",
+        "Arbitration_ID",
+        "DLC",
+        *[f"Data_{i}" for i in range(8)],
+        "attack_type",
+    )
+    yield from transformed.collect_batches()
+
+
 def read(files: list[Path]) -> pl.DataFrame:
-    frames = []
-    for path in files:
-        frame = pl.read_csv(path, infer_schema_length=0).with_columns(
-            pl.all().cast(pl.String)
-        )
-        missing = REQUIRED_COLUMNS - set(frame.columns)
-        if missing:
-            raise ValueError(
-                f"{path} is missing CICIoV2024 columns: {sorted(missing)}"
-            )
-
-        # CICIoV2024 has no physical timestamp. Preserve source order through
-        # row_id; prepare.py will only create timing features when possible.
-        expressions = [
-            pl.lit(path.stem).alias("session_id"),
-            pl.col("ID")
-            .map_elements(_can_id, return_dtype=pl.String)
-            .alias("Arbitration_ID"),
-            pl.col("specific_class")
-            .map_elements(_attack_type, return_dtype=pl.String)
-            .alias("attack_type"),
-            *[
-                pl.col(column)
-                .map_elements(_hex_byte, return_dtype=pl.String)
-                .alias(f"Data_{index}")
-                for index, column in enumerate(DATA_COLUMNS)
-            ],
-        ]
-        if "DLC" in frame.columns:
-            expressions.append(
-                pl.col("DLC").map_elements(_dlc, return_dtype=pl.UInt8).alias("DLC")
-            )
-        else:
-            expressions.append(pl.lit(8, dtype=pl.UInt8).alias("DLC"))
-        frame = frame.with_columns(expressions)
-        frames.append(
-            frame.select(
-                "session_id",
-                "Arbitration_ID",
-                "DLC",
-                *[f"Data_{i}" for i in range(8)],
-                "attack_type",
-            )
-        )
-
+    """Compatibility reader for small tests; production uses ``write``."""
+    frames = [chunk for path in files for chunk in _iter_chunks(path)]
+    if not frames:
+        raise ValueError("CICIoV2024 adapter received no valid frames")
     return pl.concat(frames, how="vertical")
+
+
+def write(files: list[Path], output: Path) -> int:
+    """Stream all selected CICIoV2024 files into one canonical Parquet file."""
+    if not files:
+        raise ValueError("CICIoV2024 adapter received no files")
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = tempfile.NamedTemporaryFile(
+        prefix=f".{output.name}.", suffix=".tmp", dir=output.parent, delete=False
+    )
+    temporary_path = Path(temporary.name)
+    temporary.close()
+    writer = None
+    total_rows = 0
+    try:
+        for path in files:
+            file_rows = 0
+            for chunk in _iter_chunks(path):
+                chunk = chunk.insert_column(
+                    0,
+                    pl.Series(
+                        "row_id",
+                        range(total_rows, total_rows + len(chunk)),
+                        dtype=pl.UInt64,
+                    ),
+                )
+                table = chunk.to_arrow()
+                if writer is None:
+                    writer = pq.ParquetWriter(
+                        temporary_path, table.schema, compression="zstd"
+                    )
+                writer.write_table(table)
+                total_rows += len(chunk)
+                file_rows += len(chunk)
+            print(f"Ingested CICIoV2024 {path.name}: {file_rows:,} frames")
+        if writer is None:
+            raise ValueError("CICIoV2024 adapter found no valid frames")
+    except Exception:
+        if writer is not None:
+            writer.close()
+        temporary_path.unlink(missing_ok=True)
+        raise
+    else:
+        writer.close()
+        os.replace(temporary_path, output)
+    return total_rows

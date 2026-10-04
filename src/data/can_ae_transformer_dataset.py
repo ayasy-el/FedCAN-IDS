@@ -94,7 +94,15 @@ class CANAeTransformerDataset:
             ]
             payload_data = np.asarray(
                 [
-                    [int(str(payload_cols[j][k] or "00"), 16) for j in range(8)]
+                    [
+                        int(
+                            "00"
+                            if payload_cols[j][k] in (None, "PAD")
+                            else payload_cols[j][k],
+                            16,
+                        )
+                        for j in range(8)
+                    ]
                     for k in range(len(aids))
                 ],
                 dtype=np.float32,
