@@ -22,6 +22,7 @@ from data.can_st_transformer_dataset import CANSTTransformerDataset
 from model.can_st_transformer import (
     LearnablePositionalEmbedding,
     TransformerBlock,
+    ExtractLastToken,
 )
 from utils.eval_reporting import (
     build_evaluation_report,
@@ -37,6 +38,8 @@ from utils.eval_reporting import (
 from utils.mlflow_utils import load_run_id
 from utils.params import load_params
 from data.task import validate_experiment
+
+import os
 
 dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
@@ -131,6 +134,7 @@ test_tf = test_dataset.to_tf_dataset()
 custom_objects = {
     "LearnablePositionalEmbedding": LearnablePositionalEmbedding,
     "TransformerBlock": TransformerBlock,
+    "ExtractLastToken": ExtractLastToken,
 }
 model = keras.models.load_model(MODEL_PATH, custom_objects=custom_objects, compile=False)
 model.compile(
@@ -486,10 +490,13 @@ artifact_paths = [
 if TEST_ROC_CURVE_PATH.exists():
     artifact_paths.append(TEST_ROC_CURVE_PATH)
 
-run_id = log_evaluation_to_mlflow(
-    run_id=load_run_id(RUN_ID_PATH),
-    report=full_report,
-    report_path=METRICS_JSON_PATH,
-    artifact_paths=artifact_paths,
-)
-print(f"Metrik evaluasi di-log ke MLflow run: {run_id}")
+try:
+    run_id = log_evaluation_to_mlflow(
+        run_id=load_run_id(RUN_ID_PATH),
+        report=full_report,
+        report_path=METRICS_JSON_PATH,
+        artifact_paths=artifact_paths,
+    )
+    print(f"Metrik evaluasi di-log ke MLflow run: {run_id}")
+except Exception as exc:
+    print(f"MLflow logging skipped: {exc}")

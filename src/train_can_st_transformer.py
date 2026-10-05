@@ -123,7 +123,7 @@ write_model_report(
 # MLflow Tracking & Training
 # ==========================================================
 
-mlflow.set_tracking_uri(mlflow_params["tracking_uri"]) 
+mlflow.set_tracking_uri(mlflow_params["tracking_uri"])
 mlflow.set_experiment(
     mlflow_params.get("experiment_can_st_transformer", "can_st_transformer")
 )

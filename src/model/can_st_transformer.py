@@ -42,6 +42,19 @@ class LearnablePositionalEmbedding(layers.Layer):
         return config
 
 
+class ExtractLastToken(layers.Layer):
+    """Extract representation from the last sequence position."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def call(self, x):
+        return x[:, -1, :]
+
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], input_shape[-1])
+
+
 class TransformerBlock(layers.Layer):
     """Single Post-LN Transformer block reproducing Jo & Kim (2024).
 
@@ -66,22 +79,18 @@ class TransformerBlock(layers.Layer):
 
         self.mha = layers.MultiHeadAttention(
             num_heads=num_heads,
-            key_dim=d_model // num_heads,
+            key_dim=max(1, d_model // num_heads),
             dropout=dropout,
         )
         self.ln1 = layers.LayerNormalization(epsilon=1e-5)
-        self.ffn = keras.Sequential(
-            [
-                layers.Dense(dim_feedforward, activation="relu"),
-                layers.Dense(d_model),
-            ]
-        )
+        self.ffn_dense1 = layers.Dense(dim_feedforward, activation="relu", name="ffn_dense1")
+        self.ffn_dense2 = layers.Dense(d_model, name="ffn_dense2")
         self.ln2 = layers.LayerNormalization(epsilon=1e-5)
 
     def call(self, x, use_causal_mask: bool = False):
         attn_out = self.mha(x, x, use_causal_mask=use_causal_mask)
         x = self.ln1(x + attn_out)
-        ffn_out = self.ffn(x)
+        ffn_out = self.ffn_dense2(self.ffn_dense1(x))
         x = self.ln2(x + ffn_out)
         return x
 
@@ -131,24 +140,20 @@ def build_can_st_transformer(
     x_temp = pos_embed(token_embed(temp_in))
     x_spat = pos_embed(token_embed(spat_in))
 
-    blocks = [
-        TransformerBlock(
+    for i in range(num_layers):
+        block = TransformerBlock(
             d_model=d_model,
             num_heads=num_heads,
             dim_feedforward=dim_feedforward,
             dropout=dropout,
             name=f"transformer_block_{i}",
         )
-        for i in range(num_layers)
-    ]
-
-    for block in blocks:
         x_temp = block(x_temp, use_causal_mask=False)
         x_spat = block(x_spat, use_causal_mask=True)
 
-    # Extract representation from the last slot of each sequence
-    vec_temp = layers.Lambda(lambda t: t[:, -1, :], name="last_temporal_vector")(x_temp)
-    vec_spat = layers.Lambda(lambda t: t[:, -1, :], name="last_spatial_vector")(x_spat)
+    # Extract representation from the last slot of each sequence using dedicated layer (safe for serialization)
+    vec_temp = ExtractLastToken(name="last_temporal_vector")(x_temp)
+    vec_spat = ExtractLastToken(name="last_spatial_vector")(x_spat)
 
     head = layers.Dense(vocab_size, name="logits_head")
     logits_temp = head(vec_temp)

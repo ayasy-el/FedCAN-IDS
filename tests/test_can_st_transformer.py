@@ -12,6 +12,7 @@ from model.can_st_transformer import (
     parameter_counts,
     LearnablePositionalEmbedding,
     TransformerBlock,
+    ExtractLastToken,
 )
 from data.can_st_transformer_dataset import (
     parse_can_id,
@@ -80,3 +81,23 @@ def test_parameter_counts():
     assert counts["total"] > 400_000
     assert counts["trainable"] == counts["total"]
     assert counts["non_trainable"] == 0
+
+
+def test_model_save_and_load(tmp_path):
+    model = build_can_st_transformer(
+        window_size=16,
+        vocab_size=2306,
+        d_model=64,
+        num_heads=4,
+        num_layers=2,
+        dim_feedforward=64,
+    )
+    save_path = tmp_path / "model.keras"
+    model.save(save_path)
+    custom_objects = {
+        "LearnablePositionalEmbedding": LearnablePositionalEmbedding,
+        "TransformerBlock": TransformerBlock,
+        "ExtractLastToken": ExtractLastToken,
+    }
+    loaded = tf.keras.models.load_model(save_path, custom_objects=custom_objects, compile=False)
+    assert loaded is not None
