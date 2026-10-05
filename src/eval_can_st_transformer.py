@@ -109,6 +109,13 @@ def main():
 
     window_size = int(model_params.get("window_size", split.get("window_size", 64)))
     range_adjustment = int(model_params.get("range_adjustment", 0))
+    use_cutoff = bool(model_params.get("cutoff_frames", False))
+
+    PAPER_CUTOFFS = {
+        "Flooding_dataset_SONATA": 95_999,
+        "Fuzzy_dataset_SONATA": 87_909,
+        "Malfunction_dataset_SONATA": 86_999,
+    }
 
     TEST_PATH = f"{dataset_params['processed_dir']}/test.parquet"
     TRAIN_PATH = f"{dataset_params['processed_dir']}/train.parquet"
@@ -179,10 +186,6 @@ def main():
         batch_size=training_params["batch_size"],
         shuffle=False,
     )
-
-    # Evaluate next-token loss on test
-    test_eval = model.evaluate(test_dataset.to_tf_dataset(), verbose=1, return_dict=True)
-    test_loss = test_eval.get("loss", 0.0)
 
     # 3. Helper to run batched inference
     def run_inference(dataset: CANSTTransformerDataset, target_indices=None):
@@ -263,6 +266,20 @@ def main():
     if not available_sessions:
         available_sessions = sorted(set(sessions_test))
 
+    # Evaluate next-token loss on test (using cutoff slice if enabled)
+    test_eval_indices = []
+    for s_name in available_sessions:
+        s_idx = np.flatnonzero(sessions_test == s_name)
+        if use_cutoff and s_name in PAPER_CUTOFFS:
+            s_idx = s_idx[: max(0, PAPER_CUTOFFS[s_name] - window_size + 1)]
+        test_eval_indices.extend(s_idx)
+    test_eval_indices = np.asarray(test_eval_indices, dtype=np.int64)
+
+    test_eval = model.evaluate(
+        test_dataset.to_tf_dataset(test_eval_indices), verbose=1, return_dict=True
+    )
+    test_loss = test_eval.get("loss", 0.0)
+
     per_attack_results = {}
     range_expansion_study = {}
     k_thresh = range_adjustment + 1
@@ -275,10 +292,19 @@ def main():
 
     print("\n" + "=" * 92)
     print("RUNNING PER-ATTACK SCENARIO INFERENCE (Jo & Kim, 2024)")
+    if use_cutoff:
+        print(">> Cut-off frames: ENABLED (Matching Table 3 of Paper)")
+    else:
+        print(">> Cut-off frames: DISABLED (Full Log Evaluation)")
     print("=" * 92)
 
     for sess in available_sessions:
         sess_indices = np.flatnonzero(sessions_test == sess)
+        if use_cutoff and sess in PAPER_CUTOFFS:
+            max_frames = PAPER_CUTOFFS[sess]
+            max_windows = max(0, max_frames - window_size + 1)
+            sess_indices = sess_indices[:max_windows]
+
         print(f"\nProcessing {sess} ({len(sess_indices):,} frames)...")
         tgt, lbl, top, scr, elapsed = run_inference(test_dataset, sess_indices)
         total_eval_time += elapsed
@@ -518,6 +544,7 @@ def main():
     }
     extra_info = {
         "paper_methodology": "Jo & Kim (IEEE Access 2024)",
+        "cutoff_frames_enabled": use_cutoff,
         "window_size": window_size,
         "range_adjustment": range_adjustment,
         "overall_attack_metrics": overall_attack_metrics,
@@ -541,7 +568,7 @@ def main():
         "",
         "=" * 88,
         "PER-ATTACK SCENARIO EVALUATION (Jo & Kim, 2024 - Table 6/9)",
-        f"Window Size: {window_size} | Range: {range_adjustment} (Top-{k_thresh})",
+        f"Window Size: {window_size} | Range: {range_adjustment} (Top-{k_thresh}) | Cutoff: {'ENABLED (Table 3 limits)' if use_cutoff else 'DISABLED'}",
         "=" * 88,
         f"{'Scenario':<32} {'Precision':<12} {'Recall':<12} {'F1-Score':<12} {'AUC':<10} {'Latency (ms)':<12}",
         "-" * 88,

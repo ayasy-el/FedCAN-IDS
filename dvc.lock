@@ -795,6 +795,7 @@ stages:
           dropout: 0.0
           window_size: 64
           range_adjustment: 0
+          cutoff_frames: true
         prepare:
           label_schema: SurvivalAnalysis
           features: []
@@ -819,31 +820,31 @@ stages:
     outs:
     - path: checkpoints/can_st_transformer_best.keras
       hash: md5
-      md5: f95d9245c686d1f11cbc810a50e02a41
-      size: 6508419
+      md5: 76a0d8aa5300eaaf3d1046b84898ae50
+      size: 6508442
     - path: checkpoints/can_st_transformer_final.keras
       hash: md5
-      md5: 643bd9cbf3d8cd2904efadffa8626c64
-      size: 6508419
+      md5: b9106274a319dcb14d3fb18b5adc3233
+      size: 6508442
     - path: checkpoints/can_st_transformer_mlflow_run_id.txt
       hash: md5
-      md5: 2da6a668a2b08cd8c0a826f2a3adb87e
+      md5: a4f4a9633a48b73ee85482efc7e34be4
       size: 32
     - path: reports/metrics/can_st_transformer_best_training_metrics.json
       hash: md5
-      md5: 34525b33e0bda53b5fa22029764903f8
+      md5: c984d02d78662e985043ee3dd0c4997f
       size: 206
     - path: reports/model_summaries/can_st_transformer_model_report.txt
       hash: md5
-      md5: 46a1fe8324429ca10fe712ca76be8943
-      size: 22570
+      md5: d74900dabcd882f8c4bce48f744958be
+      size: 22597
   eval_can_st_transformer:
     cmd: PYTHONPATH=src python src/eval_can_st_transformer.py
     deps:
     - path: checkpoints/can_st_transformer_best.keras
       hash: md5
-      md5: f95d9245c686d1f11cbc810a50e02a41
-      size: 6508419
+      md5: 76a0d8aa5300eaaf3d1046b84898ae50
+      size: 6508442
     - path: data/interim/prepared.parquet
       hash: md5
       md5: 85659d52be4effba94059060c56e9a1f
@@ -866,8 +867,8 @@ stages:
       size: 2130
     - path: src/eval_can_st_transformer.py
       hash: md5
-      md5: 63ad0b2900e751583fa072f62aa560f6
-      size: 23619
+      md5: 767e47d690c1e892be625375f33d48bd
+      size: 24758
     - path: src/model/can_st_transformer.py
       hash: md5
       md5: a85ad145e01a1e4b4ca55e7b738d3c57
@@ -898,6 +899,7 @@ stages:
           dropout: 0.0
           window_size: 64
           range_adjustment: 0
+          cutoff_frames: true
         prepare:
           label_schema: SurvivalAnalysis
           features: []
@@ -922,16 +924,16 @@ stages:
     outs:
     - path: reports/figures/can_st_transformer_test_confusion_matrix.png
       hash: md5
-      md5: f3335e20211ce0997019e3e0f0a2513d
-      size: 87277
+      md5: a443322498924e0f38a3daf04f9a3583
+      size: 85765
     - path: reports/figures/can_st_transformer_test_confusion_matrix_counts.png
       hash: md5
-      md5: a7a16dae3c94c656944b69d08a445425
-      size: 88323
+      md5: 9582f8fffac9ee069a17b69c057c098a
+      size: 93549
     - path: reports/figures/can_st_transformer_test_roc_curve.png
       hash: md5
-      md5: 1fe81448d5fda29c7ac941e6ad7cfcbb
-      size: 214210
+      md5: 37ea5fcd6e91cbf5b3ca5c8e51ac7230
+      size: 198696
     - path: reports/figures/can_st_transformer_train_confusion_matrix.png
       hash: md5
       md5: 65c2e64f083a6cf233750ebf397ba418
@@ -942,9 +944,9 @@ stages:
       size: 79980
     - path: reports/metrics/can_st_transformer_classification_report.json
       hash: md5
-      md5: 18d45f5ac714de245956caea22f388d4
-      size: 9927
+      md5: 678381f6d9f27a44ec3c33c6e0d342d4
+      size: 9885
     - path: reports/metrics/can_st_transformer_classification_report.txt
       hash: md5
-      md5: c211de9a9893fc3d58168d530b7b4f2a
-      size: 3951
+      md5: b554d903baacb9f82a2c89b085a3dfec
+      size: 3986
