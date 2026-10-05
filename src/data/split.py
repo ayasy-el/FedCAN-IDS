@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import polars as pl
+import pyarrow as pa
 import pyarrow.parquet as pq
 from tqdm import tqdm
 
@@ -515,16 +516,25 @@ class _CompactParquetWriters:
         self.counts[name] += table.num_rows
 
     def close(self):
-        if self.empty_table is not None:
-            for name in self.counts:
-                if name not in self.writers:
-                    writer = pq.ParquetWriter(
-                        self.output_dir / f"{name}.parquet",
-                        self.empty_table.schema,
-                        compression="zstd",
-                    )
-                    writer.write_table(self.empty_table)
-                    writer.close()
+        if self.empty_table is None:
+            # Fallback schema if no tables were written at all
+            schema = pa.schema([
+                ("window_id", pa.string()),
+                ("session_id", pa.string()),
+                ("start_row_id", pa.uint64()),
+                ("window_size", pa.int64()),
+                ("label", pa.int64()),
+            ])
+            self.empty_table = pa.Table.from_batches([], schema=schema)
+        for name in self.counts:
+            if name not in self.writers:
+                writer = pq.ParquetWriter(
+                    self.output_dir / f"{name}.parquet",
+                    self.empty_table.schema,
+                    compression="zstd",
+                )
+                writer.write_table(self.empty_table)
+                writer.close()
         for writer in self.writers.values():
             writer.close()
 
@@ -583,6 +593,84 @@ def _window_split(
     return writers.counts
 
 
+def _session_window_split(
+    prepared_path,
+    output_dir,
+    window_size,
+    stride,
+    split,
+):
+    """Split compact window references by session_id without mixing sessions across splits."""
+    parquet = pq.ParquetFile(prepared_path)
+    all_sessions = set()
+    for batch in parquet.iter_batches(columns=["session_id"], batch_size=100_000):
+        all_sessions.update(batch.column(0).to_pylist())
+
+    val_sessions = set(split.get("val_sessions", []) or [])
+    test_sessions = set(split.get("test_sessions", []) or [])
+
+    unknown = (val_sessions | test_sessions) - all_sessions
+    if unknown:
+        raise ValueError(f"Configured sessions do not exist: {sorted(unknown)}")
+    overlap = val_sessions & test_sessions
+    if overlap:
+        raise ValueError(f"Validation/test sessions overlap: {sorted(overlap)}")
+
+    train_sessions = all_sessions - val_sessions - test_sessions
+    assignments = {
+        "train": train_sessions,
+        "val": val_sessions,
+        "test": test_sessions,
+    }
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    writers = _CompactParquetWriters(output_dir)
+
+    try:
+        for session_id, row_ids, labels in tqdm(
+            _iter_prepared_sessions(prepared_path),
+            desc="Writing session window references",
+            unit="session",
+        ):
+            target_split = None
+            for name, sess_set in assignments.items():
+                if session_id in sess_set:
+                    target_split = name
+                    break
+
+            if target_split is None:
+                continue
+
+            n_rows = len(row_ids)
+            if n_rows < window_size:
+                continue
+
+            starts = np.arange(0, n_rows - window_size + 1, stride, dtype=np.int64)
+            # Label is determined by the last frame in the window (the target prediction frame)
+            window_labels = labels[starts + window_size - 1]
+
+            for start_idx in range(0, len(starts), writers.batch_size):
+                batch_starts = starts[start_idx : start_idx + writers.batch_size]
+                batch_row_ids = row_ids[batch_starts]
+                batch_labels = window_labels[start_idx : start_idx + writers.batch_size]
+
+                table = pl.DataFrame({
+                    "window_id": [f"{session_id}:{rid}" for rid in batch_row_ids],
+                    "session_id": [session_id] * len(batch_row_ids),
+                    "start_row_id": batch_row_ids.astype(np.uint64),
+                    "window_size": [window_size] * len(batch_row_ids),
+                    "label": [int(l) for l in batch_labels],
+                }).to_arrow()
+                writers.write(target_split, table)
+    finally:
+        writers.close()
+
+    for name, count in writers.counts.items():
+        print(f"{name}: {count:,} compact window references")
+    return writers.counts
+
+
 def run(params, downsample_size=None):
     dataset = params["dataset"]
     split = params["split"]
@@ -597,8 +685,17 @@ def run(params, downsample_size=None):
     road_adapter = dataset.get("ingest_adapter") in {"road_raw", "can_mirgu"}
 
     if unit == "window":
+        if strategy == "session_holdout":
+            _session_window_split(
+                dataset["prepared_path"],
+                output_dir,
+                int(split["window_size"]),
+                int(split["stride"]),
+                split,
+            )
+            return
         if strategy != "stratified_random":
-            raise ValueError("Window unit currently supports strategy='stratified_random' only")
+            raise ValueError(f"Unsupported window split strategy: {strategy!r}")
         if road_adapter:
             _road_window_split(
                 dataset["prepared_path"],

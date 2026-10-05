@@ -70,6 +70,7 @@ MODEL_CONTRACTS = {
     "mlp_window": {"unit": "window"},
     "can_bigrubert": {"unit": "window"},
     "can_ae_transformer": {"unit": "window"},
+    "can_st_transformer": {"unit": "window"},
 }
 
 

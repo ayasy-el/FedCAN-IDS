@@ -1,39 +1,45 @@
 dataset:
-  name: ROAD
-  raw_dir: data/raw/road
-  ingest_adapter: road_raw
-  variant: masquerade
+  name: SurvivalAnalysis
+  raw_dir: data/raw/Survival Analysis Dataset/dataset/Sonata
+  ingest_adapter: survival_analysis
+  variant: null
   exclude_files: null
   interim_path: data/interim/canonical.parquet
   prepared_path: data/interim/prepared.parquet
   processed_dir: data/processed/current
 
 prepare:
-  label_schema: road
-  features: 
-    - deltatime
-    - delta_id
+  label_schema: SurvivalAnalysis
+  features: []
 
 split:
   unit: window
+  strategy: session_holdout
+  window_size: 64
+  stride: 1
   val_ratio: 0.2
   test_ratio: 0.2
-  window_size: 15
-  stride: 15
   downsample: false
   random_seed: 42
-  strategy: stratified_random
-  # val_sessions:
-  #   - Pre_train_D_1
-  #   - Pre_train_S_1
-  # test_sessions:
-  #   - Pre_train_D_2
-  #   - Pre_train_S_2
+  val_sessions: []
+  test_sessions:
+    - Flooding_dataset_SONATA
+    - Fuzzy_dataset_SONATA
+    - Malfunction_dataset_SONATA
 
 experiment:
-  model: mlp_window
+  model: can_st_transformer
 
 model:
+  can_st_transformer:
+    vocab_size: 2306
+    d_model: 64
+    num_heads: 4
+    num_layers: 4
+    dim_feedforward: 64
+    dropout: 0.0
+    window_size: 64
+    range_adjustment: 0
   can_ae_transformer:
     d_model: 10
     num_heads: 10
@@ -56,6 +62,10 @@ model:
     dropout: false
 
 training:
+  can_st_transformer:
+    batch_size: 1024
+    epochs: 20
+    learning_rate: 0.001
   can_ae_transformer:
     batch_size: 32
     epochs: 100
@@ -79,6 +89,7 @@ training:
 
 mlflow:
   tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
+  experiment_can_st_transformer: "can_st_transformer"
   experiment_can_ae_transformer: "can_ae_transformer"
   experiment_mlp: "can_ids_mlp"
   experiment_mlp_window: "can_ids_mlp_window"
