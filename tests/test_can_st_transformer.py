@@ -10,9 +10,6 @@ import tensorflow as tf
 from model.can_st_transformer import (
     build_can_st_transformer,
     parameter_counts,
-    LearnablePositionalEmbedding,
-    TransformerBlock,
-    ExtractLastToken,
 )
 from data.can_st_transformer_dataset import (
     parse_can_id,
@@ -94,10 +91,6 @@ def test_model_save_and_load(tmp_path):
     )
     save_path = tmp_path / "model.keras"
     model.save(save_path)
-    custom_objects = {
-        "LearnablePositionalEmbedding": LearnablePositionalEmbedding,
-        "TransformerBlock": TransformerBlock,
-        "ExtractLastToken": ExtractLastToken,
-    }
-    loaded = tf.keras.models.load_model(save_path, custom_objects=custom_objects, compile=False)
+    loaded = tf.keras.models.load_model(save_path, compile=False)
     assert loaded is not None
+    assert loaded.output_shape == (None, 2306)

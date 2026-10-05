@@ -19,11 +19,7 @@ from tensorflow import keras
 import tensorflow as tf
 
 from data.can_st_transformer_dataset import CANSTTransformerDataset
-from model.can_st_transformer import (
-    LearnablePositionalEmbedding,
-    TransformerBlock,
-    ExtractLastToken,
-)
+from model.can_st_transformer import build_can_st_transformer
 from utils.eval_reporting import (
     build_evaluation_report,
     calculate_classification_metrics,
@@ -131,12 +127,7 @@ test_tf = test_dataset.to_tf_dataset()
 # Load Model
 # ==========================================================
 
-custom_objects = {
-    "LearnablePositionalEmbedding": LearnablePositionalEmbedding,
-    "TransformerBlock": TransformerBlock,
-    "ExtractLastToken": ExtractLastToken,
-}
-model = keras.models.load_model(MODEL_PATH, custom_objects=custom_objects, compile=False)
+model = keras.models.load_model(MODEL_PATH, compile=False)
 model.compile(
     loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=["accuracy"],
