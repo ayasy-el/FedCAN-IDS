@@ -5,13 +5,13 @@ stages:
     deps:
     - path: data/raw
       hash: md5
-      md5: 2f3452d1203598d0c04a2cc4418a2a61.dir
+      md5: db8ebaf809ec8a9b08531599d401a028.dir
       size: 11194627463
-      nfiles: 205
+      nfiles: 204
     - path: src/data/adapters
       hash: md5
-      md5: d0dfc6f1e625154aba4aa6b82160072f.dir
-      size: 29417
+      md5: 75f85a6c95ddb7ea72fb35da1f619f73.dir
+      size: 40296
       nfiles: 7
     - path: src/data/ingest.py
       hash: md5
@@ -20,30 +20,30 @@ stages:
     params:
       params.yaml:
         dataset.exclude_files:
-        dataset.ingest_adapter: road_raw
+        dataset.ingest_adapter: survival_analysis
         dataset.interim_path: data/interim/canonical.parquet
-        dataset.raw_dir: data/raw/road
-        dataset.variant: masquerade
+        dataset.raw_dir: data/raw/Survival Analysis Dataset/dataset/Sonata
+        dataset.variant:
     outs:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 65c8704dd0bbb01bee6e955d2e9a7ae7
-      size: 16166111
+      md5: cfecffe18f3208f4f1bb5ec6d3bf77b1
+      size: 6056393
   prepare:
     cmd: PYTHONPATH=src python src/data/prepare.py
     deps:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 65c8704dd0bbb01bee6e955d2e9a7ae7
-      size: 16166111
+      md5: cfecffe18f3208f4f1bb5ec6d3bf77b1
+      size: 6056393
     - path: src/data/prepare.py
       hash: md5
-      md5: b6400771225b2363f10bc0b4822d66ad
-      size: 6381
+      md5: 759d9355c6fa9de09b2a9f1b271fb1ea
+      size: 6538
     - path: src/data/task.py
       hash: md5
-      md5: 9f83bb45f80ff1f76874c32deae9ec4e
-      size: 4005
+      md5: c49cb7ed89df4b641a7082bd74929fb0
+      size: 4051
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -51,28 +51,26 @@ stages:
     params:
       params.yaml:
         dataset.prepared_path: data/interim/prepared.parquet
-        dataset.variant: masquerade
+        dataset.variant:
         prepare:
-          label_schema: road
-          features:
-          - deltatime
-          - delta_id
+          label_schema: SurvivalAnalysis
+          features: []
     outs:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 071598928bf586bd223a8b97b4c1ea92
-      size: 15372300
+      md5: 85659d52be4effba94059060c56e9a1f
+      size: 3699166
   split:
     cmd: PYTHONPATH=src python src/data/split.py
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 071598928bf586bd223a8b97b4c1ea92
-      size: 15372300
+      md5: 85659d52be4effba94059060c56e9a1f
+      size: 3699166
     - path: src/data/split.py
       hash: md5
-      md5: 998467eb7c67939b317962cd2778c971
-      size: 25733
+      md5: 07ee510734c7364c3256ccf7f3d91663
+      size: 29283
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -80,30 +78,35 @@ stages:
     params:
       params.yaml:
         dataset.processed_dir: data/processed/current
-        dataset.variant: masquerade
-        prepare.label_schema: road
+        dataset.variant:
+        prepare.label_schema: SurvivalAnalysis
         split:
           unit: window
+          strategy: session_holdout
+          window_size: 64
+          stride: 1
           val_ratio: 0.2
           test_ratio: 0.2
-          window_size: 15
-          stride: 15
           downsample: false
           random_seed: 42
-          strategy: stratified_random
+          val_sessions: []
+          test_sessions:
+          - Flooding_dataset_SONATA
+          - Fuzzy_dataset_SONATA
+          - Malfunction_dataset_SONATA
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 5a02aa03f82ab659ba96b1899647a50f
-      size: 161481
+      md5: 2e4398d01bb27550e603920668d7ee1e
+      size: 2185764
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: 5b802aa9465464d23d44d7aae101d405
-      size: 407417
+      md5: c3bf256535dfe64cd147804c14a7ce70
+      size: 620321
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 48d4ae6cb1a3714605f077ca4e1e0d08
-      size: 161837
+      md5: 65acb4f160b67c7cff293733a297411e
+      size: 1032
   train_can_bigrubert:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:
@@ -735,3 +738,213 @@ stages:
       hash: md5
       md5: fafe7bf3825ab208547d15b9aacb2a41
       size: 1221
+  train_can_st_transformer:
+    cmd: PYTHONPATH=src python src/train_can_st_transformer.py
+    deps:
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: 85659d52be4effba94059060c56e9a1f
+      size: 3699166
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: c3bf256535dfe64cd147804c14a7ce70
+      size: 620321
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: 65acb4f160b67c7cff293733a297411e
+      size: 1032
+    - path: src/data/can_st_transformer_dataset.py
+      hash: md5
+      md5: f2fdd4bf6fd39732584a245f4209d050
+      size: 6885
+    - path: src/data/task.py
+      hash: md5
+      md5: c49cb7ed89df4b641a7082bd74929fb0
+      size: 4051
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: aef82e3803cfd0b4fb8eb9aece54fbab
+      size: 2130
+    - path: src/model/can_st_transformer.py
+      hash: md5
+      md5: a85ad145e01a1e4b4ca55e7b738d3c57
+      size: 4803
+    - path: src/train_can_st_transformer.py
+      hash: md5
+      md5: a3440500be35d72c6c3de1ddf32424d2
+      size: 5001
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: b681d8dff5d875ee83179f146757dbda
+      size: 4695
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        experiment:
+          model: can_st_transformer
+        mlflow.experiment_can_st_transformer: can_st_transformer
+        model.can_st_transformer:
+          vocab_size: 2306
+          d_model: 64
+          num_heads: 4
+          num_layers: 4
+          dim_feedforward: 64
+          dropout: 0.0
+          window_size: 64
+          range_adjustment: 0
+        prepare:
+          label_schema: SurvivalAnalysis
+          features: []
+        split:
+          unit: window
+          strategy: session_holdout
+          window_size: 64
+          stride: 1
+          val_ratio: 0.2
+          test_ratio: 0.2
+          downsample: false
+          random_seed: 42
+          val_sessions: []
+          test_sessions:
+          - Flooding_dataset_SONATA
+          - Fuzzy_dataset_SONATA
+          - Malfunction_dataset_SONATA
+        training.can_st_transformer:
+          batch_size: 1024
+          epochs: 20
+          learning_rate: 0.001
+    outs:
+    - path: checkpoints/can_st_transformer_best.keras
+      hash: md5
+      md5: f95d9245c686d1f11cbc810a50e02a41
+      size: 6508419
+    - path: checkpoints/can_st_transformer_final.keras
+      hash: md5
+      md5: 643bd9cbf3d8cd2904efadffa8626c64
+      size: 6508419
+    - path: checkpoints/can_st_transformer_mlflow_run_id.txt
+      hash: md5
+      md5: 2da6a668a2b08cd8c0a826f2a3adb87e
+      size: 32
+    - path: reports/metrics/can_st_transformer_best_training_metrics.json
+      hash: md5
+      md5: 34525b33e0bda53b5fa22029764903f8
+      size: 206
+    - path: reports/model_summaries/can_st_transformer_model_report.txt
+      hash: md5
+      md5: 46a1fe8324429ca10fe712ca76be8943
+      size: 22570
+  eval_can_st_transformer:
+    cmd: PYTHONPATH=src python src/eval_can_st_transformer.py
+    deps:
+    - path: checkpoints/can_st_transformer_best.keras
+      hash: md5
+      md5: f95d9245c686d1f11cbc810a50e02a41
+      size: 6508419
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: 85659d52be4effba94059060c56e9a1f
+      size: 3699166
+    - path: data/processed/current/test.parquet
+      hash: md5
+      md5: 2e4398d01bb27550e603920668d7ee1e
+      size: 2185764
+    - path: src/data/can_st_transformer_dataset.py
+      hash: md5
+      md5: f2fdd4bf6fd39732584a245f4209d050
+      size: 6885
+    - path: src/data/task.py
+      hash: md5
+      md5: c49cb7ed89df4b641a7082bd74929fb0
+      size: 4051
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: aef82e3803cfd0b4fb8eb9aece54fbab
+      size: 2130
+    - path: src/eval_can_st_transformer.py
+      hash: md5
+      md5: 63ad0b2900e751583fa072f62aa560f6
+      size: 23619
+    - path: src/model/can_st_transformer.py
+      hash: md5
+      md5: a85ad145e01a1e4b4ca55e7b738d3c57
+      size: 4803
+    - path: src/utils/eval_reporting.py
+      hash: md5
+      md5: 65777ecf8e815993cb5e55c81f935e42
+      size: 9578
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: b681d8dff5d875ee83179f146757dbda
+      size: 4695
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        experiment:
+          model: can_st_transformer
+        mlflow.experiment_can_st_transformer: can_st_transformer
+        model.can_st_transformer:
+          vocab_size: 2306
+          d_model: 64
+          num_heads: 4
+          num_layers: 4
+          dim_feedforward: 64
+          dropout: 0.0
+          window_size: 64
+          range_adjustment: 0
+        prepare:
+          label_schema: SurvivalAnalysis
+          features: []
+        split:
+          unit: window
+          strategy: session_holdout
+          window_size: 64
+          stride: 1
+          val_ratio: 0.2
+          test_ratio: 0.2
+          downsample: false
+          random_seed: 42
+          val_sessions: []
+          test_sessions:
+          - Flooding_dataset_SONATA
+          - Fuzzy_dataset_SONATA
+          - Malfunction_dataset_SONATA
+        training.can_st_transformer:
+          batch_size: 1024
+          epochs: 20
+          learning_rate: 0.001
+    outs:
+    - path: reports/figures/can_st_transformer_test_confusion_matrix.png
+      hash: md5
+      md5: f3335e20211ce0997019e3e0f0a2513d
+      size: 87277
+    - path: reports/figures/can_st_transformer_test_confusion_matrix_counts.png
+      hash: md5
+      md5: a7a16dae3c94c656944b69d08a445425
+      size: 88323
+    - path: reports/figures/can_st_transformer_test_roc_curve.png
+      hash: md5
+      md5: 1fe81448d5fda29c7ac941e6ad7cfcbb
+      size: 214210
+    - path: reports/figures/can_st_transformer_train_confusion_matrix.png
+      hash: md5
+      md5: 65c2e64f083a6cf233750ebf397ba418
+      size: 78925
+    - path: reports/figures/can_st_transformer_val_confusion_matrix.png
+      hash: md5
+      md5: 246b919fc588dbd164abff1128bcc31d
+      size: 79980
+    - path: reports/metrics/can_st_transformer_classification_report.json
+      hash: md5
+      md5: 18d45f5ac714de245956caea22f388d4
+      size: 9927
+    - path: reports/metrics/can_st_transformer_classification_report.txt
+      hash: md5
+      md5: c211de9a9893fc3d58168d530b7b4f2a
+      size: 3951

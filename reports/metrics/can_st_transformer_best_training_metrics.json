@@ -1,0 +1,12 @@
+{
+  "selection": {
+    "monitor": "accuracy",
+    "mode": "max"
+  },
+  "best_epoch": 15,
+  "best_metrics": {
+    "loss": 0.0010758182033896446,
+    "accuracy": 0.9999316930770874,
+    "top_5_acc": 1.0
+  }
+}

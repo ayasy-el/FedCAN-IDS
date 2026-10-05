@@ -203,14 +203,18 @@ def save_text_report(report: dict, path: str | Path):
         lines.append(
             "split                      loss       accuracy   precision   recall      f1"
         )
+        def _fmt(v):
+            return f"{float(v):.6f}" if v is not None else "N/A       "
+
         for name, values in rows:
+            values = values or {}
             lines.append(
                 f"{name:28} "
-                f"{values.get('loss', 0):.6f}   "
-                f"{values.get('accuracy', 0):.6f}   "
-                f"{values.get('precision_macro', 0):.6f}   "
-                f"{values.get('recall_macro', 0):.6f}   "
-                f"{values.get('f1_macro', 0):.6f}"
+                f"{_fmt(values.get('loss'))}   "
+                f"{_fmt(values.get('accuracy'))}   "
+                f"{_fmt(values.get('precision_macro'))}   "
+                f"{_fmt(values.get('recall_macro'))}   "
+                f"{_fmt(values.get('f1_macro'))}"
             )
 
     classification_report = test.get("classification_report")

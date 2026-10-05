@@ -1,0 +1,292 @@
+Model report: can_st_transformer
+================================================================================
+
+Configuration
+-------------
+{
+  "dataset": {
+    "exclude_files": null,
+    "ingest_adapter": "survival_analysis",
+    "interim_path": "data/interim/canonical.parquet",
+    "name": "SurvivalAnalysis",
+    "prepared_path": "data/interim/prepared.parquet",
+    "processed_dir": "data/processed/current",
+    "raw_dir": "data/raw/Survival Analysis Dataset/dataset/Sonata",
+    "variant": null
+  },
+  "model": {
+    "d_model": 64,
+    "dim_feedforward": 64,
+    "dropout": 0.0,
+    "num_heads": 4,
+    "num_layers": 4,
+    "range_adjustment": 0,
+    "vocab_size": 2306,
+    "window_size": 64
+  },
+  "parameter_counts": {
+    "non_trainable": 0,
+    "total": 499202,
+    "trainable": 499202
+  },
+  "split": {
+    "downsample": false,
+    "random_seed": 42,
+    "strategy": "session_holdout",
+    "stride": 1,
+    "test_ratio": 0.2,
+    "test_sessions": [
+      "Flooding_dataset_SONATA",
+      "Fuzzy_dataset_SONATA",
+      "Malfunction_dataset_SONATA"
+    ],
+    "unit": "window",
+    "val_ratio": 0.2,
+    "val_sessions": [],
+    "window_size": 64
+  },
+  "task": {
+    "benign_labels": [
+      0
+    ],
+    "class_names": [
+      "Normal",
+      "Flooding",
+      "Fuzzing",
+      "Malfunction"
+    ],
+    "num_classes": 4
+  },
+  "training": {
+    "batch_size": 1024,
+    "epochs": 20,
+    "learning_rate": 0.001
+  },
+  "vocab_size": 2306,
+  "window_size": 64
+}
+
+Parameter counts
+----------------
+{
+  "non_trainable_parameters": 0,
+  "total_parameters": 499202,
+  "trainable_parameters": 499202
+}
+
+Keras model summary
+-------------------
+Model: "can_st_transformer"
+__________________________________________________________________________________________________
+ Layer (type)                Output Shape                 Param #   Connected to                  
+==================================================================================================
+ temporal_input (InputLayer  [(None, 64)]                 0         []                            
+ )                                                                                                
+                                                                                                  
+ spatial_input (InputLayer)  [(None, 8)]                  0         []                            
+                                                                                                  
+ token_embedding (Embedding  multiple                     147584    ['temporal_input[0][0]',      
+ )                                                                   'spatial_input[0][0]']       
+                                                                                                  
+ tf.__operators__.add (TFOp  (None, 64, 64)               0         ['token_embedding[0][0]']     
+ Lambda)                                                                                          
+                                                                                                  
+ tf.__operators__.add_1 (TF  (None, 8, 64)                0         ['token_embedding[1][0]']     
+ OpLambda)                                                                                        
+                                                                                                  
+ temporal_block_1_mha (Mult  (None, 64, 64)               16640     ['tf.__operators__.add[0][0]',
+ iHeadAttention)                                                     'tf.__operators__.add[0][0]']
+                                                                                                  
+ spatial_block_1_mha (Multi  (None, 8, 64)                16640     ['tf.__operators__.add_1[0][0]
+ HeadAttention)                                                     ',                            
+                                                                     'tf.__operators__.add_1[0][0]
+                                                                    ']                            
+                                                                                                  
+ tf.__operators__.add_2 (TF  (None, 64, 64)               0         ['tf.__operators__.add[0][0]',
+ OpLambda)                                                           'temporal_block_1_mha[0][0]']
+                                                                                                  
+ tf.__operators__.add_10 (T  (None, 8, 64)                0         ['tf.__operators__.add_1[0][0]
+ FOpLambda)                                                         ',                            
+                                                                     'spatial_block_1_mha[0][0]'] 
+                                                                                                  
+ temporal_block_1_ln1 (Laye  (None, 64, 64)               128       ['tf.__operators__.add_2[0][0]
+ rNormalization)                                                    ']                            
+                                                                                                  
+ spatial_block_1_ln1 (Layer  (None, 8, 64)                128       ['tf.__operators__.add_10[0][0
+ Normalization)                                                     ]']                           
+                                                                                                  
+ temporal_block_1_ffn1 (Den  (None, 64, 64)               4160      ['temporal_block_1_ln1[0][0]']
+ se)                                                                                              
+                                                                                                  
+ spatial_block_1_ffn1 (Dens  (None, 8, 64)                4160      ['spatial_block_1_ln1[0][0]'] 
+ e)                                                                                               
+                                                                                                  
+ temporal_block_1_ffn2 (Den  (None, 64, 64)               4160      ['temporal_block_1_ffn1[0][0]'
+ se)                                                                ]                             
+                                                                                                  
+ spatial_block_1_ffn2 (Dens  (None, 8, 64)                4160      ['spatial_block_1_ffn1[0][0]']
+ e)                                                                                               
+                                                                                                  
+ tf.__operators__.add_3 (TF  (None, 64, 64)               0         ['temporal_block_1_ln1[0][0]',
+ OpLambda)                                                           'temporal_block_1_ffn2[0][0]'
+                                                                    ]                             
+                                                                                                  
+ tf.__operators__.add_11 (T  (None, 8, 64)                0         ['spatial_block_1_ln1[0][0]', 
+ FOpLambda)                                                          'spatial_block_1_ffn2[0][0]']
+                                                                                                  
+ temporal_block_1_ln2 (Laye  (None, 64, 64)               128       ['tf.__operators__.add_3[0][0]
+ rNormalization)                                                    ']                            
+                                                                                                  
+ spatial_block_1_ln2 (Layer  (None, 8, 64)                128       ['tf.__operators__.add_11[0][0
+ Normalization)                                                     ]']                           
+                                                                                                  
+ temporal_block_2_mha (Mult  (None, 64, 64)               16640     ['temporal_block_1_ln2[0][0]',
+ iHeadAttention)                                                     'temporal_block_1_ln2[0][0]']
+                                                                                                  
+ spatial_block_2_mha (Multi  (None, 8, 64)                16640     ['spatial_block_1_ln2[0][0]', 
+ HeadAttention)                                                      'spatial_block_1_ln2[0][0]'] 
+                                                                                                  
+ tf.__operators__.add_4 (TF  (None, 64, 64)               0         ['temporal_block_1_ln2[0][0]',
+ OpLambda)                                                           'temporal_block_2_mha[0][0]']
+                                                                                                  
+ tf.__operators__.add_12 (T  (None, 8, 64)                0         ['spatial_block_1_ln2[0][0]', 
+ FOpLambda)                                                          'spatial_block_2_mha[0][0]'] 
+                                                                                                  
+ temporal_block_2_ln1 (Laye  (None, 64, 64)               128       ['tf.__operators__.add_4[0][0]
+ rNormalization)                                                    ']                            
+                                                                                                  
+ spatial_block_2_ln1 (Layer  (None, 8, 64)                128       ['tf.__operators__.add_12[0][0
+ Normalization)                                                     ]']                           
+                                                                                                  
+ temporal_block_2_ffn1 (Den  (None, 64, 64)               4160      ['temporal_block_2_ln1[0][0]']
+ se)                                                                                              
+                                                                                                  
+ spatial_block_2_ffn1 (Dens  (None, 8, 64)                4160      ['spatial_block_2_ln1[0][0]'] 
+ e)                                                                                               
+                                                                                                  
+ temporal_block_2_ffn2 (Den  (None, 64, 64)               4160      ['temporal_block_2_ffn1[0][0]'
+ se)                                                                ]                             
+                                                                                                  
+ spatial_block_2_ffn2 (Dens  (None, 8, 64)                4160      ['spatial_block_2_ffn1[0][0]']
+ e)                                                                                               
+                                                                                                  
+ tf.__operators__.add_5 (TF  (None, 64, 64)               0         ['temporal_block_2_ln1[0][0]',
+ OpLambda)                                                           'temporal_block_2_ffn2[0][0]'
+                                                                    ]                             
+                                                                                                  
+ tf.__operators__.add_13 (T  (None, 8, 64)                0         ['spatial_block_2_ln1[0][0]', 
+ FOpLambda)                                                          'spatial_block_2_ffn2[0][0]']
+                                                                                                  
+ temporal_block_2_ln2 (Laye  (None, 64, 64)               128       ['tf.__operators__.add_5[0][0]
+ rNormalization)                                                    ']                            
+                                                                                                  
+ spatial_block_2_ln2 (Layer  (None, 8, 64)                128       ['tf.__operators__.add_13[0][0
+ Normalization)                                                     ]']                           
+                                                                                                  
+ temporal_block_3_mha (Mult  (None, 64, 64)               16640     ['temporal_block_2_ln2[0][0]',
+ iHeadAttention)                                                     'temporal_block_2_ln2[0][0]']
+                                                                                                  
+ spatial_block_3_mha (Multi  (None, 8, 64)                16640     ['spatial_block_2_ln2[0][0]', 
+ HeadAttention)                                                      'spatial_block_2_ln2[0][0]'] 
+                                                                                                  
+ tf.__operators__.add_6 (TF  (None, 64, 64)               0         ['temporal_block_2_ln2[0][0]',
+ OpLambda)                                                           'temporal_block_3_mha[0][0]']
+                                                                                                  
+ tf.__operators__.add_14 (T  (None, 8, 64)                0         ['spatial_block_2_ln2[0][0]', 
+ FOpLambda)                                                          'spatial_block_3_mha[0][0]'] 
+                                                                                                  
+ temporal_block_3_ln1 (Laye  (None, 64, 64)               128       ['tf.__operators__.add_6[0][0]
+ rNormalization)                                                    ']                            
+                                                                                                  
+ spatial_block_3_ln1 (Layer  (None, 8, 64)                128       ['tf.__operators__.add_14[0][0
+ Normalization)                                                     ]']                           
+                                                                                                  
+ temporal_block_3_ffn1 (Den  (None, 64, 64)               4160      ['temporal_block_3_ln1[0][0]']
+ se)                                                                                              
+                                                                                                  
+ spatial_block_3_ffn1 (Dens  (None, 8, 64)                4160      ['spatial_block_3_ln1[0][0]'] 
+ e)                                                                                               
+                                                                                                  
+ temporal_block_3_ffn2 (Den  (None, 64, 64)               4160      ['temporal_block_3_ffn1[0][0]'
+ se)                                                                ]                             
+                                                                                                  
+ spatial_block_3_ffn2 (Dens  (None, 8, 64)                4160      ['spatial_block_3_ffn1[0][0]']
+ e)                                                                                               
+                                                                                                  
+ tf.__operators__.add_7 (TF  (None, 64, 64)               0         ['temporal_block_3_ln1[0][0]',
+ OpLambda)                                                           'temporal_block_3_ffn2[0][0]'
+                                                                    ]                             
+                                                                                                  
+ tf.__operators__.add_15 (T  (None, 8, 64)                0         ['spatial_block_3_ln1[0][0]', 
+ FOpLambda)                                                          'spatial_block_3_ffn2[0][0]']
+                                                                                                  
+ temporal_block_3_ln2 (Laye  (None, 64, 64)               128       ['tf.__operators__.add_7[0][0]
+ rNormalization)                                                    ']                            
+                                                                                                  
+ spatial_block_3_ln2 (Layer  (None, 8, 64)                128       ['tf.__operators__.add_15[0][0
+ Normalization)                                                     ]']                           
+                                                                                                  
+ temporal_block_4_mha (Mult  (None, 64, 64)               16640     ['temporal_block_3_ln2[0][0]',
+ iHeadAttention)                                                     'temporal_block_3_ln2[0][0]']
+                                                                                                  
+ spatial_block_4_mha (Multi  (None, 8, 64)                16640     ['spatial_block_3_ln2[0][0]', 
+ HeadAttention)                                                      'spatial_block_3_ln2[0][0]'] 
+                                                                                                  
+ tf.__operators__.add_8 (TF  (None, 64, 64)               0         ['temporal_block_3_ln2[0][0]',
+ OpLambda)                                                           'temporal_block_4_mha[0][0]']
+                                                                                                  
+ tf.__operators__.add_16 (T  (None, 8, 64)                0         ['spatial_block_3_ln2[0][0]', 
+ FOpLambda)                                                          'spatial_block_4_mha[0][0]'] 
+                                                                                                  
+ temporal_block_4_ln1 (Laye  (None, 64, 64)               128       ['tf.__operators__.add_8[0][0]
+ rNormalization)                                                    ']                            
+                                                                                                  
+ spatial_block_4_ln1 (Layer  (None, 8, 64)                128       ['tf.__operators__.add_16[0][0
+ Normalization)                                                     ]']                           
+                                                                                                  
+ temporal_block_4_ffn1 (Den  (None, 64, 64)               4160      ['temporal_block_4_ln1[0][0]']
+ se)                                                                                              
+                                                                                                  
+ spatial_block_4_ffn1 (Dens  (None, 8, 64)                4160      ['spatial_block_4_ln1[0][0]'] 
+ e)                                                                                               
+                                                                                                  
+ temporal_block_4_ffn2 (Den  (None, 64, 64)               4160      ['temporal_block_4_ffn1[0][0]'
+ se)                                                                ]                             
+                                                                                                  
+ spatial_block_4_ffn2 (Dens  (None, 8, 64)                4160      ['spatial_block_4_ffn1[0][0]']
+ e)                                                                                               
+                                                                                                  
+ tf.__operators__.add_9 (TF  (None, 64, 64)               0         ['temporal_block_4_ln1[0][0]',
+ OpLambda)                                                           'temporal_block_4_ffn2[0][0]'
+                                                                    ]                             
+                                                                                                  
+ tf.__operators__.add_17 (T  (None, 8, 64)                0         ['spatial_block_4_ln1[0][0]', 
+ FOpLambda)                                                          'spatial_block_4_ffn2[0][0]']
+                                                                                                  
+ temporal_block_4_ln2 (Laye  (None, 64, 64)               128       ['tf.__operators__.add_9[0][0]
+ rNormalization)                                                    ']                            
+                                                                                                  
+ spatial_block_4_ln2 (Layer  (None, 8, 64)                128       ['tf.__operators__.add_17[0][0
+ Normalization)                                                     ]']                           
+                                                                                                  
+ temp_crop (Cropping1D)      (None, 1, 64)                0         ['temporal_block_4_ln2[0][0]']
+                                                                                                  
+ spat_crop (Cropping1D)      (None, 1, 64)                0         ['spatial_block_4_ln2[0][0]'] 
+                                                                                                  
+ last_temporal_vector (Resh  (None, 64)                   0         ['temp_crop[0][0]']           
+ ape)                                                                                             
+                                                                                                  
+ last_spatial_vector (Resha  (None, 64)                   0         ['spat_crop[0][0]']           
+ pe)                                                                                              
+                                                                                                  
+ logits_head (Dense)         (None, 2306)                 149890    ['last_temporal_vector[0][0]',
+                                                                     'last_spatial_vector[0][0]'] 
+                                                                                                  
+ combined_logits (Add)       (None, 2306)                 0         ['logits_head[0][0]',         
+                                                                     'logits_head[1][0]']         
+                                                                                                  
+==================================================================================================
+Total params: 499202 (1.90 MB)
+Trainable params: 499202 (1.90 MB)
+Non-trainable params: 0 (0.00 Byte)
+__________________________________________________________________________________________________

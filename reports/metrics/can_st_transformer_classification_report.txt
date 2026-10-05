@@ -1,0 +1,63 @@
+Model: can_st_transformer
+
+TEST METRICS
+------------
+loss                : 1.822037
+accuracy            : 0.941553
+precision_macro     : 0.878728
+recall_macro        : 0.916702
+f1_macro            : 0.896152
+
+CHECKPOINT VS TEST
+-------------------
+Best checkpoint epoch: 15
+
+split                      loss       accuracy   precision   recall      f1
+best_train                   0.001076   0.999932   N/A          N/A          N/A       
+best_validation              N/A          N/A          N/A          N/A          N/A       
+test                         1.822037   0.941553   0.878728   0.916702   0.896152
+
+CLASSIFICATION REPORT
+----------------------
+class                 precision   recall      f1          support
+Normal                 0.976754   0.953167   0.964817    351,165
+Attack                 0.780702   0.880236   0.827487     66,514
+macro avg              0.878728   0.916702   0.896152    417,679
+weighted avg           0.945534   0.941553   0.942947    417,679
+
+
+========================================================================================
+PER-ATTACK SCENARIO EVALUATION (Jo & Kim, 2024 - Table 6/9)
+Window Size: 64 | Range: 0 (Top-1)
+========================================================================================
+Scenario                         Precision    Recall       F1-Score     AUC        Latency (ms)
+----------------------------------------------------------------------------------------
+Flooding_dataset_SONATA          0.98808      1.00000      0.99401      1.0000     0.1591      
+Fuzzy_dataset_SONATA             0.64153      0.99398      0.77978      0.9980     0.1421      
+Malfunction_dataset_SONATA       0.57531      0.50814      0.53964      0.9500     0.1412      
+----------------------------------------------------------------------------------------
+OVERALL                          0.78070      0.88024      0.82749      0.9883     0.1479      
+
+========================================================================================
+RANGE EXPANSION STUDY (Jo & Kim, 2024 - Table 10)
+========================================================================================
+Scenario                     Range      Precision      Recall         F1-Score      
+--------------------------------------------------------------------------------
+Flooding_dataset_SONATA      Range 0 (Top-1)  0.98808        1.00000        0.99401       
+Fuzzy_dataset_SONATA         Range 0 (Top-1)  0.64153        0.99398        0.77978       
+Malfunction_dataset_SONATA   Range 0 (Top-1)  0.57531        0.50814        0.53964       
+Flooding_dataset_SONATA      Range 1 (Top-2)  0.99920        1.00000        0.99960       
+Fuzzy_dataset_SONATA         Range 1 (Top-2)  0.76404        0.99387        0.86394       
+Malfunction_dataset_SONATA   Range 1 (Top-2)  0.60319        0.47039        0.52858       
+Flooding_dataset_SONATA      Range 2 (Top-3)  0.99988        1.00000        0.99994       
+Fuzzy_dataset_SONATA         Range 2 (Top-3)  0.84097        0.99327        0.91080       
+Malfunction_dataset_SONATA   Range 2 (Top-3)  0.61953        0.40347        0.48868       
+Flooding_dataset_SONATA      Range 3 (Top-4)  1.00000        1.00000        1.00000       
+Fuzzy_dataset_SONATA         Range 3 (Top-4)  0.88648        0.99222        0.93638       
+Malfunction_dataset_SONATA   Range 3 (Top-4)  0.63039        0.33035        0.43352       
+Flooding_dataset_SONATA      Range 4 (Top-5)  1.00000        1.00000        1.00000       
+Fuzzy_dataset_SONATA         Range 4 (Top-5)  0.91229        0.99144        0.95022       
+Malfunction_dataset_SONATA   Range 4 (Top-5)  0.63338        0.26130        0.36997       
+Flooding_dataset_SONATA      Range 5 (Top-6)  1.00000        1.00000        1.00000       
+Fuzzy_dataset_SONATA         Range 5 (Top-6)  0.93259        0.99111        0.96096       
+Malfunction_dataset_SONATA   Range 5 (Top-6)  0.63524        0.20834        0.31377       
