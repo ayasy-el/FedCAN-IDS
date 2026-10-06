@@ -16,8 +16,8 @@ split:
   unit: window
   strategy: stratified_random
   window_size: 15
-  stride: 1
-  val_ratio: 0.0
+  stride: 15
+  val_ratio: 0.1
   test_ratio: 0.2
   downsample: false
   random_seed: 42
@@ -64,13 +64,14 @@ model:
     num_layers: 3
     dim_feedforward: 40
     mlp_hidden_dim: 40
-    tcn_filters: 10
+    tcn_filters: 100
     tcn_kernel_size: 2
     tcn_dilations: [1, 2, 4]
+    use_weight_norm: true
     dropout: 0.1
     alpha_smooth: 1.0e-7
-    fusion: add
-    pooling: sum
+    fusion: concat
+    pooling: last
 
 training:
   can_st_transformer:

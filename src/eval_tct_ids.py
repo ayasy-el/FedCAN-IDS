@@ -128,13 +128,14 @@ model = build_tct_ids(
     num_layers=model_params.get("num_layers", 3),
     dim_feedforward=model_params.get("dim_feedforward", 40),
     mlp_hidden_dim=model_params.get("mlp_hidden_dim", 40),
-    tcn_filters=model_params.get("tcn_filters", 10),
+    tcn_filters=model_params.get("tcn_filters", 100),
     tcn_kernel_size=model_params.get("tcn_kernel_size", 2),
     tcn_dilations=model_params.get("tcn_dilations", [1, 2, 4]),
+    use_weight_norm=bool(model_params.get("use_weight_norm", True)),
     dropout=model_params.get("dropout", 0.1),
     num_classes=num_classes,
-    fusion=model_params.get("fusion", "add"),
-    pooling=model_params.get("pooling", "sum"),
+    fusion=model_params.get("fusion", "concat"),
+    pooling=model_params.get("pooling", "last"),
 )
 model.load_weights(MODEL_PATH)
 model.summary()

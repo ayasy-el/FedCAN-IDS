@@ -23,6 +23,10 @@ from model.can_ae_transformer import (
 from model.can_bigrubert import build_can_bigrubert, parameter_counts
 from model.mlp import build_mlp
 from model.mlp_window import build_mlp_window
+from model.tct_ids import (
+    build_tct_ids,
+    parameter_counts as tct_ids_parameter_counts,
+)
 
 
 def load_project_params() -> dict:
@@ -130,6 +134,19 @@ def _training_dataset(params, model_name):
             d_model=int(model_params["d_model"]),
             granularity=float(model_params.get("granularity", 1e-8)),
             max_time_position=int(model_params.get("max_time_position", 10000)),
+            batch_size=training["batch_size"],
+            shuffle=False,
+            random_seed=split["random_seed"],
+            source_path=PROJECT_ROOT / dataset["prepared_path"],
+        )
+    if model_name == "tct_ids":
+        from data.tct_ids_dataset import TCTIDSDataset
+
+        return TCTIDSDataset(
+            train_path,
+            window_size=int(split["window_size"]),
+            d_model=int(model_params.get("d_model", 10)),
+            alpha=float(model_params.get("alpha_smooth", 1e-7)),
             batch_size=training["batch_size"],
             shuffle=False,
             random_seed=split["random_seed"],
@@ -290,6 +307,53 @@ def show_can_ae_transformer_summary(params, schema, split):
     return model
 
 
+def show_tct_ids_summary(params, schema, split):
+    model_params = params["model"]["tct_ids"]
+    window_size = int(split["window_size"])
+    model = build_tct_ids(
+        window_size=window_size,
+        d_model=int(model_params.get("d_model", 10)),
+        num_heads=int(model_params.get("num_heads", 1)),
+        num_layers=int(model_params.get("num_layers", 3)),
+        dim_feedforward=int(model_params.get("dim_feedforward", 40)),
+        mlp_hidden_dim=int(model_params.get("mlp_hidden_dim", 40)),
+        tcn_filters=int(model_params.get("tcn_filters", 100)),
+        tcn_kernel_size=int(model_params.get("tcn_kernel_size", 2)),
+        tcn_dilations=model_params.get("tcn_dilations", [1, 2, 4]),
+        use_weight_norm=bool(model_params.get("use_weight_norm", True)),
+        dropout=float(model_params.get("dropout", 0.1)),
+        num_classes=schema["num_classes"],
+        fusion=model_params.get("fusion", "concat"),
+        pooling=model_params.get("pooling", "last"),
+        batch_size=_batch_size(params, "tct_ids"),
+    )
+    print("\n=== TCT-IDS window classifier ===")
+    _print_contract("tct_ids", split)
+    print(f"Window size: {window_size}")
+    print(f"Stride: {split['stride']}")
+    print(f"Embedding dimension (d_model): {model_params.get('d_model', 10)}")
+    print(f"Attention heads: {model_params.get('num_heads', 1)}")
+    print(f"Encoder layers: {model_params.get('num_layers', 3)}")
+    print(f"Feedforward dimension: {model_params.get('dim_feedforward', 40)}")
+    print(f"TCN filters: {model_params.get('tcn_filters', 100)}")
+    print(f"TCN kernel size: {model_params.get('tcn_kernel_size', 2)}")
+    print(f"TCN dilations: {model_params.get('tcn_dilations', [1, 2, 4])}")
+    print(f"Weight normalization: {model_params.get('use_weight_norm', True)}")
+    print(f"Fusion method: {model_params.get('fusion', 'concat')}")
+    print(f"Pooling method: {model_params.get('pooling', 'last')}")
+    print(f"Dropout: {model_params.get('dropout', 0.1)}")
+    _print_batch_info(
+        params,
+        "tct_ids",
+        (window_size, 12),
+        schema["num_classes"],
+    )
+    model.summary()
+    for name, value in tct_ids_parameter_counts(model).items():
+        print(f"{name}: {value:,}")
+    return model
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Show configured model summaries without training or MLflow."
@@ -297,7 +361,7 @@ def main():
     parser.add_argument(
         "model",
         nargs="?",
-        choices=("mlp", "mlp_window", "can_bigrubert", "can_ae_transformer", "all"),
+        choices=("mlp", "mlp_window", "can_bigrubert", "can_ae_transformer", "tct_ids", "all"),
         default="all",
         help="Model summary to show (default: all).",
     )
@@ -353,6 +417,15 @@ def main():
                 )
             except (FileNotFoundError, ValueError) as exc:
                 print(f"Time estimate skipped for can_ae_transformer: {exc}")
+    if args.model in ("tct_ids", "all"):
+        model = show_tct_ids_summary(params, schema, split)
+        if args.estimate_time:
+            try:
+                print_training_estimate(
+                    params, "tct_ids", model, args.benchmark_steps
+                )
+            except (FileNotFoundError, ValueError) as exc:
+                print(f"Time estimate skipped for tct_ids: {exc}")
 
 
 if __name__ == "__main__":
