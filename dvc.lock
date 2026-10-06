@@ -20,30 +20,30 @@ stages:
     params:
       params.yaml:
         dataset.exclude_files:
-        dataset.ingest_adapter: survival_analysis
+        dataset.ingest_adapter: road_raw
         dataset.interim_path: data/interim/canonical.parquet
-        dataset.raw_dir: data/raw/Survival Analysis Dataset/dataset/Sonata
-        dataset.variant:
+        dataset.raw_dir: data/raw/road
+        dataset.variant: masquerade
     outs:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: cfecffe18f3208f4f1bb5ec6d3bf77b1
-      size: 6056393
+      md5: 15313efbb2b4656709c806ba41fb2861
+      size: 16166111
   prepare:
     cmd: PYTHONPATH=src python src/data/prepare.py
     deps:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: cfecffe18f3208f4f1bb5ec6d3bf77b1
-      size: 6056393
+      md5: 15313efbb2b4656709c806ba41fb2861
+      size: 16166111
     - path: src/data/prepare.py
       hash: md5
       md5: 759d9355c6fa9de09b2a9f1b271fb1ea
       size: 6538
     - path: src/data/task.py
       hash: md5
-      md5: c49cb7ed89df4b641a7082bd74929fb0
-      size: 4051
+      md5: 645b218979f3968701538d0adf689fe3
+      size: 4086
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -51,22 +51,22 @@ stages:
     params:
       params.yaml:
         dataset.prepared_path: data/interim/prepared.parquet
-        dataset.variant:
+        dataset.variant: masquerade
         prepare:
-          label_schema: SurvivalAnalysis
+          label_schema: road
           features: []
     outs:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 85659d52be4effba94059060c56e9a1f
-      size: 3699166
+      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
+      size: 9887131
   split:
     cmd: PYTHONPATH=src python src/data/split.py
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 85659d52be4effba94059060c56e9a1f
-      size: 3699166
+      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
+      size: 9887131
     - path: src/data/split.py
       hash: md5
       md5: 07ee510734c7364c3256ccf7f3d91663
@@ -78,35 +78,32 @@ stages:
     params:
       params.yaml:
         dataset.processed_dir: data/processed/current
-        dataset.variant:
-        prepare.label_schema: SurvivalAnalysis
+        dataset.variant: masquerade
+        prepare.label_schema: road
         split:
           unit: window
-          strategy: session_holdout
-          window_size: 64
+          strategy: stratified_random
+          window_size: 15
           stride: 1
-          val_ratio: 0.2
+          val_ratio: 0.0
           test_ratio: 0.2
           downsample: false
           random_seed: 42
           val_sessions: []
-          test_sessions:
-          - Flooding_dataset_SONATA
-          - Fuzzy_dataset_SONATA
-          - Malfunction_dataset_SONATA
+          test_sessions: []
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 2e4398d01bb27550e603920668d7ee1e
-      size: 2185764
+      md5: 3030e8440376af047a6e39cf495ea7f5
+      size: 1999486
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: c3bf256535dfe64cd147804c14a7ce70
-      size: 620321
+      md5: 8ecf0fc07a7fb1c819087f73d4f7ecaf
+      size: 7354441
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 65acb4f160b67c7cff293733a297411e
-      size: 1032
+      md5: 8682f6af5d5f4b721800c33e0a9ef609
+      size: 1023
   train_can_bigrubert:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:

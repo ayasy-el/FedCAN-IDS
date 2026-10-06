@@ -392,4 +392,78 @@ stages:
       - reports/figures/can_st_transformer_test_roc_curve.png:
           cache: false
 
+  train_tct_ids:
+    cmd: PYTHONPATH=src python src/train_tct_ids.py
+    deps:
+      - src/train_tct_ids.py
+      - src/data/task.py
+      - src/data/tct_ids_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/tct_ids.py
+      - src/utils/metrics.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/interim/prepared.parquet
+    params:
+      - experiment
+      - prepare
+      - split
+      - model.tct_ids
+      - training.tct_ids
+      - mlflow.experiment_tct_ids
+    outs:
+      - checkpoints/tct_ids_best.keras:
+          cache: false
+      - checkpoints/tct_ids_final.keras:
+          cache: false
+      - checkpoints/tct_ids_mlflow_run_id.txt:
+          cache: false
+      - reports/metrics/tct_ids_best_training_metrics.json:
+          cache: false
+      - reports/model_summaries/tct_ids_model_report.txt:
+          cache: false
+
+  eval_tct_ids:
+    cmd: PYTHONPATH=src python src/eval_tct_ids.py
+    deps:
+      - src/eval_tct_ids.py
+      - src/data/task.py
+      - src/data/tct_ids_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/tct_ids.py
+      - src/utils/eval_reporting.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - src/utils/metrics.py
+      - checkpoints/tct_ids_best.keras
+      - reports/metrics/tct_ids_best_training_metrics.json
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
+      - data/interim/prepared.parquet
+    params:
+      - experiment
+      - prepare
+      - split
+      - model.tct_ids
+      - training.tct_ids
+      - mlflow.experiment_tct_ids
+    metrics:
+      - reports/metrics/tct_ids_classification_report.json:
+          cache: false
+    outs:
+      - reports/metrics/tct_ids_classification_report.txt:
+          cache: false
+      - reports/figures/tct_ids_train_confusion_matrix.png:
+          cache: false
+      - reports/figures/tct_ids_val_confusion_matrix.png:
+          cache: false
+      - reports/figures/tct_ids_test_confusion_matrix.png:
+          cache: false
+      - reports/figures/tct_ids_test_confusion_matrix_counts.png:
+          cache: false
+
+
 

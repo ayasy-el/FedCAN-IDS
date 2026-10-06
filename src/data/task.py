@@ -71,6 +71,7 @@ MODEL_CONTRACTS = {
     "can_bigrubert": {"unit": "window"},
     "can_ae_transformer": {"unit": "window"},
     "can_st_transformer": {"unit": "window"},
+    "tct_ids": {"unit": "window"},
 }
 
 

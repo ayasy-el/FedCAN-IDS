@@ -1,34 +1,31 @@
 dataset:
-  name: SurvivalAnalysis
-  raw_dir: data/raw/Survival Analysis Dataset/dataset/Sonata
-  ingest_adapter: survival_analysis
-  variant: null
+  name: road
+  raw_dir: data/raw/road
+  ingest_adapter: road_raw
+  variant: masquerade
   exclude_files: null
   interim_path: data/interim/canonical.parquet
   prepared_path: data/interim/prepared.parquet
   processed_dir: data/processed/current
 
 prepare:
-  label_schema: SurvivalAnalysis
+  label_schema: road
   features: []
 
 split:
   unit: window
-  strategy: session_holdout
-  window_size: 64
+  strategy: stratified_random
+  window_size: 15
   stride: 1
-  val_ratio: 0.2
+  val_ratio: 0.0
   test_ratio: 0.2
   downsample: false
   random_seed: 42
   val_sessions: []
-  test_sessions:
-    - Flooding_dataset_SONATA
-    - Fuzzy_dataset_SONATA
-    - Malfunction_dataset_SONATA
+  test_sessions: []
 
 experiment:
-  model: can_st_transformer
+  model: tct_ids
 
 model:
   can_st_transformer:
@@ -61,6 +58,19 @@ model:
     can_id_bits: 11
     hidden_dims: [32, 16]
     dropout: false
+  tct_ids:
+    d_model: 10
+    num_heads: 1
+    num_layers: 3
+    dim_feedforward: 40
+    mlp_hidden_dim: 40
+    tcn_filters: 10
+    tcn_kernel_size: 2
+    tcn_dilations: [1, 2, 4]
+    dropout: 0.1
+    alpha_smooth: 1.0e-7
+    fusion: add
+    pooling: sum
 
 training:
   can_st_transformer:
@@ -87,6 +97,13 @@ training:
     batch_size: 32
     epochs: 100
     learning_rate: 0.001
+  tct_ids:
+    batch_size: 32
+    epochs: 300
+    warmup_epochs: 50
+    learning_rate: 0.001
+    weight_decay: 0.00001
+    lambda_rdrop: 0.1
 
 mlflow:
   tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
@@ -95,3 +112,4 @@ mlflow:
   experiment_mlp: "can_ids_mlp"
   experiment_mlp_window: "can_ids_mlp_window"
   experiment_can_bigrubert: "can_bigrubert"
+  experiment_tct_ids: "can_ids_tct"
