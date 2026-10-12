@@ -75,7 +75,7 @@ val = CANSTTransformerDataset(
     random_seed=split.get("random_seed", 42),
 )
 has_validation = len(val) > 0
-monitor = "val_accuracy" if has_validation else "accuracy"
+monitor = "val_f1_macro" if has_validation else "f1_macro"
 
 
 # ==========================================================

@@ -71,7 +71,7 @@ val = CANBiGRUBERTDataset(
     source_path=dataset["prepared_path"],
 )
 has_validation = len(val.y) > 0
-monitor = "val_loss" if has_validation else "loss"
+monitor = "val_f1_macro" if has_validation else "f1_macro"
 
 
 # ==========================================================
@@ -140,13 +140,13 @@ with mlflow.start_run() as run:
             mode="min",
             save_best_only=True,
         ),
-        keras.callbacks.EarlyStopping(
-            monitor=monitor,
-            mode="min",
-            patience=training["early_stopping_patience"],
-            min_delta=training["early_stopping_min_delta"],
-            restore_best_weights=True,
-        ),
+        # keras.callbacks.EarlyStopping(
+        #     monitor=monitor,
+        #     mode="min",
+        #     patience=training["early_stopping_patience"],
+        #     min_delta=training["early_stopping_min_delta"],
+        #     restore_best_weights=True,
+        # ),
         BestEpochMetrics(best_metrics_path, monitor=monitor, mode="min"),
         MlflowEpochLogger(),
     ]
