@@ -48,13 +48,16 @@ def stratified_sample_indices(y, max_samples: int | None, seed: int) -> np.ndarr
 
 
 def calculate_confusion_matrices(y_true, y_pred, num_classes: int):
-    """Return raw-count and row-normalized percentage confusion matrices."""
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    if y_true.size == 0 or y_pred.size == 0:
+        empty = np.zeros((num_classes, num_classes), dtype=int)
+        return empty, empty.astype(float)
     counts = confusion_matrix(y_true, y_pred, labels=np.arange(num_classes))
     percentage = (
         counts.astype(float) / np.maximum(counts.sum(axis=1, keepdims=True), 1) * 100
     )
     return counts, percentage
-
 
 def save_confusion_matrix_figure(
     matrix,
