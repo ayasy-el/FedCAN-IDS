@@ -5,9 +5,9 @@ stages:
     deps:
     - path: data/raw
       hash: md5
-      md5: db8ebaf809ec8a9b08531599d401a028.dir
+      md5: 2f3452d1203598d0c04a2cc4418a2a61.dir
       size: 11194627463
-      nfiles: 204
+      nfiles: 205
     - path: src/data/adapters
       hash: md5
       md5: 75f85a6c95ddb7ea72fb35da1f619f73.dir
@@ -27,14 +27,14 @@ stages:
     outs:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 15313efbb2b4656709c806ba41fb2861
+      md5: 65c8704dd0bbb01bee6e955d2e9a7ae7
       size: 16166111
   prepare:
     cmd: PYTHONPATH=src python src/data/prepare.py
     deps:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 15313efbb2b4656709c806ba41fb2861
+      md5: 65c8704dd0bbb01bee6e955d2e9a7ae7
       size: 16166111
     - path: src/data/prepare.py
       hash: md5
@@ -84,8 +84,8 @@ stages:
           unit: window
           strategy: stratified_random
           window_size: 15
-          stride: 1
-          val_ratio: 0.0
+          stride: 15
+          val_ratio: 0.1
           test_ratio: 0.2
           downsample: false
           random_seed: 42
@@ -94,16 +94,16 @@ stages:
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 3030e8440376af047a6e39cf495ea7f5
-      size: 1999486
+      md5: 5a02aa03f82ab659ba96b1899647a50f
+      size: 161481
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: 8ecf0fc07a7fb1c819087f73d4f7ecaf
-      size: 7354441
+      md5: d8ee8eed2956fa6e418ea1ab146a1f41
+      size: 472722
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 8682f6af5d5f4b721800c33e0a9ef609
-      size: 1023
+      md5: f0f43e92f48c75ebf542547768c50443
+      size: 99331
   train_can_bigrubert:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:

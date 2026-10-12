@@ -1,0 +1,21 @@
+Model: tct_ids
+
+TEST METRICS
+------------
+loss                : 0.005792
+accuracy            : 0.999082
+precision_macro     : 0.999137
+recall_macro        : 0.874192
+f1_macro            : 0.899164
+
+CLASSIFICATION REPORT
+----------------------
+class                 precision   recall      f1          support
+Normal                 0.999199   0.999563   0.999381     13,724
+MEC                    1.000000   0.250000   0.400000          8
+MS                     1.000000   1.000000   1.000000      2,248
+RLOn                   0.995625   0.997495   0.996559      1,597
+RLOff                  1.000000   0.998092   0.999045      1,048
+CS                     1.000000   1.000000   1.000000        988
+macro avg              0.999137   0.874192   0.899164     19,613
+weighted avg           0.999083   0.999082   0.998991     19,613

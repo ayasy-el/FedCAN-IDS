@@ -1,0 +1,91 @@
+{
+  "model": "tct_ids",
+  "test": {
+    "loss": 0.005791834555566311,
+    "accuracy": 0.9990822672843933,
+    "precision_macro": 0.9991373419761658,
+    "recall_macro": 0.8741915822029114,
+    "f1_macro": 0.8991641998291016,
+    "classification_report": {
+      "Normal": {
+        "precision": 0.9991987763129143,
+        "recall": 0.9995628096764791,
+        "f1-score": 0.9993807598440971,
+        "support": 13724.0
+      },
+      "MEC": {
+        "precision": 1.0,
+        "recall": 0.25,
+        "f1-score": 0.4,
+        "support": 8.0
+      },
+      "MS": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2248.0
+      },
+      "RLOn": {
+        "precision": 0.995625,
+        "recall": 0.9974953036944271,
+        "f1-score": 0.9965592743196747,
+        "support": 1597.0
+      },
+      "RLOff": {
+        "precision": 1.0,
+        "recall": 0.9980916030534351,
+        "f1-score": 0.9990448901623686,
+        "support": 1048.0
+      },
+      "CS": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 988.0
+      },
+      "accuracy": 0.9990822413705196,
+      "macro avg": {
+        "precision": 0.9991372960521524,
+        "recall": 0.874191619404057,
+        "f1-score": 0.8991641540543567,
+        "support": 19613.0
+      },
+      "weighted avg": {
+        "precision": 0.9990831148278405,
+        "recall": 0.9990822413705196,
+        "f1-score": 0.9989907588884451,
+        "support": 19613.0
+      }
+    }
+  },
+  "class_names": [
+    "Normal",
+    "MEC",
+    "MS",
+    "RLOn",
+    "RLOff",
+    "CS"
+  ],
+  "window_size": 15,
+  "stride": 15,
+  "parameter_counts": {
+    "total_parameters": 111106,
+    "trainable_parameters": 111106,
+    "non_trainable_parameters": 0,
+    "mlp_parameters": 930,
+    "tcn_parameters": 105910,
+    "transformer_parameters": 3990,
+    "classifier_parameters": 66
+  },
+  "inference_ms_per_window": 0.6006708426555061,
+  "inference_ms_per_batch": 19.221466964976194,
+  "messages_per_second": 24972.07943985843,
+  "fnr_per_class": {
+    "Normal": 0.0437,
+    "MEC": 75.0,
+    "MS": 0.0,
+    "RLOn": 0.2505,
+    "RLOff": 0.1908,
+    "CS": 0.0
+  }
+}
