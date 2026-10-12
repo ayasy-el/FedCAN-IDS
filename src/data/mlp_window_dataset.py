@@ -11,7 +11,9 @@ from data.mlp_dataset import _hex
 from data.window_dataset_utils import load_window_references, materialize_window
 
 
-NUMERIC_FEATURE_COLUMNS = ["DLC", *[f"Data_{i}" for i in range(8)], "Delta_Id", "Deltatime"]
+NUMERIC_FEATURE_COLUMNS = ["DLC", *[f"Data_{i}" for i in range(8)],
+                         # "Delta_Id", "Deltatime",
+                         ]
 
 
 def _frame_features(df, can_id_bits):
@@ -20,8 +22,8 @@ def _frame_features(df, can_id_bits):
     numeric = np.column_stack([
         df["DLC"].to_numpy(),
         *[np.asarray([_hex(value) for value in df[f"Data_{i}"].to_list()]) for i in range(8)],
-        df["Delta_Id"].to_numpy(),
-        df["Deltatime"].to_numpy(),
+        # df["Delta_Id"].to_numpy(),
+        # df["Deltatime"].to_numpy(),
     ]).astype(np.float32)
     return np.concatenate([bits, numeric], axis=1)
 

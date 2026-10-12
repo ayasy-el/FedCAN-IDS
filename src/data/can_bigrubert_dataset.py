@@ -57,11 +57,12 @@ class CANBiGRUBERTDataset:
         window = materialize_window(row, self.sessions)
         rows = window.to_dicts()
         frames = [_frame_string(frame) for frame in rows]
-        timing = np.asarray(
-            window.select(["Deltatime", "Delta_Id"]).to_numpy(),
-            dtype=np.float32,
-        )
-        return frames, timing
+        # --- TIMING FEATURE (Deltatime, Delta_Id) DISABLED to match the paper ---
+        # timing = np.asarray(
+        #     window.select(["Deltatime", "Delta_Id"]).to_numpy(),
+        #     dtype=np.float32,
+        # )
+        return frames, None
 
     def _batch_generator(self):
         indices = np.arange(len(self.y))
@@ -85,13 +86,14 @@ class CANBiGRUBERTDataset:
             attention_mask = encoded["attention_mask"].reshape(
                 batch_size, self.window_size, self.max_length
             ).astype(np.int32)
-            timing_features = np.asarray(
-                [timing for _, timing in batch_inputs], dtype=np.float32
-            )
+            # --- TIMING FEATURE (Deltatime, Delta_Id) DISABLED to match the paper ---
+            # timing_features = np.asarray(
+            #     [timing for _, timing in batch_inputs], dtype=np.float32
+            # )
             yield {
                 "input_ids": input_ids,
                 "attention_mask": attention_mask,
-                "timing_features": timing_features,
+                # "timing_features": timing_features,
             }, self.y[batch_indices]
 
     def to_tf_dataset(self):
@@ -103,9 +105,9 @@ class CANBiGRUBERTDataset:
                 "attention_mask": tf.TensorSpec(
                     shape=(None, self.window_size, self.max_length), dtype=tf.int32
                 ),
-                "timing_features": tf.TensorSpec(
-                    shape=(None, self.window_size, 2), dtype=tf.float32
-                ),
+                # "timing_features": tf.TensorSpec(
+                #     shape=(None, self.window_size, 2), dtype=tf.float32
+                # ),
             },
             tf.TensorSpec(shape=(None,), dtype=tf.int32),
         )
