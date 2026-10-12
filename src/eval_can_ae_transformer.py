@@ -41,7 +41,7 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
 params = load_params()
 dataset_params = params["dataset"]
-_, task = validate_experiment(params)
+task = validate_experiment(params, "can_ae_transformer")
 num_classes = task["num_classes"]
 split = params["split"]
 model_params = params["model"]["can_ae_transformer"]

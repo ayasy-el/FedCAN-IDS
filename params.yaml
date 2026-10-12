@@ -24,9 +24,6 @@ split:
   val_sessions: []
   test_sessions: []
 
-experiment:
-  model: tct_ids
-
 model:
   can_st_transformer:
     vocab_size: 2306

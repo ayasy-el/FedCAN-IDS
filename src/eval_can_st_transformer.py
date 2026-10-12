@@ -101,7 +101,7 @@ def compute_attack_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
 def main():
     params = load_params()
     dataset_params = params["dataset"]
-    _, task = validate_experiment(params)
+    task = validate_experiment(params, "can_st_transformer")
     split = params["split"]
     model_params = params["model"]["can_st_transformer"]
     training_params = params["training"]["can_st_transformer"]

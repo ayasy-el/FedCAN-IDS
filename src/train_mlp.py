@@ -15,7 +15,7 @@ from utils.mlflow_utils import (
     write_model_report,
 )
 from utils.params import load_params
-from data.task import label_schema, validate_experiment
+from data.task import validate_experiment
 
 dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
@@ -26,7 +26,7 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
 params = load_params()
 dataset = params["dataset"]
-_, task = validate_experiment(params)
+task = validate_experiment(params, "mlp")
 num_classes = task["num_classes"]
 class_names = task["class_names"]
 model_params = load_params("model.mlp")
@@ -102,6 +102,7 @@ with mlflow.start_run() as run:
     save_run_id(run.info.run_id, "checkpoints/mlp_mlflow_run_id.txt")
     mlflow.log_params({f"model.{key}": value for key, value in model_params.items()})
     mlflow.log_params({f"training.{key}": value for key, value in training.items()})
+    log_artifact_organized(report_path, "reports/model_summaries")
     callbacks = [
             keras.callbacks.ModelCheckpoint(
                 "checkpoints/mlp_best.keras",
@@ -127,5 +128,4 @@ with mlflow.start_run() as run:
     log_artifact_organized("checkpoints/mlp_final.keras")
     log_artifact_organized(stats_path)
     log_artifact_organized(best_metrics_path)
-    log_artifact_organized(report_path, "reports/model_summaries")
 print("MLP training finished.")

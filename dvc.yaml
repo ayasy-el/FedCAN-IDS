@@ -57,7 +57,6 @@ stages:
       - data/processed/current/train.parquet
       - data/processed/current/val.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.mlp
@@ -90,7 +89,6 @@ stages:
       - data/processed/current/val.parquet
       - data/processed/current/test.parquet
     params:
-      - experiment
       - prepare
       - model.mlp
       - training.mlp
@@ -125,7 +123,6 @@ stages:
       - data/processed/current/val.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.mlp_window
@@ -160,7 +157,6 @@ stages:
       - data/processed/current/test.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - model.mlp_window
       - training.mlp_window
@@ -195,7 +191,6 @@ stages:
       - data/processed/current/val.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.can_bigrubert
@@ -230,7 +225,6 @@ stages:
       - data/processed/current/test.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.can_bigrubert
@@ -266,7 +260,6 @@ stages:
       - data/processed/current/val.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.can_ae_transformer
@@ -301,7 +294,6 @@ stages:
       - data/processed/current/test.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.can_ae_transformer
@@ -336,7 +328,6 @@ stages:
       - data/processed/current/val.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.can_st_transformer
@@ -369,7 +360,6 @@ stages:
       - data/processed/current/test.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.can_st_transformer
@@ -407,7 +397,6 @@ stages:
       - data/processed/current/val.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.tct_ids
@@ -444,7 +433,6 @@ stages:
       - data/processed/current/test.parquet
       - data/interim/prepared.parquet
     params:
-      - experiment
       - prepare
       - split
       - model.tct_ids

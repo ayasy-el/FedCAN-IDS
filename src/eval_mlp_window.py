@@ -31,7 +31,7 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
 params = load_params()
 dataset_params = params["dataset"]
-_, task = validate_experiment(params)
+task = validate_experiment(params, "mlp_window")
 num_classes = task["num_classes"]
 model_params = load_params("model.mlp_window")
 training_params = load_params("training.mlp_window")

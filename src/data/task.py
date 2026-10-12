@@ -101,9 +101,13 @@ def label_schema(name, variant=None):
         ) from exc
 
 
-def validate_experiment(params):
-    experiment = params.get("experiment", {})
-    model_name = experiment.get("model")
+def validate_experiment(params, model_name=None):
+    if model_name is None:
+        model_name = params.get("experiment", {}).get("model")
+    if not model_name:
+        raise ValueError(
+            f"model_name must be specified; choose one of {sorted(MODEL_CONTRACTS)}"
+        )
     split = params.get("split", {})
     schema = label_schema(
         params.get("prepare", {}).get("label_schema", "five_class"),
@@ -123,4 +127,4 @@ def validate_experiment(params):
             f"model.{model_name}.num_classes must match prepare.label_schema "
             f"({schema['num_classes']}), got {configured}"
         )
-    return model_name, schema
+    return schema

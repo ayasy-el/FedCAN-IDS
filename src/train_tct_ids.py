@@ -35,7 +35,7 @@ dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
 
 params = load_params()
 dataset = params["dataset"]
-_, task = validate_experiment(params)
+task = validate_experiment(params, "tct_ids")
 num_classes = task["num_classes"]
 split = params["split"]
 model_params = load_params("model.tct_ids")
@@ -163,6 +163,7 @@ with mlflow.start_run() as run:
     mlflow.log_params({f"training.{key}": value for key, value in training.items()})
     mlflow.log_params({f"split.{key}": value for key, value in split.items()})
     mlflow.log_params(parameter_counts(model))
+    log_artifact_organized(report_path, "reports/model_summaries")
 
     callbacks = [
         keras.callbacks.ModelCheckpoint(
@@ -185,6 +186,5 @@ with mlflow.start_run() as run:
     log_artifact_organized(best_path)
     log_artifact_organized(final_path)
     log_artifact_organized(best_metrics_path)
-    log_artifact_organized(report_path, "reports/model_summaries")
 
 print("TCT-IDS training finished successfully.")
