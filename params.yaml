@@ -15,9 +15,9 @@ prepare:
 split:
   unit: window
   strategy: stratified_random
-  window_size: 15
-  stride: 15
-  val_ratio: 0.1
+  window_size: 64
+  stride: 64
+  val_ratio: 0.0
   test_ratio: 0.2
   downsample: false
   random_seed: 42
@@ -72,7 +72,7 @@ model:
 
 training:
   can_st_transformer:
-    batch_size: 1024
+    batch_size: 32
     epochs: 20
     learning_rate: 0.001
   can_ae_transformer:
@@ -81,11 +81,11 @@ training:
     learning_rate: 0.0001
     warmup_steps: 100
   mlp:
-    batch_size: 256
+    batch_size: 32
     epochs: 100
     learning_rate: 0.001
   can_bigrubert:
-    batch_size: 16
+    batch_size: 32
     epochs: 20
     learning_rate: 0.001
     weight_decay: 0.00001
@@ -97,7 +97,7 @@ training:
     learning_rate: 0.001
   tct_ids:
     batch_size: 32
-    epochs: 300
+    epochs: 100
     warmup_epochs: 50
     learning_rate: 0.001
     weight_decay: 0.00001
@@ -105,9 +105,9 @@ training:
 
 mlflow:
   tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
-  experiment_can_st_transformer: "can_st_transformer"
-  experiment_can_ae_transformer: "can_ae_transformer"
-  experiment_mlp: "can_ids_mlp"
-  experiment_mlp_window: "can_ids_mlp_window"
-  experiment_can_bigrubert: "can_bigrubert"
-  experiment_tct_ids: "can_ids_tct"
+  experiment_can_st_transformer: "road_masq"
+  experiment_can_ae_transformer: "road_masq"
+  experiment_mlp: "road_masq"
+  experiment_mlp_window: "road_masq"
+  experiment_can_bigrubert: "road_masq"
+  experiment_tct_ids: "road_masq"

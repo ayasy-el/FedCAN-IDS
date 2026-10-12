@@ -2,20 +2,29 @@ Model: tct_ids
 
 TEST METRICS
 ------------
-loss                : 0.005792
-accuracy            : 0.999082
-precision_macro     : 0.999137
-recall_macro        : 0.874192
-f1_macro            : 0.899164
+loss                : 0.169895
+accuracy            : 0.965607
+precision_macro     : 0.801908
+recall_macro        : 0.803333
+f1_macro            : 0.802596
+
+CHECKPOINT VS TEST
+-------------------
+Best checkpoint epoch: 89
+
+split                      loss       accuracy   precision   recall      f1
+best_train                   0.000853   0.998423   0.993570   0.984316   0.988806
+best_validation              N/A          N/A          N/A          N/A          N/A       
+test                         0.169895   0.965607   0.801908   0.803333   0.802596
 
 CLASSIFICATION REPORT
 ----------------------
 class                 precision   recall      f1          support
-Normal                 0.999199   0.999563   0.999381     13,724
-MEC                    1.000000   0.250000   0.400000          8
-MS                     1.000000   1.000000   1.000000      2,248
-RLOn                   0.995625   0.997495   0.996559      1,597
-RLOff                  1.000000   0.998092   0.999045      1,048
-CS                     1.000000   1.000000   1.000000        988
-macro avg              0.999137   0.874192   0.899164     19,613
-weighted avg           0.999083   0.999082   0.998991     19,613
+Normal                 0.969722   0.973306   0.971511      2,435
+MEC                    0.000000   0.000000   0.000000          8
+MS                     0.972806   0.959756   0.966237        820
+RLOn                   0.938704   0.952043   0.945326        563
+RLOff                  0.948586   0.960938   0.954722        384
+CS                     0.981627   0.973958   0.977778        384
+macro avg              0.801908   0.803333   0.802596      4,594
+weighted avg           0.964011   0.965607   0.964789      4,594

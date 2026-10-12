@@ -1,0 +1,321 @@
+Model report: can_ae_transformer
+================================================================================
+
+Configuration
+-------------
+{
+  "dataset": {
+    "exclude_files": null,
+    "ingest_adapter": "road_raw",
+    "interim_path": "data/interim/canonical.parquet",
+    "name": "road",
+    "prepared_path": "data/interim/prepared.parquet",
+    "processed_dir": "data/processed/current",
+    "raw_dir": "data/raw/road",
+    "variant": "masquerade"
+  },
+  "model": {
+    "d_model": 10,
+    "dim_feedforward": 2048,
+    "dropout": 0.1,
+    "granularity": "1e-8",
+    "max_time_position": 10000,
+    "num_heads": 10,
+    "num_layers": 6
+  },
+  "num_classes": 6,
+  "parameter_counts": {
+    "ae_parameters": 1114,
+    "classifier_parameters": 66,
+    "non_trainable_parameters": 0,
+    "total_parameters": 262168,
+    "trainable_parameters": 262168,
+    "transformer_parameters": 260988
+  },
+  "split": {
+    "downsample": false,
+    "random_seed": 42,
+    "strategy": "stratified_random",
+    "stride": 64,
+    "test_ratio": 0.2,
+    "test_sessions": [],
+    "unit": "window",
+    "val_ratio": 0.0,
+    "val_sessions": [],
+    "window_size": 64
+  },
+  "task": {
+    "benign_labels": [
+      0
+    ],
+    "class_names": [
+      "Normal",
+      "MEC",
+      "MS",
+      "RLOn",
+      "RLOff",
+      "CS"
+    ],
+    "num_classes": 6
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs": 100,
+    "learning_rate": 0.0001,
+    "warmup_steps": 100
+  }
+}
+
+Parameter counts
+----------------
+{
+  "non_trainable_parameters": 0,
+  "total_parameters": 262168,
+  "trainable_parameters": 262168
+}
+
+Keras model summary
+-------------------
+Model: "can_ae_transformer"
+__________________________________________________________________________________________________
+ Layer (type)                Output Shape                 Param #   Connected to                  
+==================================================================================================
+ message_features (InputLay  [(None, 64, 12)]             0         []                            
+ er)                                                                                              
+                                                                                                  
+ ae_dense_1 (Dense)          (None, 64, 32)               416       ['message_features[0][0]']    
+                                                                                                  
+ ae_dense_2 (Dense)          (None, 64, 16)               528       ['ae_dense_1[0][0]']          
+                                                                                                  
+ ae_dense_3 (Dense)          (None, 64, 10)               170       ['ae_dense_2[0][0]']          
+                                                                                                  
+ time_embeddings (InputLaye  [(None, 64, 10)]             0         []                            
+ r)                                                                                               
+                                                                                                  
+ tse_add (Add)               (None, 64, 10)               0         ['ae_dense_3[0][0]',          
+                                                                     'time_embeddings[0][0]']     
+                                                                                                  
+ transformer_layer_1_mha (M  (None, 64, 10)               440       ['tse_add[0][0]',             
+ ultiHeadAttention)                                                  'tse_add[0][0]']             
+                                                                                                  
+ transformer_layer_1_attn_d  (None, 64, 10)               0         ['transformer_layer_1_mha[0][0
+ ropout (Dropout)                                                   ]']                           
+                                                                                                  
+ transformer_layer_1_attn_r  (None, 64, 10)               0         ['tse_add[0][0]',             
+ es (Add)                                                            'transformer_layer_1_attn_dro
+                                                                    pout[0][0]']                  
+                                                                                                  
+ transformer_layer_1_attn_n  (None, 64, 10)               20        ['transformer_layer_1_attn_res
+ orm (LayerNormalization)                                           [0][0]']                      
+                                                                                                  
+ transformer_layer_1_ffn_1   (None, 64, 2048)             22528     ['transformer_layer_1_attn_nor
+ (Dense)                                                            m[0][0]']                     
+                                                                                                  
+ transformer_layer_1_ffn_dr  (None, 64, 2048)             0         ['transformer_layer_1_ffn_1[0]
+ opout_1 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_1_ffn_2   (None, 64, 10)               20490     ['transformer_layer_1_ffn_drop
+ (Dense)                                                            out_1[0][0]']                 
+                                                                                                  
+ transformer_layer_1_ffn_dr  (None, 64, 10)               0         ['transformer_layer_1_ffn_2[0]
+ opout_2 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_1_ffn_re  (None, 64, 10)               0         ['transformer_layer_1_attn_nor
+ s (Add)                                                            m[0][0]',                     
+                                                                     'transformer_layer_1_ffn_drop
+                                                                    out_2[0][0]']                 
+                                                                                                  
+ transformer_layer_1_ffn_no  (None, 64, 10)               20        ['transformer_layer_1_ffn_res[
+ rm (LayerNormalization)                                            0][0]']                       
+                                                                                                  
+ transformer_layer_2_mha (M  (None, 64, 10)               440       ['transformer_layer_1_ffn_norm
+ ultiHeadAttention)                                                 [0][0]',                      
+                                                                     'transformer_layer_1_ffn_norm
+                                                                    [0][0]']                      
+                                                                                                  
+ transformer_layer_2_attn_d  (None, 64, 10)               0         ['transformer_layer_2_mha[0][0
+ ropout (Dropout)                                                   ]']                           
+                                                                                                  
+ transformer_layer_2_attn_r  (None, 64, 10)               0         ['transformer_layer_1_ffn_norm
+ es (Add)                                                           [0][0]',                      
+                                                                     'transformer_layer_2_attn_dro
+                                                                    pout[0][0]']                  
+                                                                                                  
+ transformer_layer_2_attn_n  (None, 64, 10)               20        ['transformer_layer_2_attn_res
+ orm (LayerNormalization)                                           [0][0]']                      
+                                                                                                  
+ transformer_layer_2_ffn_1   (None, 64, 2048)             22528     ['transformer_layer_2_attn_nor
+ (Dense)                                                            m[0][0]']                     
+                                                                                                  
+ transformer_layer_2_ffn_dr  (None, 64, 2048)             0         ['transformer_layer_2_ffn_1[0]
+ opout_1 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_2_ffn_2   (None, 64, 10)               20490     ['transformer_layer_2_ffn_drop
+ (Dense)                                                            out_1[0][0]']                 
+                                                                                                  
+ transformer_layer_2_ffn_dr  (None, 64, 10)               0         ['transformer_layer_2_ffn_2[0]
+ opout_2 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_2_ffn_re  (None, 64, 10)               0         ['transformer_layer_2_attn_nor
+ s (Add)                                                            m[0][0]',                     
+                                                                     'transformer_layer_2_ffn_drop
+                                                                    out_2[0][0]']                 
+                                                                                                  
+ transformer_layer_2_ffn_no  (None, 64, 10)               20        ['transformer_layer_2_ffn_res[
+ rm (LayerNormalization)                                            0][0]']                       
+                                                                                                  
+ transformer_layer_3_mha (M  (None, 64, 10)               440       ['transformer_layer_2_ffn_norm
+ ultiHeadAttention)                                                 [0][0]',                      
+                                                                     'transformer_layer_2_ffn_norm
+                                                                    [0][0]']                      
+                                                                                                  
+ transformer_layer_3_attn_d  (None, 64, 10)               0         ['transformer_layer_3_mha[0][0
+ ropout (Dropout)                                                   ]']                           
+                                                                                                  
+ transformer_layer_3_attn_r  (None, 64, 10)               0         ['transformer_layer_2_ffn_norm
+ es (Add)                                                           [0][0]',                      
+                                                                     'transformer_layer_3_attn_dro
+                                                                    pout[0][0]']                  
+                                                                                                  
+ transformer_layer_3_attn_n  (None, 64, 10)               20        ['transformer_layer_3_attn_res
+ orm (LayerNormalization)                                           [0][0]']                      
+                                                                                                  
+ transformer_layer_3_ffn_1   (None, 64, 2048)             22528     ['transformer_layer_3_attn_nor
+ (Dense)                                                            m[0][0]']                     
+                                                                                                  
+ transformer_layer_3_ffn_dr  (None, 64, 2048)             0         ['transformer_layer_3_ffn_1[0]
+ opout_1 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_3_ffn_2   (None, 64, 10)               20490     ['transformer_layer_3_ffn_drop
+ (Dense)                                                            out_1[0][0]']                 
+                                                                                                  
+ transformer_layer_3_ffn_dr  (None, 64, 10)               0         ['transformer_layer_3_ffn_2[0]
+ opout_2 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_3_ffn_re  (None, 64, 10)               0         ['transformer_layer_3_attn_nor
+ s (Add)                                                            m[0][0]',                     
+                                                                     'transformer_layer_3_ffn_drop
+                                                                    out_2[0][0]']                 
+                                                                                                  
+ transformer_layer_3_ffn_no  (None, 64, 10)               20        ['transformer_layer_3_ffn_res[
+ rm (LayerNormalization)                                            0][0]']                       
+                                                                                                  
+ transformer_layer_4_mha (M  (None, 64, 10)               440       ['transformer_layer_3_ffn_norm
+ ultiHeadAttention)                                                 [0][0]',                      
+                                                                     'transformer_layer_3_ffn_norm
+                                                                    [0][0]']                      
+                                                                                                  
+ transformer_layer_4_attn_d  (None, 64, 10)               0         ['transformer_layer_4_mha[0][0
+ ropout (Dropout)                                                   ]']                           
+                                                                                                  
+ transformer_layer_4_attn_r  (None, 64, 10)               0         ['transformer_layer_3_ffn_norm
+ es (Add)                                                           [0][0]',                      
+                                                                     'transformer_layer_4_attn_dro
+                                                                    pout[0][0]']                  
+                                                                                                  
+ transformer_layer_4_attn_n  (None, 64, 10)               20        ['transformer_layer_4_attn_res
+ orm (LayerNormalization)                                           [0][0]']                      
+                                                                                                  
+ transformer_layer_4_ffn_1   (None, 64, 2048)             22528     ['transformer_layer_4_attn_nor
+ (Dense)                                                            m[0][0]']                     
+                                                                                                  
+ transformer_layer_4_ffn_dr  (None, 64, 2048)             0         ['transformer_layer_4_ffn_1[0]
+ opout_1 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_4_ffn_2   (None, 64, 10)               20490     ['transformer_layer_4_ffn_drop
+ (Dense)                                                            out_1[0][0]']                 
+                                                                                                  
+ transformer_layer_4_ffn_dr  (None, 64, 10)               0         ['transformer_layer_4_ffn_2[0]
+ opout_2 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_4_ffn_re  (None, 64, 10)               0         ['transformer_layer_4_attn_nor
+ s (Add)                                                            m[0][0]',                     
+                                                                     'transformer_layer_4_ffn_drop
+                                                                    out_2[0][0]']                 
+                                                                                                  
+ transformer_layer_4_ffn_no  (None, 64, 10)               20        ['transformer_layer_4_ffn_res[
+ rm (LayerNormalization)                                            0][0]']                       
+                                                                                                  
+ transformer_layer_5_mha (M  (None, 64, 10)               440       ['transformer_layer_4_ffn_norm
+ ultiHeadAttention)                                                 [0][0]',                      
+                                                                     'transformer_layer_4_ffn_norm
+                                                                    [0][0]']                      
+                                                                                                  
+ transformer_layer_5_attn_d  (None, 64, 10)               0         ['transformer_layer_5_mha[0][0
+ ropout (Dropout)                                                   ]']                           
+                                                                                                  
+ transformer_layer_5_attn_r  (None, 64, 10)               0         ['transformer_layer_4_ffn_norm
+ es (Add)                                                           [0][0]',                      
+                                                                     'transformer_layer_5_attn_dro
+                                                                    pout[0][0]']                  
+                                                                                                  
+ transformer_layer_5_attn_n  (None, 64, 10)               20        ['transformer_layer_5_attn_res
+ orm (LayerNormalization)                                           [0][0]']                      
+                                                                                                  
+ transformer_layer_5_ffn_1   (None, 64, 2048)             22528     ['transformer_layer_5_attn_nor
+ (Dense)                                                            m[0][0]']                     
+                                                                                                  
+ transformer_layer_5_ffn_dr  (None, 64, 2048)             0         ['transformer_layer_5_ffn_1[0]
+ opout_1 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_5_ffn_2   (None, 64, 10)               20490     ['transformer_layer_5_ffn_drop
+ (Dense)                                                            out_1[0][0]']                 
+                                                                                                  
+ transformer_layer_5_ffn_dr  (None, 64, 10)               0         ['transformer_layer_5_ffn_2[0]
+ opout_2 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_5_ffn_re  (None, 64, 10)               0         ['transformer_layer_5_attn_nor
+ s (Add)                                                            m[0][0]',                     
+                                                                     'transformer_layer_5_ffn_drop
+                                                                    out_2[0][0]']                 
+                                                                                                  
+ transformer_layer_5_ffn_no  (None, 64, 10)               20        ['transformer_layer_5_ffn_res[
+ rm (LayerNormalization)                                            0][0]']                       
+                                                                                                  
+ transformer_layer_6_mha (M  (None, 64, 10)               440       ['transformer_layer_5_ffn_norm
+ ultiHeadAttention)                                                 [0][0]',                      
+                                                                     'transformer_layer_5_ffn_norm
+                                                                    [0][0]']                      
+                                                                                                  
+ transformer_layer_6_attn_d  (None, 64, 10)               0         ['transformer_layer_6_mha[0][0
+ ropout (Dropout)                                                   ]']                           
+                                                                                                  
+ transformer_layer_6_attn_r  (None, 64, 10)               0         ['transformer_layer_5_ffn_norm
+ es (Add)                                                           [0][0]',                      
+                                                                     'transformer_layer_6_attn_dro
+                                                                    pout[0][0]']                  
+                                                                                                  
+ transformer_layer_6_attn_n  (None, 64, 10)               20        ['transformer_layer_6_attn_res
+ orm (LayerNormalization)                                           [0][0]']                      
+                                                                                                  
+ transformer_layer_6_ffn_1   (None, 64, 2048)             22528     ['transformer_layer_6_attn_nor
+ (Dense)                                                            m[0][0]']                     
+                                                                                                  
+ transformer_layer_6_ffn_dr  (None, 64, 2048)             0         ['transformer_layer_6_ffn_1[0]
+ opout_1 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_6_ffn_2   (None, 64, 10)               20490     ['transformer_layer_6_ffn_drop
+ (Dense)                                                            out_1[0][0]']                 
+                                                                                                  
+ transformer_layer_6_ffn_dr  (None, 64, 10)               0         ['transformer_layer_6_ffn_2[0]
+ opout_2 (Dropout)                                                  [0]']                         
+                                                                                                  
+ transformer_layer_6_ffn_re  (None, 64, 10)               0         ['transformer_layer_6_attn_nor
+ s (Add)                                                            m[0][0]',                     
+                                                                     'transformer_layer_6_ffn_drop
+                                                                    out_2[0][0]']                 
+                                                                                                  
+ transformer_layer_6_ffn_no  (None, 64, 10)               20        ['transformer_layer_6_ffn_res[
+ rm (LayerNormalization)                                            0][0]']                       
+                                                                                                  
+ sum_pooling (GlobalSumPool  (None, 10)                   0         ['transformer_layer_6_ffn_norm
+ ing1D)                                                             [0][0]']                      
+                                                                                                  
+ classification_output (Den  (None, 6)                    66        ['sum_pooling[0][0]']         
+ se)                                                                                              
+                                                                                                  
+==================================================================================================
+Total params: 262168 (1.00 MB)
+Trainable params: 262168 (1.00 MB)
+Non-trainable params: 0 (0.00 Byte)
+__________________________________________________________________________________________________

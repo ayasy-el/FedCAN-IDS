@@ -1,60 +1,60 @@
 {
   "model": "tct_ids",
   "test": {
-    "loss": 0.005791834555566311,
-    "accuracy": 0.9990822672843933,
-    "precision_macro": 0.9991373419761658,
-    "recall_macro": 0.8741915822029114,
-    "f1_macro": 0.8991641998291016,
+    "loss": 0.16989460587501526,
+    "accuracy": 0.9656072854995728,
+    "precision_macro": 0.8019075393676758,
+    "recall_macro": 0.8033334612846375,
+    "f1_macro": 0.8025956153869629,
     "classification_report": {
       "Normal": {
-        "precision": 0.9991987763129143,
-        "recall": 0.9995628096764791,
-        "f1-score": 0.9993807598440971,
-        "support": 13724.0
+        "precision": 0.969721767594108,
+        "recall": 0.973305954825462,
+        "f1-score": 0.9715105554416889,
+        "support": 2435.0
       },
       "MEC": {
-        "precision": 1.0,
-        "recall": 0.25,
-        "f1-score": 0.4,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
         "support": 8.0
       },
       "MS": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 2248.0
+        "precision": 0.9728059332509271,
+        "recall": 0.9597560975609756,
+        "f1-score": 0.9662369551872314,
+        "support": 820.0
       },
       "RLOn": {
-        "precision": 0.995625,
-        "recall": 0.9974953036944271,
-        "f1-score": 0.9965592743196747,
-        "support": 1597.0
+        "precision": 0.9387040280210157,
+        "recall": 0.9520426287744227,
+        "f1-score": 0.9453262786596119,
+        "support": 563.0
       },
       "RLOff": {
-        "precision": 1.0,
-        "recall": 0.9980916030534351,
-        "f1-score": 0.9990448901623686,
-        "support": 1048.0
+        "precision": 0.9485861182519281,
+        "recall": 0.9609375,
+        "f1-score": 0.9547218628719275,
+        "support": 384.0
       },
       "CS": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 988.0
+        "precision": 0.9816272965879265,
+        "recall": 0.9739583333333334,
+        "f1-score": 0.9777777777777777,
+        "support": 384.0
       },
-      "accuracy": 0.9990822413705196,
+      "accuracy": 0.9656073138876796,
       "macro avg": {
-        "precision": 0.9991372960521524,
-        "recall": 0.874191619404057,
-        "f1-score": 0.8991641540543567,
-        "support": 19613.0
+        "precision": 0.8019075239509842,
+        "recall": 0.8033334190823656,
+        "f1-score": 0.802595571656373,
+        "support": 4594.0
       },
       "weighted avg": {
-        "precision": 0.9990831148278405,
-        "recall": 0.9990822413705196,
-        "f1-score": 0.9989907588884451,
-        "support": 19613.0
+        "precision": 0.9640108159407379,
+        "recall": 0.9656073138876796,
+        "f1-score": 0.9647890863406378,
+        "support": 4594.0
       }
     }
   },
@@ -66,8 +66,32 @@
     "RLOff",
     "CS"
   ],
-  "window_size": 15,
-  "stride": 15,
+  "comparison": {
+    "best_epoch": 89,
+    "best_train": {
+      "loss": 0.000852625526022166,
+      "accuracy": 0.9984228610992432,
+      "precision_macro": 0.9935703277587891,
+      "recall_macro": 0.9843155741691589,
+      "f1_macro": 0.9888064861297607
+    },
+    "best_validation": {
+      "loss": null,
+      "accuracy": null,
+      "precision_macro": null,
+      "recall_macro": null,
+      "f1_macro": null
+    },
+    "test": {
+      "loss": 0.16989460587501526,
+      "accuracy": 0.9656072854995728,
+      "precision_macro": 0.8019075393676758,
+      "recall_macro": 0.8033334612846375,
+      "f1_macro": 0.8025956153869629
+    }
+  },
+  "window_size": 64,
+  "stride": 64,
   "parameter_counts": {
     "total_parameters": 111106,
     "trainable_parameters": 111106,
@@ -77,15 +101,15 @@
     "transformer_parameters": 3990,
     "classifier_parameters": 66
   },
-  "inference_ms_per_window": 0.6006708426555061,
-  "inference_ms_per_batch": 19.221466964976194,
-  "messages_per_second": 24972.07943985843,
+  "inference_ms_per_window": 0.7077571325746889,
+  "inference_ms_per_batch": 22.648228242390044,
+  "messages_per_second": 90426.49950722489,
   "fnr_per_class": {
-    "Normal": 0.0437,
-    "MEC": 75.0,
-    "MS": 0.0,
-    "RLOn": 0.2505,
-    "RLOff": 0.1908,
-    "CS": 0.0
+    "Normal": 2.6694,
+    "MEC": 100.0,
+    "MS": 4.0244,
+    "RLOn": 4.7957,
+    "RLOff": 3.9062,
+    "CS": 2.6042
   }
 }

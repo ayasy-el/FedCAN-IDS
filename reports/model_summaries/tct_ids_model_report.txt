@@ -47,13 +47,13 @@ Configuration
     "downsample": false,
     "random_seed": 42,
     "strategy": "stratified_random",
-    "stride": 15,
+    "stride": 64,
     "test_ratio": 0.2,
     "test_sessions": [],
     "unit": "window",
-    "val_ratio": 0.1,
+    "val_ratio": 0.0,
     "val_sessions": [],
-    "window_size": 15
+    "window_size": 64
   },
   "task": {
     "benign_labels": [
@@ -71,7 +71,7 @@ Configuration
   },
   "training": {
     "batch_size": 32,
-    "epochs": 300,
+    "epochs": 100,
     "lambda_rdrop": 0.1,
     "learning_rate": 0.001,
     "warmup_epochs": 50,
@@ -93,182 +93,182 @@ Model: "tct_ids"
 __________________________________________________________________________________________________
  Layer (type)                Output Shape                 Param #   Connected to                  
 ==================================================================================================
- message_features (InputLay  [(None, 15, 12)]             0         []                            
+ message_features (InputLay  [(None, 64, 12)]             0         []                            
  er)                                                                                              
                                                                                                   
- tcn_conv1_1 (CausalConv1D)  (None, 15, 100)              2600      ['message_features[0][0]']    
+ tcn_conv1_1 (CausalConv1D)  (None, 64, 100)              2600      ['message_features[0][0]']    
                                                                                                   
- tcn_act1_1 (Activation)     (None, 15, 100)              0         ['tcn_conv1_1[0][0]']         
+ tcn_act1_1 (Activation)     (None, 64, 100)              0         ['tcn_conv1_1[0][0]']         
                                                                                                   
- tcn_drop1_1 (Dropout)       (None, 15, 100)              0         ['tcn_act1_1[0][0]']          
+ tcn_drop1_1 (Dropout)       (None, 64, 100)              0         ['tcn_act1_1[0][0]']          
                                                                                                   
- tcn_conv2_1 (CausalConv1D)  (None, 15, 100)              20200     ['tcn_drop1_1[0][0]']         
+ tcn_conv2_1 (CausalConv1D)  (None, 64, 100)              20200     ['tcn_drop1_1[0][0]']         
                                                                                                   
- tcn_act2_1 (Activation)     (None, 15, 100)              0         ['tcn_conv2_1[0][0]']         
+ tcn_act2_1 (Activation)     (None, 64, 100)              0         ['tcn_conv2_1[0][0]']         
                                                                                                   
- tcn_drop2_1 (Dropout)       (None, 15, 100)              0         ['tcn_act2_1[0][0]']          
+ tcn_drop2_1 (Dropout)       (None, 64, 100)              0         ['tcn_act2_1[0][0]']          
                                                                                                   
- tcn_shortcut_1 (Conv1D)     (None, 15, 100)              1300      ['message_features[0][0]']    
+ tcn_shortcut_1 (Conv1D)     (None, 64, 100)              1300      ['message_features[0][0]']    
                                                                                                   
- tcn_add_1 (Add)             (None, 15, 100)              0         ['tcn_drop2_1[0][0]',         
+ tcn_add_1 (Add)             (None, 64, 100)              0         ['tcn_drop2_1[0][0]',         
                                                                      'tcn_shortcut_1[0][0]']      
                                                                                                   
- tcn_conv1_2 (CausalConv1D)  (None, 15, 100)              20200     ['tcn_add_1[0][0]']           
+ tcn_conv1_2 (CausalConv1D)  (None, 64, 100)              20200     ['tcn_add_1[0][0]']           
                                                                                                   
- tcn_act1_2 (Activation)     (None, 15, 100)              0         ['tcn_conv1_2[0][0]']         
+ tcn_act1_2 (Activation)     (None, 64, 100)              0         ['tcn_conv1_2[0][0]']         
                                                                                                   
- tcn_drop1_2 (Dropout)       (None, 15, 100)              0         ['tcn_act1_2[0][0]']          
+ tcn_drop1_2 (Dropout)       (None, 64, 100)              0         ['tcn_act1_2[0][0]']          
                                                                                                   
- tcn_conv2_2 (CausalConv1D)  (None, 15, 100)              20200     ['tcn_drop1_2[0][0]']         
+ tcn_conv2_2 (CausalConv1D)  (None, 64, 100)              20200     ['tcn_drop1_2[0][0]']         
                                                                                                   
- tcn_act2_2 (Activation)     (None, 15, 100)              0         ['tcn_conv2_2[0][0]']         
+ tcn_act2_2 (Activation)     (None, 64, 100)              0         ['tcn_conv2_2[0][0]']         
                                                                                                   
- tcn_drop2_2 (Dropout)       (None, 15, 100)              0         ['tcn_act2_2[0][0]']          
+ tcn_drop2_2 (Dropout)       (None, 64, 100)              0         ['tcn_act2_2[0][0]']          
                                                                                                   
- tcn_add_2 (Add)             (None, 15, 100)              0         ['tcn_drop2_2[0][0]',         
+ tcn_add_2 (Add)             (None, 64, 100)              0         ['tcn_drop2_2[0][0]',         
                                                                      'tcn_add_1[0][0]']           
                                                                                                   
- tcn_conv1_3 (CausalConv1D)  (None, 15, 100)              20200     ['tcn_add_2[0][0]']           
+ tcn_conv1_3 (CausalConv1D)  (None, 64, 100)              20200     ['tcn_add_2[0][0]']           
                                                                                                   
- tcn_act1_3 (Activation)     (None, 15, 100)              0         ['tcn_conv1_3[0][0]']         
+ tcn_act1_3 (Activation)     (None, 64, 100)              0         ['tcn_conv1_3[0][0]']         
                                                                                                   
- tcn_drop1_3 (Dropout)       (None, 15, 100)              0         ['tcn_act1_3[0][0]']          
+ tcn_drop1_3 (Dropout)       (None, 64, 100)              0         ['tcn_act1_3[0][0]']          
                                                                                                   
- tcn_conv2_3 (CausalConv1D)  (None, 15, 100)              20200     ['tcn_drop1_3[0][0]']         
+ tcn_conv2_3 (CausalConv1D)  (None, 64, 100)              20200     ['tcn_drop1_3[0][0]']         
                                                                                                   
- tcn_act2_3 (Activation)     (None, 15, 100)              0         ['tcn_conv2_3[0][0]']         
+ tcn_act2_3 (Activation)     (None, 64, 100)              0         ['tcn_conv2_3[0][0]']         
                                                                                                   
- tcn_drop2_3 (Dropout)       (None, 15, 100)              0         ['tcn_act2_3[0][0]']          
+ tcn_drop2_3 (Dropout)       (None, 64, 100)              0         ['tcn_act2_3[0][0]']          
                                                                                                   
- tcn_add_3 (Add)             (None, 15, 100)              0         ['tcn_drop2_3[0][0]',         
+ tcn_add_3 (Add)             (None, 64, 100)              0         ['tcn_drop2_3[0][0]',         
                                                                      'tcn_add_2[0][0]']           
                                                                                                   
- mlp_dense_1 (Dense)         (None, 15, 40)               520       ['message_features[0][0]']    
+ mlp_dense_1 (Dense)         (None, 64, 40)               520       ['message_features[0][0]']    
                                                                                                   
  tcn_last_step (Lambda)      (None, 100)                  0         ['tcn_add_3[0][0]']           
                                                                                                   
- mlp_dropout_1 (Dropout)     (None, 15, 40)               0         ['mlp_dense_1[0][0]']         
+ mlp_dropout_1 (Dropout)     (None, 64, 40)               0         ['mlp_dense_1[0][0]']         
                                                                                                   
  tcn_projection (Dense)      (None, 10)                   1010      ['tcn_last_step[0][0]']       
                                                                                                   
- mlp_dense_2 (Dense)         (None, 15, 10)               410       ['mlp_dropout_1[0][0]']       
+ mlp_dense_2 (Dense)         (None, 64, 10)               410       ['mlp_dropout_1[0][0]']       
                                                                                                   
- tcn_repeat (RepeatVector)   (None, 15, 10)               0         ['tcn_projection[0][0]']      
+ tcn_repeat (RepeatVector)   (None, 64, 10)               0         ['tcn_projection[0][0]']      
                                                                                                   
- fuse_concat (Concatenate)   (None, 15, 20)               0         ['mlp_dense_2[0][0]',         
+ fuse_concat (Concatenate)   (None, 64, 20)               0         ['mlp_dense_2[0][0]',         
                                                                      'tcn_repeat[0][0]']          
                                                                                                   
- fuse_projection (Dense)     (None, 15, 10)               210       ['fuse_concat[0][0]']         
+ fuse_projection (Dense)     (None, 64, 10)               210       ['fuse_concat[0][0]']         
                                                                                                   
- time_embeddings (InputLaye  [(None, 15, 10)]             0         []                            
+ time_embeddings (InputLaye  [(None, 64, 10)]             0         []                            
  r)                                                                                               
                                                                                                   
- tse_add (Add)               (None, 15, 10)               0         ['fuse_projection[0][0]',     
+ tse_add (Add)               (None, 64, 10)               0         ['fuse_projection[0][0]',     
                                                                      'time_embeddings[0][0]']     
                                                                                                   
- transformer_layer_1_mha (M  (None, 15, 10)               440       ['tse_add[0][0]',             
+ transformer_layer_1_mha (M  (None, 64, 10)               440       ['tse_add[0][0]',             
  ultiHeadAttention)                                                  'tse_add[0][0]']             
                                                                                                   
- transformer_layer_1_attn_d  (None, 15, 10)               0         ['transformer_layer_1_mha[0][0
+ transformer_layer_1_attn_d  (None, 64, 10)               0         ['transformer_layer_1_mha[0][0
  ropout (Dropout)                                                   ]']                           
                                                                                                   
- transformer_layer_1_attn_r  (None, 15, 10)               0         ['tse_add[0][0]',             
+ transformer_layer_1_attn_r  (None, 64, 10)               0         ['tse_add[0][0]',             
  es (Add)                                                            'transformer_layer_1_attn_dro
                                                                     pout[0][0]']                  
                                                                                                   
- transformer_layer_1_attn_n  (None, 15, 10)               20        ['transformer_layer_1_attn_res
+ transformer_layer_1_attn_n  (None, 64, 10)               20        ['transformer_layer_1_attn_res
  orm (LayerNormalization)                                           [0][0]']                      
                                                                                                   
- transformer_layer_1_ffn_1   (None, 15, 40)               440       ['transformer_layer_1_attn_nor
+ transformer_layer_1_ffn_1   (None, 64, 40)               440       ['transformer_layer_1_attn_nor
  (Dense)                                                            m[0][0]']                     
                                                                                                   
- transformer_layer_1_ffn_dr  (None, 15, 40)               0         ['transformer_layer_1_ffn_1[0]
+ transformer_layer_1_ffn_dr  (None, 64, 40)               0         ['transformer_layer_1_ffn_1[0]
  opout_1 (Dropout)                                                  [0]']                         
                                                                                                   
- transformer_layer_1_ffn_2   (None, 15, 10)               410       ['transformer_layer_1_ffn_drop
+ transformer_layer_1_ffn_2   (None, 64, 10)               410       ['transformer_layer_1_ffn_drop
  (Dense)                                                            out_1[0][0]']                 
                                                                                                   
- transformer_layer_1_ffn_dr  (None, 15, 10)               0         ['transformer_layer_1_ffn_2[0]
+ transformer_layer_1_ffn_dr  (None, 64, 10)               0         ['transformer_layer_1_ffn_2[0]
  opout_2 (Dropout)                                                  [0]']                         
                                                                                                   
- transformer_layer_1_ffn_re  (None, 15, 10)               0         ['transformer_layer_1_attn_nor
+ transformer_layer_1_ffn_re  (None, 64, 10)               0         ['transformer_layer_1_attn_nor
  s (Add)                                                            m[0][0]',                     
                                                                      'transformer_layer_1_ffn_drop
                                                                     out_2[0][0]']                 
                                                                                                   
- transformer_layer_1_ffn_no  (None, 15, 10)               20        ['transformer_layer_1_ffn_res[
+ transformer_layer_1_ffn_no  (None, 64, 10)               20        ['transformer_layer_1_ffn_res[
  rm (LayerNormalization)                                            0][0]']                       
                                                                                                   
- transformer_layer_2_mha (M  (None, 15, 10)               440       ['transformer_layer_1_ffn_norm
+ transformer_layer_2_mha (M  (None, 64, 10)               440       ['transformer_layer_1_ffn_norm
  ultiHeadAttention)                                                 [0][0]',                      
                                                                      'transformer_layer_1_ffn_norm
                                                                     [0][0]']                      
                                                                                                   
- transformer_layer_2_attn_d  (None, 15, 10)               0         ['transformer_layer_2_mha[0][0
+ transformer_layer_2_attn_d  (None, 64, 10)               0         ['transformer_layer_2_mha[0][0
  ropout (Dropout)                                                   ]']                           
                                                                                                   
- transformer_layer_2_attn_r  (None, 15, 10)               0         ['transformer_layer_1_ffn_norm
+ transformer_layer_2_attn_r  (None, 64, 10)               0         ['transformer_layer_1_ffn_norm
  es (Add)                                                           [0][0]',                      
                                                                      'transformer_layer_2_attn_dro
                                                                     pout[0][0]']                  
                                                                                                   
- transformer_layer_2_attn_n  (None, 15, 10)               20        ['transformer_layer_2_attn_res
+ transformer_layer_2_attn_n  (None, 64, 10)               20        ['transformer_layer_2_attn_res
  orm (LayerNormalization)                                           [0][0]']                      
                                                                                                   
- transformer_layer_2_ffn_1   (None, 15, 40)               440       ['transformer_layer_2_attn_nor
+ transformer_layer_2_ffn_1   (None, 64, 40)               440       ['transformer_layer_2_attn_nor
  (Dense)                                                            m[0][0]']                     
                                                                                                   
- transformer_layer_2_ffn_dr  (None, 15, 40)               0         ['transformer_layer_2_ffn_1[0]
+ transformer_layer_2_ffn_dr  (None, 64, 40)               0         ['transformer_layer_2_ffn_1[0]
  opout_1 (Dropout)                                                  [0]']                         
                                                                                                   
- transformer_layer_2_ffn_2   (None, 15, 10)               410       ['transformer_layer_2_ffn_drop
+ transformer_layer_2_ffn_2   (None, 64, 10)               410       ['transformer_layer_2_ffn_drop
  (Dense)                                                            out_1[0][0]']                 
                                                                                                   
- transformer_layer_2_ffn_dr  (None, 15, 10)               0         ['transformer_layer_2_ffn_2[0]
+ transformer_layer_2_ffn_dr  (None, 64, 10)               0         ['transformer_layer_2_ffn_2[0]
  opout_2 (Dropout)                                                  [0]']                         
                                                                                                   
- transformer_layer_2_ffn_re  (None, 15, 10)               0         ['transformer_layer_2_attn_nor
+ transformer_layer_2_ffn_re  (None, 64, 10)               0         ['transformer_layer_2_attn_nor
  s (Add)                                                            m[0][0]',                     
                                                                      'transformer_layer_2_ffn_drop
                                                                     out_2[0][0]']                 
                                                                                                   
- transformer_layer_2_ffn_no  (None, 15, 10)               20        ['transformer_layer_2_ffn_res[
+ transformer_layer_2_ffn_no  (None, 64, 10)               20        ['transformer_layer_2_ffn_res[
  rm (LayerNormalization)                                            0][0]']                       
                                                                                                   
- transformer_layer_3_mha (M  (None, 15, 10)               440       ['transformer_layer_2_ffn_norm
+ transformer_layer_3_mha (M  (None, 64, 10)               440       ['transformer_layer_2_ffn_norm
  ultiHeadAttention)                                                 [0][0]',                      
                                                                      'transformer_layer_2_ffn_norm
                                                                     [0][0]']                      
                                                                                                   
- transformer_layer_3_attn_d  (None, 15, 10)               0         ['transformer_layer_3_mha[0][0
+ transformer_layer_3_attn_d  (None, 64, 10)               0         ['transformer_layer_3_mha[0][0
  ropout (Dropout)                                                   ]']                           
                                                                                                   
- transformer_layer_3_attn_r  (None, 15, 10)               0         ['transformer_layer_2_ffn_norm
+ transformer_layer_3_attn_r  (None, 64, 10)               0         ['transformer_layer_2_ffn_norm
  es (Add)                                                           [0][0]',                      
                                                                      'transformer_layer_3_attn_dro
                                                                     pout[0][0]']                  
                                                                                                   
- transformer_layer_3_attn_n  (None, 15, 10)               20        ['transformer_layer_3_attn_res
+ transformer_layer_3_attn_n  (None, 64, 10)               20        ['transformer_layer_3_attn_res
  orm (LayerNormalization)                                           [0][0]']                      
                                                                                                   
- transformer_layer_3_ffn_1   (None, 15, 40)               440       ['transformer_layer_3_attn_nor
+ transformer_layer_3_ffn_1   (None, 64, 40)               440       ['transformer_layer_3_attn_nor
  (Dense)                                                            m[0][0]']                     
                                                                                                   
- transformer_layer_3_ffn_dr  (None, 15, 40)               0         ['transformer_layer_3_ffn_1[0]
+ transformer_layer_3_ffn_dr  (None, 64, 40)               0         ['transformer_layer_3_ffn_1[0]
  opout_1 (Dropout)                                                  [0]']                         
                                                                                                   
- transformer_layer_3_ffn_2   (None, 15, 10)               410       ['transformer_layer_3_ffn_drop
+ transformer_layer_3_ffn_2   (None, 64, 10)               410       ['transformer_layer_3_ffn_drop
  (Dense)                                                            out_1[0][0]']                 
                                                                                                   
- transformer_layer_3_ffn_dr  (None, 15, 10)               0         ['transformer_layer_3_ffn_2[0]
+ transformer_layer_3_ffn_dr  (None, 64, 10)               0         ['transformer_layer_3_ffn_2[0]
  opout_2 (Dropout)                                                  [0]']                         
                                                                                                   
- transformer_layer_3_ffn_re  (None, 15, 10)               0         ['transformer_layer_3_attn_nor
+ transformer_layer_3_ffn_re  (None, 64, 10)               0         ['transformer_layer_3_attn_nor
  s (Add)                                                            m[0][0]',                     
                                                                      'transformer_layer_3_ffn_drop
                                                                     out_2[0][0]']                 
                                                                                                   
- transformer_layer_3_ffn_no  (None, 15, 10)               20        ['transformer_layer_3_ffn_res[
+ transformer_layer_3_ffn_no  (None, 64, 10)               20        ['transformer_layer_3_ffn_res[
  rm (LayerNormalization)                                            0][0]']                       
                                                                                                   
  last_step_pooling (Lambda)  (None, 10)                   0         ['transformer_layer_3_ffn_norm

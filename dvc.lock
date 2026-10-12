@@ -42,8 +42,8 @@ stages:
       size: 6538
     - path: src/data/task.py
       hash: md5
-      md5: 645b218979f3968701538d0adf689fe3
-      size: 4086
+      md5: f0603cfe0a07249672c42ed1c6971d79
+      size: 4238
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -83,9 +83,9 @@ stages:
         split:
           unit: window
           strategy: stratified_random
-          window_size: 15
-          stride: 15
-          val_ratio: 0.1
+          window_size: 64
+          stride: 64
+          val_ratio: 0.0
           test_ratio: 0.2
           downsample: false
           random_seed: 42
@@ -94,16 +94,16 @@ stages:
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 5a02aa03f82ab659ba96b1899647a50f
-      size: 161481
+      md5: fbb5ca27c5f271093357c454c3aeee90
+      size: 65292
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: d8ee8eed2956fa6e418ea1ab146a1f41
-      size: 472722
+      md5: 6ac9d589140cc2f983d0ed264aa3550c
+      size: 138412
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: f0f43e92f48c75ebf542547768c50443
-      size: 99331
+      md5: ae30ee5f5556016cb7e4795b7b1dcb24
+      size: 1023
   train_can_bigrubert:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:
@@ -331,20 +331,20 @@ stages:
       size: 9887131
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: 5b802aa9465464d23d44d7aae101d405
-      size: 407417
+      md5: 6ac9d589140cc2f983d0ed264aa3550c
+      size: 138412
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 48d4ae6cb1a3714605f077ca4e1e0d08
-      size: 161837
+      md5: ae30ee5f5556016cb7e4795b7b1dcb24
+      size: 1023
     - path: src/data/can_ae_transformer_dataset.py
       hash: md5
-      md5: 068808f985e9e0e20cd70cfe3ba215a3
-      size: 6962
+      md5: d3226bcadb82e59f2b87b2036b797c97
+      size: 7207
     - path: src/data/task.py
       hash: md5
-      md5: 9f83bb45f80ff1f76874c32deae9ec4e
-      size: 4005
+      md5: f0603cfe0a07249672c42ed1c6971d79
+      size: 4238
     - path: src/data/window_dataset_utils.py
       hash: md5
       md5: aef82e3803cfd0b4fb8eb9aece54fbab
@@ -355,8 +355,8 @@ stages:
       size: 5593
     - path: src/train_can_ae_transformer.py
       hash: md5
-      md5: b9a674a919ae9d5406af49c251cbef91
-      size: 5507
+      md5: 9725011a537361a06031152da84fa6a3
+      size: 5526
     - path: src/utils/metrics.py
       hash: md5
       md5: d9951f3c38d209e9543f99e2fa5a1762
@@ -371,9 +371,7 @@ stages:
       size: 1180
     params:
       params.yaml:
-        experiment:
-          model: can_ae_transformer
-        mlflow.experiment_can_ae_transformer: can_ae_transformer
+        mlflow.experiment_can_ae_transformer: road_masq
         model.can_ae_transformer:
           d_model: 10
           num_heads: 10
@@ -387,13 +385,15 @@ stages:
           features: []
         split:
           unit: window
-          val_ratio: 0.2
+          strategy: stratified_random
+          window_size: 64
+          stride: 64
+          val_ratio: 0.0
           test_ratio: 0.2
-          window_size: 15
-          stride: 15
           downsample: false
           random_seed: 42
-          strategy: stratified_random
+          val_sessions: []
+          test_sessions: []
         training.can_ae_transformer:
           batch_size: 32
           epochs: 100
@@ -402,71 +402,71 @@ stages:
     outs:
     - path: checkpoints/can_ae_transformer_best.keras
       hash: md5
-      md5: f347eeef0fb195eb27c0f79c91036158
-      size: 3516061
+      md5: 352ad825ba72c1182f8e250f2a0ed7d6
+      size: 3516060
     - path: checkpoints/can_ae_transformer_final.keras
       hash: md5
-      md5: d25386a254b8bdbcc31582f8f23e50cd
-      size: 3516061
+      md5: 6ce514e2565cfd4652b388cadd8af987
+      size: 3516060
     - path: checkpoints/can_ae_transformer_mlflow_run_id.txt
       hash: md5
-      md5: e92a0c91461d75e424c831c845249be5
+      md5: 636cbe50858701f4d981ade08e635588
       size: 32
     - path: reports/metrics/can_ae_transformer_best_training_metrics.json
       hash: md5
-      md5: 050d94d5a390d49cec328b9a54305af5
-      size: 516
+      md5: c884fb334816cc98faf36d2d0ca296ab
+      size: 303
   eval_can_ae_transformer:
     cmd: PYTHONPATH=src python src/eval_can_ae_transformer.py
     deps:
     - path: checkpoints/can_ae_transformer_best.keras
       hash: md5
-      md5: f347eeef0fb195eb27c0f79c91036158
-      size: 3516061
+      md5: 352ad825ba72c1182f8e250f2a0ed7d6
+      size: 3516060
     - path: data/interim/prepared.parquet
       hash: md5
       md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
       size: 9887131
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 5a02aa03f82ab659ba96b1899647a50f
-      size: 161481
+      md5: fbb5ca27c5f271093357c454c3aeee90
+      size: 65292
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: 5b802aa9465464d23d44d7aae101d405
-      size: 407417
+      md5: 6ac9d589140cc2f983d0ed264aa3550c
+      size: 138412
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 48d4ae6cb1a3714605f077ca4e1e0d08
-      size: 161837
+      md5: ae30ee5f5556016cb7e4795b7b1dcb24
+      size: 1023
     - path: reports/metrics/can_ae_transformer_best_training_metrics.json
       hash: md5
-      md5: 050d94d5a390d49cec328b9a54305af5
-      size: 516
+      md5: c884fb334816cc98faf36d2d0ca296ab
+      size: 303
     - path: src/data/can_ae_transformer_dataset.py
       hash: md5
-      md5: 068808f985e9e0e20cd70cfe3ba215a3
-      size: 6962
+      md5: d3226bcadb82e59f2b87b2036b797c97
+      size: 7207
     - path: src/data/task.py
       hash: md5
-      md5: 9f83bb45f80ff1f76874c32deae9ec4e
-      size: 4005
+      md5: f0603cfe0a07249672c42ed1c6971d79
+      size: 4238
     - path: src/data/window_dataset_utils.py
       hash: md5
       md5: aef82e3803cfd0b4fb8eb9aece54fbab
       size: 2130
     - path: src/eval_can_ae_transformer.py
       hash: md5
-      md5: 5de04abc0c00bb8025fe6190790244e6
-      size: 8838
+      md5: 60a1e3f680f3eb5df4dbc0fc07883ee4
+      size: 8857
     - path: src/model/can_ae_transformer.py
       hash: md5
       md5: 59025278b9f887cf7ae11dbd6650295a
       size: 5593
     - path: src/utils/eval_reporting.py
       hash: md5
-      md5: 2123a915764d88af4e733e7100b43d6d
-      size: 9455
+      md5: fc495e654e38bfb8d322a73628ea1f96
+      size: 9715
     - path: src/utils/metrics.py
       hash: md5
       md5: d9951f3c38d209e9543f99e2fa5a1762
@@ -481,9 +481,7 @@ stages:
       size: 1180
     params:
       params.yaml:
-        experiment:
-          model: can_ae_transformer
-        mlflow.experiment_can_ae_transformer: can_ae_transformer
+        mlflow.experiment_can_ae_transformer: road_masq
         model.can_ae_transformer:
           d_model: 10
           num_heads: 10
@@ -497,13 +495,15 @@ stages:
           features: []
         split:
           unit: window
-          val_ratio: 0.2
+          strategy: stratified_random
+          window_size: 64
+          stride: 64
+          val_ratio: 0.0
           test_ratio: 0.2
-          window_size: 15
-          stride: 15
           downsample: false
           random_seed: 42
-          strategy: stratified_random
+          val_sessions: []
+          test_sessions: []
         training.can_ae_transformer:
           batch_size: 32
           epochs: 100
@@ -512,51 +512,51 @@ stages:
     outs:
     - path: reports/figures/can_ae_transformer_test_confusion_matrix.png
       hash: md5
-      md5: c86d58e8807f258710ca9a58fedcdeaa
-      size: 140762
+      md5: aeb7b9675f8b06868616b828625ca794
+      size: 142963
     - path: reports/figures/can_ae_transformer_test_confusion_matrix_counts.png
       hash: md5
-      md5: 99096cb72524bf45bab8e042c1f97554
-      size: 135917
+      md5: fa116024d483ea96e57687411035341a
+      size: 129529
     - path: reports/figures/can_ae_transformer_train_confusion_matrix.png
       hash: md5
-      md5: 1f5eb08b6dfce2493b4c62b8704b778f
-      size: 134701
+      md5: 4fd8f31eba4639f6bfa18e2722002657
+      size: 140055
     - path: reports/figures/can_ae_transformer_val_confusion_matrix.png
       hash: md5
-      md5: 799bb44d5938388c8ae404ede766b5a9
-      size: 140199
+      md5: 8b1761750a252c5425b5a1fd20f65467
+      size: 133753
     - path: reports/metrics/can_ae_transformer_classification_report.json
       hash: md5
-      md5: a3a0f6a93f36387bb96fa0b8e8074dda
-      size: 2692
+      md5: 342f2c96ef828667cfc55ca9c2669a55
+      size: 2670
     - path: reports/metrics/can_ae_transformer_classification_report.txt
       hash: md5
-      md5: 7a5078f0aaf1f2d8e3814e913b30b57f
-      size: 1229
+      md5: 813041b355972326792effdff7abb049
+      size: 1240
   train_mlp_window:
     cmd: PYTHONPATH=src python src/train_mlp_window.py
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 071598928bf586bd223a8b97b4c1ea92
-      size: 15372300
+      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
+      size: 9887131
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: 5b802aa9465464d23d44d7aae101d405
-      size: 407417
+      md5: 6ac9d589140cc2f983d0ed264aa3550c
+      size: 138412
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 48d4ae6cb1a3714605f077ca4e1e0d08
-      size: 161837
+      md5: ae30ee5f5556016cb7e4795b7b1dcb24
+      size: 1023
     - path: src/data/mlp_window_dataset.py
       hash: md5
-      md5: 3745d9cc9cb456df80738135584cfc99
-      size: 5217
+      md5: 7ac2f6bd0ec26dfc5dc0845b24297457
+      size: 5275
     - path: src/data/task.py
       hash: md5
-      md5: 9f83bb45f80ff1f76874c32deae9ec4e
-      size: 4005
+      md5: f0603cfe0a07249672c42ed1c6971d79
+      size: 4238
     - path: src/data/window_dataset_utils.py
       hash: md5
       md5: aef82e3803cfd0b4fb8eb9aece54fbab
@@ -567,8 +567,8 @@ stages:
       size: 1089
     - path: src/train_mlp_window.py
       hash: md5
-      md5: ccc544afc11e31b31236a1a43202dde2
-      size: 4384
+      md5: 9ac7d1f5fa1d1d6367f503939f10c6ff
+      size: 4395
     - path: src/utils/metrics.py
       hash: md5
       md5: d9951f3c38d209e9543f99e2fa5a1762
@@ -583,9 +583,7 @@ stages:
       size: 1180
     params:
       params.yaml:
-        experiment:
-          model: mlp_window
-        mlflow.experiment_mlp_window: can_ids_mlp_window
+        mlflow.experiment_mlp_window: road_masq
         model.mlp_window:
           can_id_bits: 11
           hidden_dims:
@@ -594,18 +592,18 @@ stages:
           dropout: false
         prepare:
           label_schema: road
-          features:
-          - deltatime
-          - delta_id
+          features: []
         split:
           unit: window
-          val_ratio: 0.2
+          strategy: stratified_random
+          window_size: 64
+          stride: 64
+          val_ratio: 0.0
           test_ratio: 0.2
-          window_size: 15
-          stride: 15
           downsample: false
           random_seed: 42
-          strategy: stratified_random
+          val_sessions: []
+          test_sessions: []
         training.mlp_window:
           batch_size: 32
           epochs: 100
@@ -613,71 +611,71 @@ stages:
     outs:
     - path: checkpoints/mlp_window_best.keras
       hash: md5
-      md5: 29dab43cfdb7c93ce106fb8125ce7f94
-      size: 169073
+      md5: 7ef48d393c7619bbb47a6c7ff5cc197e
+      size: 533876
     - path: checkpoints/mlp_window_final.keras
       hash: md5
-      md5: 27a9639b85d84acac2f8f42c7ffdb432
-      size: 169073
+      md5: b0f374358179253f29ab52fc5d3766a7
+      size: 533876
     - path: checkpoints/mlp_window_norm_stats.json
       hash: md5
-      md5: 6a195c11b5cd226d653c70e0735d6944
-      size: 698
+      md5: 7499898fd236cb64ba2b24f68aec43ff
+      size: 561
     - path: reports/metrics/mlp_window_best_training_metrics.json
       hash: md5
-      md5: 2097c29c719172808740facc078785be
-      size: 512
+      md5: f7fd685ec22b78836721cbdbde0d5d64
+      size: 243
   eval_mlp_window:
     cmd: PYTHONPATH=src python src/eval_mlp_window.py
     deps:
     - path: checkpoints/mlp_window_best.keras
       hash: md5
-      md5: 29dab43cfdb7c93ce106fb8125ce7f94
-      size: 169073
+      md5: 7ef48d393c7619bbb47a6c7ff5cc197e
+      size: 533876
     - path: checkpoints/mlp_window_norm_stats.json
       hash: md5
-      md5: 6a195c11b5cd226d653c70e0735d6944
-      size: 698
+      md5: 7499898fd236cb64ba2b24f68aec43ff
+      size: 561
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 071598928bf586bd223a8b97b4c1ea92
-      size: 15372300
+      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
+      size: 9887131
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 5a02aa03f82ab659ba96b1899647a50f
-      size: 161481
+      md5: fbb5ca27c5f271093357c454c3aeee90
+      size: 65292
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: 5b802aa9465464d23d44d7aae101d405
-      size: 407417
+      md5: 6ac9d589140cc2f983d0ed264aa3550c
+      size: 138412
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 48d4ae6cb1a3714605f077ca4e1e0d08
-      size: 161837
+      md5: ae30ee5f5556016cb7e4795b7b1dcb24
+      size: 1023
     - path: reports/metrics/mlp_window_best_training_metrics.json
       hash: md5
-      md5: 2097c29c719172808740facc078785be
-      size: 512
+      md5: f7fd685ec22b78836721cbdbde0d5d64
+      size: 243
     - path: src/data/mlp_window_dataset.py
       hash: md5
-      md5: 3745d9cc9cb456df80738135584cfc99
-      size: 5217
+      md5: 7ac2f6bd0ec26dfc5dc0845b24297457
+      size: 5275
     - path: src/data/task.py
       hash: md5
-      md5: 9f83bb45f80ff1f76874c32deae9ec4e
-      size: 4005
+      md5: f0603cfe0a07249672c42ed1c6971d79
+      size: 4238
     - path: src/data/window_dataset_utils.py
       hash: md5
       md5: aef82e3803cfd0b4fb8eb9aece54fbab
       size: 2130
     - path: src/eval_mlp_window.py
       hash: md5
-      md5: 83536ac343e106d1fda55e921d69f3c2
-      size: 8705
+      md5: 89cac960a7a1eecf0557890d02f0888b
+      size: 8716
     - path: src/utils/eval_reporting.py
       hash: md5
-      md5: 2123a915764d88af4e733e7100b43d6d
-      size: 9455
+      md5: fc495e654e38bfb8d322a73628ea1f96
+      size: 9715
     - path: src/utils/metrics.py
       hash: md5
       md5: d9951f3c38d209e9543f99e2fa5a1762
@@ -692,9 +690,7 @@ stages:
       size: 1180
     params:
       params.yaml:
-        experiment:
-          model: mlp_window
-        mlflow.experiment_mlp_window: can_ids_mlp_window
+        mlflow.experiment_mlp_window: road_masq
         model.mlp_window:
           can_id_bits: 11
           hidden_dims:
@@ -703,9 +699,7 @@ stages:
           dropout: false
         prepare:
           label_schema: road
-          features:
-          - deltatime
-          - delta_id
+          features: []
         training.mlp_window:
           batch_size: 32
           epochs: 100
@@ -713,28 +707,28 @@ stages:
     outs:
     - path: reports/figures/mlp_window_test_confusion_matrix.png
       hash: md5
-      md5: 9e54b5e57239bc70dc5fa9fb3d7caac4
-      size: 161892
+      md5: 4d594e45ae895be84ea34befed689151
+      size: 171652
     - path: reports/figures/mlp_window_test_confusion_matrix_counts.png
       hash: md5
-      md5: 04745934a63abf1a93fc120ccf7bdeb3
-      size: 142687
+      md5: 2ee95c3ecf1c5859acaa144192afb75c
+      size: 143577
     - path: reports/figures/mlp_window_train_confusion_matrix.png
       hash: md5
-      md5: 687c61256229511032509fd80d3a7151
-      size: 156598
+      md5: 62f12b50f20a902ff844f227a95f6ea1
+      size: 132214
     - path: reports/figures/mlp_window_val_confusion_matrix.png
       hash: md5
-      md5: ad3e017b685e4ef89fbd7a1c4248c831
-      size: 159584
+      md5: d0d6dda0660918c5071916a3bf4158fc
+      size: 131316
     - path: reports/metrics/mlp_window_classification_report.json
       hash: md5
-      md5: 9954ee2326f6110fe910041efa427041
-      size: 2433
+      md5: 128e307a30f3c1a558a3d259209cc560
+      size: 2298
     - path: reports/metrics/mlp_window_classification_report.txt
       hash: md5
-      md5: fafe7bf3825ab208547d15b9aacb2a41
-      size: 1221
+      md5: 5196b5ca9beab71d3d0fe0e9b3a5ad5a
+      size: 1231
   train_can_st_transformer:
     cmd: PYTHONPATH=src python src/train_can_st_transformer.py
     deps:
@@ -947,3 +941,241 @@ stages:
       hash: md5
       md5: b554d903baacb9f82a2c89b085a3dfec
       size: 3986
+  train_tct_ids:
+    cmd: PYTHONPATH=src python src/train_tct_ids.py
+    deps:
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
+      size: 9887131
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: 6ac9d589140cc2f983d0ed264aa3550c
+      size: 138412
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: ae30ee5f5556016cb7e4795b7b1dcb24
+      size: 1023
+    - path: src/data/task.py
+      hash: md5
+      md5: f0603cfe0a07249672c42ed1c6971d79
+      size: 4238
+    - path: src/data/tct_ids_dataset.py
+      hash: md5
+      md5: 04524c635735377c8097455b8f7372c9
+      size: 8808
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: aef82e3803cfd0b4fb8eb9aece54fbab
+      size: 2130
+    - path: src/model/tct_ids.py
+      hash: md5
+      md5: 9028d5a18084e47632b10e122ef552d2
+      size: 13695
+    - path: src/train_tct_ids.py
+      hash: md5
+      md5: 2a660b9c5b986bdd1d3e0a4926362027
+      size: 6057
+    - path: src/utils/metrics.py
+      hash: md5
+      md5: d9951f3c38d209e9543f99e2fa5a1762
+      size: 4776
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: b681d8dff5d875ee83179f146757dbda
+      size: 4695
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        mlflow.experiment_tct_ids: road_masq
+        model.tct_ids:
+          d_model: 10
+          num_heads: 1
+          num_layers: 3
+          dim_feedforward: 40
+          mlp_hidden_dim: 40
+          tcn_filters: 100
+          tcn_kernel_size: 2
+          tcn_dilations:
+          - 1
+          - 2
+          - 4
+          use_weight_norm: true
+          dropout: 0.1
+          alpha_smooth: 1e-07
+          fusion: concat
+          pooling: last
+        prepare:
+          label_schema: road
+          features: []
+        split:
+          unit: window
+          strategy: stratified_random
+          window_size: 64
+          stride: 64
+          val_ratio: 0.0
+          test_ratio: 0.2
+          downsample: false
+          random_seed: 42
+          val_sessions: []
+          test_sessions: []
+        training.tct_ids:
+          batch_size: 32
+          epochs: 100
+          warmup_epochs: 50
+          learning_rate: 0.001
+          weight_decay: 1e-05
+          lambda_rdrop: 0.1
+    outs:
+    - path: checkpoints/tct_ids_best.keras
+      hash: md5
+      md5: 117ffd6dd4f3a2dba3b2573c0c63a263
+      size: 1626569
+    - path: checkpoints/tct_ids_final.keras
+      hash: md5
+      md5: 0b95e5790338697384ebb69ca151d078
+      size: 1626569
+    - path: checkpoints/tct_ids_mlflow_run_id.txt
+      hash: md5
+      md5: 5fc8a876ac3011cbf333fe259150b26d
+      size: 32
+    - path: reports/metrics/tct_ids_best_training_metrics.json
+      hash: md5
+      md5: cec7c64da22ea43cf2345e26526db4f6
+      size: 339
+    - path: reports/model_summaries/tct_ids_model_report.txt
+      hash: md5
+      md5: bcf18d3f7d8f06a4d260ec145efdd95f
+      size: 20707
+  eval_tct_ids:
+    cmd: PYTHONPATH=src python src/eval_tct_ids.py
+    deps:
+    - path: checkpoints/tct_ids_best.keras
+      hash: md5
+      md5: 117ffd6dd4f3a2dba3b2573c0c63a263
+      size: 1626569
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
+      size: 9887131
+    - path: data/processed/current/test.parquet
+      hash: md5
+      md5: fbb5ca27c5f271093357c454c3aeee90
+      size: 65292
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: 6ac9d589140cc2f983d0ed264aa3550c
+      size: 138412
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: ae30ee5f5556016cb7e4795b7b1dcb24
+      size: 1023
+    - path: reports/metrics/tct_ids_best_training_metrics.json
+      hash: md5
+      md5: cec7c64da22ea43cf2345e26526db4f6
+      size: 339
+    - path: src/data/task.py
+      hash: md5
+      md5: f0603cfe0a07249672c42ed1c6971d79
+      size: 4238
+    - path: src/data/tct_ids_dataset.py
+      hash: md5
+      md5: 04524c635735377c8097455b8f7372c9
+      size: 8808
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: aef82e3803cfd0b4fb8eb9aece54fbab
+      size: 2130
+    - path: src/eval_tct_ids.py
+      hash: md5
+      md5: 865c2307355864892fd193b93d8bde23
+      size: 9831
+    - path: src/model/tct_ids.py
+      hash: md5
+      md5: 9028d5a18084e47632b10e122ef552d2
+      size: 13695
+    - path: src/utils/eval_reporting.py
+      hash: md5
+      md5: fc495e654e38bfb8d322a73628ea1f96
+      size: 9715
+    - path: src/utils/metrics.py
+      hash: md5
+      md5: d9951f3c38d209e9543f99e2fa5a1762
+      size: 4776
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: b681d8dff5d875ee83179f146757dbda
+      size: 4695
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        mlflow.experiment_tct_ids: road_masq
+        model.tct_ids:
+          d_model: 10
+          num_heads: 1
+          num_layers: 3
+          dim_feedforward: 40
+          mlp_hidden_dim: 40
+          tcn_filters: 100
+          tcn_kernel_size: 2
+          tcn_dilations:
+          - 1
+          - 2
+          - 4
+          use_weight_norm: true
+          dropout: 0.1
+          alpha_smooth: 1e-07
+          fusion: concat
+          pooling: last
+        prepare:
+          label_schema: road
+          features: []
+        split:
+          unit: window
+          strategy: stratified_random
+          window_size: 64
+          stride: 64
+          val_ratio: 0.0
+          test_ratio: 0.2
+          downsample: false
+          random_seed: 42
+          val_sessions: []
+          test_sessions: []
+        training.tct_ids:
+          batch_size: 32
+          epochs: 100
+          warmup_epochs: 50
+          learning_rate: 0.001
+          weight_decay: 1e-05
+          lambda_rdrop: 0.1
+    outs:
+    - path: reports/figures/tct_ids_test_confusion_matrix.png
+      hash: md5
+      md5: eab333d6cd8e593ed922680cfb1d188a
+      size: 158288
+    - path: reports/figures/tct_ids_test_confusion_matrix_counts.png
+      hash: md5
+      md5: 426a6ab7206042f8a915c77a91b84689
+      size: 128425
+    - path: reports/figures/tct_ids_train_confusion_matrix.png
+      hash: md5
+      md5: cc3f79d39e74115b62f5a6d24aafd4c8
+      size: 134364
+    - path: reports/figures/tct_ids_val_confusion_matrix.png
+      hash: md5
+      md5: c99567f03d8b401425d746509e2b1296
+      size: 129125
+    - path: reports/metrics/tct_ids_classification_report.json
+      hash: md5
+      md5: 37dc6951ce64ef1fd81d78ed2ca4e021
+      size: 2925
+    - path: reports/metrics/tct_ids_classification_report.txt
+      hash: md5
+      md5: e0027335a7f48bf2f9be107697bd0b78
+      size: 1228

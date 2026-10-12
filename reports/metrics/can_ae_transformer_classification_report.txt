@@ -1,0 +1,30 @@
+Model: can_ae_transformer
+
+TEST METRICS
+------------
+loss                : 0.011131
+accuracy            : 0.996735
+precision_macro     : 0.978072
+recall_macro        : 0.997928
+f1_macro            : 0.987453
+
+CHECKPOINT VS TEST
+-------------------
+Best checkpoint epoch: 100
+
+split                      loss       accuracy   precision   recall      f1
+best_train                   0.007732   0.997933   0.998372   0.997950   0.998161
+best_validation              N/A          N/A          N/A          N/A          N/A       
+test                         0.011131   0.996735   0.978072   0.997928   0.987453
+
+CLASSIFICATION REPORT
+----------------------
+class                 precision   recall      f1          support
+Normal                 0.997942   0.995893   0.996917      2,435
+MEC                    0.888889   1.000000   0.941176          8
+MS                     1.000000   0.998780   0.999390        820
+RLOn                   0.989381   0.992895   0.991135        563
+RLOff                  0.994819   1.000000   0.997403        384
+CS                     0.997403   1.000000   0.998700        384
+macro avg              0.978072   0.997928   0.987453      4,594
+weighted avg           0.996764   0.996735   0.996742      4,594
