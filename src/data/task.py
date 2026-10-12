@@ -72,6 +72,7 @@ MODEL_CONTRACTS = {
     "can_ae_transformer": {"unit": "window"},
     "can_st_transformer": {"unit": "window"},
     "tct_ids": {"unit": "window"},
+    "cnn_lstm": {"unit": "window"},
 }
 
 
