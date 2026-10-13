@@ -1,0 +1,14 @@
+{
+  "selection": {
+    "monitor": "f1_macro",
+    "mode": "max"
+  },
+  "best_epoch": 24,
+  "best_metrics": {
+    "loss": 0.00021523056784644723,
+    "accuracy": 1.0,
+    "precision_macro": 1.0,
+    "recall_macro": 1.0,
+    "f1_macro": 1.0
+  }
+}

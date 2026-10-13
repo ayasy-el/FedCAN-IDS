@@ -284,45 +284,47 @@ print(test_metrics["classification_report_text"])
 
 param_counts = parameter_counts(model)
 best_training_metrics = load_best_training_metrics(BEST_TRAINING_METRICS_PATH)
-metadata = {
-    "dataset": dataset_params,
-    "split": split,
-    "model": model_params,
-    "training": training_params,
-    "parameter_counts": param_counts,
-    "best_training_metrics": best_training_metrics,
-    "mean_latency_ms": mean_latency_ms,
-}
-evaluation_report = build_evaluation_report(
-    test_metrics,
-    param_counts,
-    best_training_metrics,
-    metadata,
-    keras_evaluation=test_results,
+
+full_report = build_evaluation_report(
+    model_name="cnn_lstm",
+    test_results=test_results,
+    class_names=CLASS_NAMES,
+    best_training_report=best_training_metrics,
+    test_classification_report=test_metrics["classification_report"],
+    extra={
+        "dataset": dataset_params,
+        "split": split,
+        "model": model_params,
+        "training": training_params,
+        "parameter_counts": param_counts,
+        "mean_latency_ms": mean_latency_ms,
+    },
 )
 
-save_json_report(evaluation_report, METRICS_JSON_PATH)
-save_text_report(
-    test_metrics["classification_report_text"],
-    METRICS_TEXT_PATH,
-    evaluation_report,
-)
+save_json_report(full_report, METRICS_JSON_PATH)
+save_text_report(full_report, METRICS_TEXT_PATH)
+print(f"Classification report disimpan ke: {METRICS_JSON_PATH}")
+print(f"Text report disimpan ke: {METRICS_TEXT_PATH}")
 
-# MLflow logging
-run_id = load_run_id(RUN_ID_PATH)
-with mlflow.start_run(run_id=run_id):
-    log_evaluation_to_mlflow(
-        evaluation_report,
-        [
-            METRICS_JSON_PATH,
-            METRICS_TEXT_PATH,
-            TRAIN_CONFUSION_MATRIX_PATH,
-            VAL_CONFUSION_MATRIX_PATH,
-            TEST_CONFUSION_MATRIX_PATH,
-            TEST_CONFUSION_MATRIX_COUNTS_PATH,
-        ],
-    )
-    if mean_latency_ms is not None:
+# ==========================================================
+# Log to MLflow (resume the training run)
+# ==========================================================
+
+run_id = log_evaluation_to_mlflow(
+    run_id=load_run_id(RUN_ID_PATH),
+    report=full_report,
+    report_path=METRICS_JSON_PATH,
+    artifact_paths=[
+        TEST_CONFUSION_MATRIX_COUNTS_PATH,
+        TEST_CONFUSION_MATRIX_PATH,
+        TRAIN_CONFUSION_MATRIX_PATH,
+        VAL_CONFUSION_MATRIX_PATH,
+        METRICS_TEXT_PATH,
+    ],
+)
+if mean_latency_ms is not None:
+    with mlflow.start_run(run_id=run_id):
         mlflow.log_metric("inference_latency_ms", mean_latency_ms)
 
+print(f"Metrik evaluasi di-log ke MLflow run: {run_id}")
 print("\nEvaluation successfully finished and logged.")

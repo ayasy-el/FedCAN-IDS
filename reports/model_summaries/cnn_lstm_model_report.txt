@@ -1,0 +1,100 @@
+Model report: cnn_lstm
+================================================================================
+
+Configuration
+-------------
+{
+  "dataset": {
+    "exclude_files": null,
+    "ingest_adapter": "road_raw",
+    "interim_path": "data/interim/canonical.parquet",
+    "name": "road",
+    "prepared_path": "data/interim/prepared.parquet",
+    "processed_dir": "data/processed/current",
+    "raw_dir": "data/raw/road",
+    "variant": "fabrication"
+  },
+  "model": {
+    "cnn_filters": 16,
+    "cnn_kernel_size": 3,
+    "dropout": 0.2,
+    "label_rule": "any_attack",
+    "lstm_hidden_size": 32,
+    "num_features": 5,
+    "rolling_w": 64
+  },
+  "num_classes": 7,
+  "parameter_counts": {
+    "non_trainable_parameters": 0,
+    "total_parameters": 38023,
+    "trainable_parameters": 38023
+  },
+  "split": {
+    "downsample": false,
+    "random_seed": 42,
+    "strategy": "stratified_random",
+    "stride": 64,
+    "test_ratio": 0.2,
+    "test_sessions": [],
+    "unit": "window",
+    "val_ratio": 0.0,
+    "val_sessions": [],
+    "window_size": 64
+  },
+  "task": {
+    "benign_labels": [
+      0
+    ],
+    "class_names": [
+      "Normal",
+      "MEC",
+      "Fuzzing",
+      "MS",
+      "RLOn",
+      "RLOff",
+      "CS"
+    ],
+    "num_classes": 7
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs": 100,
+    "learning_rate": 0.001
+  }
+}
+
+Parameter counts
+----------------
+{
+  "non_trainable_parameters": 0,
+  "total_parameters": 38023,
+  "trainable_parameters": 38023
+}
+
+Keras model summary
+-------------------
+Model: "cnn_lstm"
+__________________________________________________________________________________________________
+ Layer (type)                Output Shape                 Param #   Connected to                  
+==================================================================================================
+ image_input (InputLayer)    [(None, 64, 8, 8, 1)]        0         []                            
+                                                                                                  
+ time_distributed_cnn (Time  (None, 64, 256)              160       ['image_input[0][0]']         
+ Distributed)                                                                                     
+                                                                                                  
+ features_input (InputLayer  [(None, 64, 5)]              0         []                            
+ )                                                                                                
+                                                                                                  
+ feature_fusion (Concatenat  (None, 64, 261)              0         ['time_distributed_cnn[0][0]',
+ e)                                                                  'features_input[0][0]']      
+                                                                                                  
+ lstm (LSTM)                 (None, 32)                   37632     ['feature_fusion[0][0]']      
+                                                                                                  
+ classification_head (Dense  (None, 7)                    231       ['lstm[0][0]']                
+ )                                                                                                
+                                                                                                  
+==================================================================================================
+Total params: 38023 (148.53 KB)
+Trainable params: 38023 (148.53 KB)
+Non-trainable params: 0 (0.00 Byte)
+__________________________________________________________________________________________________

@@ -1,0 +1,141 @@
+{
+  "model": {
+    "num_features": 5,
+    "cnn_filters": 16,
+    "cnn_kernel_size": 3,
+    "dropout": 0.2,
+    "lstm_hidden_size": 32,
+    "rolling_w": 64,
+    "label_rule": "any_attack"
+  },
+  "test": {
+    "loss": 0.0009688928839750588,
+    "accuracy": 0.9997986555099487,
+    "precision_macro": 0.9999464750289917,
+    "recall_macro": 0.9997571110725403,
+    "f1_macro": 0.999851644039154,
+    "classification_report": {
+      "Normal": {
+        "precision": 0.9996253278381416,
+        "recall": 1.0,
+        "f1-score": 0.9998126288176878,
+        "support": 2668.0
+      },
+      "MEC": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 8.0
+      },
+      "Fuzzing": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 45.0
+      },
+      "MS": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 856.0
+      },
+      "RLOn": {
+        "precision": 1.0,
+        "recall": 0.9982993197278912,
+        "f1-score": 0.9991489361702127,
+        "support": 588.0
+      },
+      "RLOff": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 401.0
+      },
+      "CS": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 401.0
+      },
+      "accuracy": 0.9997986712301188,
+      "macro avg": {
+        "precision": 0.9999464754054488,
+        "recall": 0.9997570456754131,
+        "f1-score": 0.9998516521411286,
+        "support": 4967.0
+      },
+      "weighted avg": {
+        "precision": 0.9997987466624041,
+        "recall": 0.9997986712301188,
+        "f1-score": 0.9997986044199065,
+        "support": 4967.0
+      }
+    }
+  },
+  "class_names": [
+    "Normal",
+    "MEC",
+    "Fuzzing",
+    "MS",
+    "RLOn",
+    "RLOff",
+    "CS"
+  ],
+  "comparison": {
+    "best_epoch": 24,
+    "best_train": {
+      "loss": 0.00021523056784644723,
+      "accuracy": 1.0,
+      "precision_macro": 1.0,
+      "recall_macro": 1.0,
+      "f1_macro": 1.0
+    },
+    "best_validation": {
+      "loss": null,
+      "accuracy": null,
+      "precision_macro": null,
+      "recall_macro": null,
+      "f1_macro": null
+    },
+    "test": {
+      "loss": 0.0009688928839750588,
+      "accuracy": 0.9997986555099487,
+      "precision_macro": 0.9999464750289917,
+      "recall_macro": 0.9997571110725403,
+      "f1_macro": 0.999851644039154
+    }
+  },
+  "dataset": {
+    "name": "road",
+    "raw_dir": "data/raw/road",
+    "ingest_adapter": "road_raw",
+    "variant": "fabrication",
+    "exclude_files": null,
+    "interim_path": "data/interim/canonical.parquet",
+    "prepared_path": "data/interim/prepared.parquet",
+    "processed_dir": "data/processed/current"
+  },
+  "split": {
+    "unit": "window",
+    "strategy": "stratified_random",
+    "window_size": 64,
+    "stride": 64,
+    "val_ratio": 0.0,
+    "test_ratio": 0.2,
+    "downsample": false,
+    "random_seed": 42,
+    "val_sessions": [],
+    "test_sessions": []
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs": 100,
+    "learning_rate": 0.001
+  },
+  "parameter_counts": {
+    "trainable_parameters": 38023,
+    "non_trainable_parameters": 0,
+    "total_parameters": 38023
+  },
+  "mean_latency_ms": 12.459703321617685
+}
