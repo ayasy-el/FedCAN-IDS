@@ -524,6 +524,77 @@ stages:
       - reports/figures/cnn_lstm_test_confusion_matrix_counts.png:
           cache: false
 
+  train_transformer_gru:
+    cmd: PYTHONPATH=src python src/train_transformer_gru.py
+    deps:
+      - src/train_transformer_gru.py
+      - src/data/task.py
+      - src/data/cnn_lstm_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/transformer_gru.py
+      - src/utils/metrics.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/interim/prepared.parquet
+    params:
+      - prepare
+      - split
+      - model.transformer_gru
+      - training.transformer_gru
+      - mlflow.experiment_transformer_gru
+    outs:
+      - checkpoints/transformer_gru_best.keras:
+          cache: false
+      - checkpoints/transformer_gru_final.keras:
+          cache: false
+      - checkpoints/transformer_gru_mlflow_run_id.txt:
+          cache: false
+      - reports/metrics/transformer_gru_best_training_metrics.json:
+          cache: false
+      - reports/model_summaries/transformer_gru_model_report.txt:
+          cache: false
+
+  eval_transformer_gru:
+    cmd: PYTHONPATH=src python src/eval_transformer_gru.py
+    deps:
+      - src/eval_transformer_gru.py
+      - src/data/task.py
+      - src/data/cnn_lstm_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/transformer_gru.py
+      - src/utils/eval_reporting.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - src/utils/metrics.py
+      - checkpoints/transformer_gru_best.keras
+      - reports/metrics/transformer_gru_best_training_metrics.json
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
+      - data/interim/prepared.parquet
+    params:
+      - prepare
+      - split
+      - model.transformer_gru
+      - training.transformer_gru
+      - mlflow.experiment_transformer_gru
+    metrics:
+      - reports/metrics/transformer_gru_classification_report.json:
+          cache: false
+    outs:
+      - reports/metrics/transformer_gru_classification_report.txt:
+          cache: false
+      - reports/figures/transformer_gru_train_confusion_matrix.png:
+          cache: false
+      - reports/figures/transformer_gru_val_confusion_matrix.png:
+          cache: false
+      - reports/figures/transformer_gru_test_confusion_matrix.png:
+          cache: false
+      - reports/figures/transformer_gru_test_confusion_matrix_counts.png:
+          cache: false
+
 
 
 
