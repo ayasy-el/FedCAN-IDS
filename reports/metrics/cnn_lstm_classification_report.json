@@ -1,0 +1,141 @@
+{
+  "model": {
+    "num_features": 5,
+    "cnn_filters": 16,
+    "cnn_kernel_size": 3,
+    "dropout": 0.2,
+    "lstm_hidden_size": 32,
+    "rolling_w": 64,
+    "label_rule": "any_attack"
+  },
+  "test": {
+    "loss": 0.0011907183798030019,
+    "accuracy": 0.9997780323028564,
+    "precision_macro": 0.9997439980506897,
+    "recall_macro": 0.9995177388191223,
+    "f1_macro": 0.9996308088302612,
+    "classification_report": {
+      "Normal": {
+        "precision": 0.9997828290140437,
+        "recall": 0.9999275991891109,
+        "f1-score": 0.9998552088612177,
+        "support": 41436.0
+      },
+      "DoS": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 618.0
+      },
+      "Fuzzing": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 1553.0
+      },
+      "Spoofing": {
+        "precision": 0.9999075614716214,
+        "recall": 0.9998151400314262,
+        "f1-score": 0.999861348615797,
+        "support": 10819.0
+      },
+      "Replay": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 3582.0
+      },
+      "Masquerade": {
+        "precision": 0.9995022399203584,
+        "recall": 0.9995022399203584,
+        "f1-score": 0.9995022399203584,
+        "support": 2009.0
+      },
+      "Suspension": {
+        "precision": 0.9990154250082048,
+        "recall": 0.9973787680209698,
+        "f1-score": 0.9981964256435482,
+        "support": 3052.0
+      },
+      "accuracy": 0.9997780208977469,
+      "macro avg": {
+        "precision": 0.9997440079163182,
+        "recall": 0.9995176781659808,
+        "f1-score": 0.9996307461487032,
+        "support": 63069.0
+      },
+      "weighted avg": {
+        "precision": 0.999777962037014,
+        "recall": 0.9997780208977469,
+        "f1-score": 0.9997779551937059,
+        "support": 63069.0
+      }
+    }
+  },
+  "class_names": [
+    "Normal",
+    "DoS",
+    "Fuzzing",
+    "Spoofing",
+    "Replay",
+    "Masquerade",
+    "Suspension"
+  ],
+  "comparison": {
+    "best_epoch": 89,
+    "best_train": {
+      "loss": 0.0008796799229457974,
+      "accuracy": 0.9997780323028564,
+      "precision_macro": 0.9995002150535583,
+      "recall_macro": 0.999510645866394,
+      "f1_macro": 0.9995054006576538
+    },
+    "best_validation": {
+      "loss": 0.0009360595140606165,
+      "accuracy": 0.9997780323028564,
+      "precision_macro": 0.9997197389602661,
+      "recall_macro": 0.999483585357666,
+      "f1_macro": 0.9996016621589661
+    },
+    "test": {
+      "loss": 0.0011907183798030019,
+      "accuracy": 0.9997780323028564,
+      "precision_macro": 0.9997439980506897,
+      "recall_macro": 0.9995177388191223,
+      "f1_macro": 0.9996308088302612
+    }
+  },
+  "dataset": {
+    "name": "can-mirgu",
+    "raw_dir": "data/raw/CAN-MIRGU/Attack",
+    "ingest_adapter": "can_mirgu",
+    "variant": "extended",
+    "exclude_files": null,
+    "interim_path": "data/interim/canonical.parquet",
+    "prepared_path": "data/interim/prepared.parquet",
+    "processed_dir": "data/processed/current"
+  },
+  "split": {
+    "unit": "window",
+    "strategy": "stratified_random",
+    "window_size": 64,
+    "stride": 64,
+    "val_ratio": 0.2,
+    "test_ratio": 0.2,
+    "downsample": false,
+    "random_seed": 42,
+    "val_sessions": [],
+    "test_sessions": []
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs": 100,
+    "learning_rate": 0.001
+  },
+  "parameter_counts": {
+    "trainable_parameters": 38023,
+    "non_trainable_parameters": 0,
+    "total_parameters": 38023
+  },
+  "mean_latency_ms": 12.24985906707221
+}

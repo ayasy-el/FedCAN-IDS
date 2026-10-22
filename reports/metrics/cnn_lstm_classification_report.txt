@@ -1,0 +1,31 @@
+Model: {'num_features': 5, 'cnn_filters': 16, 'cnn_kernel_size': 3, 'dropout': 0.2, 'lstm_hidden_size': 32, 'rolling_w': 64, 'label_rule': 'any_attack'}
+
+TEST METRICS
+------------
+loss                : 0.001191
+accuracy            : 0.999778
+precision_macro     : 0.999744
+recall_macro        : 0.999518
+f1_macro            : 0.999631
+
+CHECKPOINT VS TEST
+-------------------
+Best checkpoint epoch: 89
+
+split                      loss       accuracy   precision   recall      f1
+best_train                   0.000880   0.999778   0.999500   0.999511   0.999505
+best_validation              0.000936   0.999778   0.999720   0.999484   0.999602
+test                         0.001191   0.999778   0.999744   0.999518   0.999631
+
+CLASSIFICATION REPORT
+----------------------
+class                 precision   recall      f1          support
+Normal                 0.999783   0.999928   0.999855     41,436
+DoS                    1.000000   1.000000   1.000000        618
+Fuzzing                1.000000   1.000000   1.000000      1,553
+Spoofing               0.999908   0.999815   0.999861     10,819
+Replay                 1.000000   1.000000   1.000000      3,582
+Masquerade             0.999502   0.999502   0.999502      2,009
+Suspension             0.999015   0.997379   0.998196      3,052
+macro avg              0.999744   0.999518   0.999631     63,069
+weighted avg           0.999778   0.999778   0.999778     63,069

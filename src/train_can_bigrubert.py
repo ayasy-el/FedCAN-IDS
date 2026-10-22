@@ -137,7 +137,7 @@ with mlflow.start_run() as run:
         keras.callbacks.ModelCheckpoint(
             best_path,
             monitor=monitor,
-            mode="min",
+            mode="max",
             save_best_only=True,
         ),
         # keras.callbacks.EarlyStopping(
@@ -147,7 +147,7 @@ with mlflow.start_run() as run:
         #     min_delta=training["early_stopping_min_delta"],
         #     restore_best_weights=True,
         # ),
-        BestEpochMetrics(best_metrics_path, monitor=monitor, mode="min"),
+        BestEpochMetrics(best_metrics_path, monitor=monitor, mode="max"),
         MlflowEpochLogger(),
     ]
     fit_kwargs = {"epochs": training["epochs"], "callbacks": callbacks}

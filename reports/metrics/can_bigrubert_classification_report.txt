@@ -2,33 +2,29 @@ Model: can_bigrubert
 
 TEST METRICS
 ------------
-loss                : 0.140729
-accuracy            : 0.941973
-precision_macro     : 0.942131
-recall_macro        : 0.941973
-f1_macro            : 0.941998
+loss                : 0.002333
+accuracy            : 0.998912
+precision_macro     : 0.999658
+recall_macro        : 0.895833
+f1_macro            : 0.924071
 
 CHECKPOINT VS TEST
 -------------------
-Best checkpoint epoch: 3
+Best checkpoint epoch: 19
 
 split                      loss       accuracy   precision   recall      f1
-best_train                   0.166651   0.921151   0.920957   0.921151   0.921019
-best_validation              0.132288   0.945049   0.945051   0.945049   0.944989
-test                         0.140729   0.941973   0.942131   0.941973   0.941998
+best_train                   0.003676   0.999021   0.972000   0.952039   0.961256
+best_validation              N/A          N/A          N/A          N/A          N/A       
+test                         0.002333   0.998912   0.999658   0.895833   0.924071
 
 CLASSIFICATION REPORT
 ----------------------
 class                 precision   recall      f1          support
-benign-driving         0.748996   0.721470   0.734975        517
-DoS-driving            1.000000   0.998066   0.999032        517
-Fuzzing-driving        0.998069   1.000000   0.999034        517
-Spoofing-driving       0.994186   0.992263   0.993224        517
-Replay-driving         0.724395   0.752418   0.738140        517
-benign-stationary      0.976879   0.980658   0.978764        517
-DoS-stationary         1.000000   0.998066   0.999032        517
-Fuzzing-stationary     1.000000   1.000000   1.000000        517
-Spoofing-stationary    0.998054   0.992263   0.995150        517
-Replay-stationary      0.980732   0.984526   0.982625        517
-macro avg              0.942131   0.941973   0.941998      5,170
-weighted avg           0.942131   0.941973   0.941998      5,170
+Normal                 0.997951   1.000000   0.998974      2,435
+MEC                    1.000000   0.375000   0.545455          8
+MS                     1.000000   1.000000   1.000000        820
+RLOn                   1.000000   1.000000   1.000000        563
+RLOff                  1.000000   1.000000   1.000000        384
+CS                     1.000000   1.000000   1.000000        384
+macro avg              0.999658   0.895833   0.924071      4,594
+weighted avg           0.998914   0.998912   0.998665      4,594
