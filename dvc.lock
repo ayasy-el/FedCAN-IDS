@@ -23,19 +23,19 @@ stages:
         dataset.ingest_adapter: road_raw
         dataset.interim_path: data/interim/canonical.parquet
         dataset.raw_dir: data/raw/road
-        dataset.variant: fabrication
+        dataset.variant: masquerade
     outs:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 74c3d742d0bedac1fa8a8f8ee9c6b985
-      size: 17529833
+      md5: 65c8704dd0bbb01bee6e955d2e9a7ae7
+      size: 16166111
   prepare:
     cmd: PYTHONPATH=src python src/data/prepare.py
     deps:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 74c3d742d0bedac1fa8a8f8ee9c6b985
-      size: 17529833
+      md5: 65c8704dd0bbb01bee6e955d2e9a7ae7
+      size: 16166111
     - path: src/data/prepare.py
       hash: md5
       md5: 759d9355c6fa9de09b2a9f1b271fb1ea
@@ -51,22 +51,22 @@ stages:
     params:
       params.yaml:
         dataset.prepared_path: data/interim/prepared.parquet
-        dataset.variant: fabrication
+        dataset.variant: masquerade
         prepare:
           label_schema: road
           features: []
     outs:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: caa7ab8789d86f42b0e20d4a40d54982
-      size: 10723271
+      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
+      size: 9887131
   split:
     cmd: PYTHONPATH=src python src/data/split.py
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: caa7ab8789d86f42b0e20d4a40d54982
-      size: 10723271
+      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
+      size: 9887131
     - path: src/data/split.py
       hash: md5
       md5: 07ee510734c7364c3256ccf7f3d91663
@@ -78,14 +78,14 @@ stages:
     params:
       params.yaml:
         dataset.processed_dir: data/processed/current
-        dataset.variant: fabrication
+        dataset.variant: masquerade
         prepare.label_schema: road
         split:
           unit: window
           strategy: stratified_random
-          window_size: 64
-          stride: 64
-          val_ratio: 0.0
+          window_size: 16
+          stride: 8
+          val_ratio: 0.2
           test_ratio: 0.2
           downsample: false
           random_seed: 42
@@ -94,16 +94,16 @@ stages:
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: e361c2eef93e088d3906a88d4744d5a3
-      size: 71453
+      md5: 56ef2eb984569ad856bbbbd60f22bb31
+      size: 257290
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: b1ddc661882b9feadb7cf225e1096e6e
-      size: 147614
+      md5: a792172c399b78d51193c05e717b04e2
+      size: 699210
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: ae30ee5f5556016cb7e4795b7b1dcb24
-      size: 1023
+      md5: 17d2934e30dd82f67ee7dc000ad30f96
+      size: 257312
   train_can_bigrubert:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:
@@ -1178,16 +1178,16 @@ stages:
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: caa7ab8789d86f42b0e20d4a40d54982
-      size: 10723271
+      md5: 488e517fa0695fbbe8df987eb40d999e
+      size: 142537265
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: b1ddc661882b9feadb7cf225e1096e6e
-      size: 147614
+      md5: 20a6798dfeff3e3fd867846a180acaf1
+      size: 1233759
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: ae30ee5f5556016cb7e4795b7b1dcb24
-      size: 1023
+      md5: ff32cea8814134c605f66649a635cca1
+      size: 497628
     - path: src/data/cnn_lstm_dataset.py
       hash: md5
       md5: a02c5619afa0987e95e82ed51cba3237
@@ -1232,14 +1232,14 @@ stages:
           rolling_w: 64
           label_rule: any_attack
         prepare:
-          label_schema: road
+          label_schema: CANMIRGU
           features: []
         split:
           unit: window
           strategy: stratified_random
           window_size: 64
           stride: 64
-          val_ratio: 0.0
+          val_ratio: 0.2
           test_ratio: 0.2
           downsample: false
           random_seed: 42
@@ -1252,51 +1252,51 @@ stages:
     outs:
     - path: checkpoints/cnn_lstm_best.keras
       hash: md5
-      md5: b8668fd827ef40e10cf08f5bbed6899e
+      md5: 43fa2fcc16d1a88a324c08549ca98b2b
       size: 513107
     - path: checkpoints/cnn_lstm_final.keras
       hash: md5
-      md5: 7874a381dbaaf69ee7df48a78b2ff207
+      md5: 6bf33be9670223d8e1c88c8dae454197
       size: 513107
     - path: checkpoints/cnn_lstm_mlflow_run_id.txt
       hash: md5
-      md5: 477108bd756783f62e7bed019305e145
+      md5: ca5ee9fc33d17d7f2ccaf845aca5c0fb
       size: 32
     - path: reports/metrics/cnn_lstm_best_training_metrics.json
       hash: md5
-      md5: eb8cbb5905895681966e0b186bdd0f0c
-      size: 244
+      md5: 4627cb2efae68ccb941b17e9c28aae57
+      size: 515
     - path: reports/model_summaries/cnn_lstm_model_report.txt
       hash: md5
-      md5: 3f723f80c38ebaaf93da6bf9d7990447
-      size: 3717
+      md5: 662ecfd433a535fabdfefa1d31f5feba
+      size: 3753
   eval_cnn_lstm:
     cmd: PYTHONPATH=src python src/eval_cnn_lstm.py
     deps:
     - path: checkpoints/cnn_lstm_best.keras
       hash: md5
-      md5: b8668fd827ef40e10cf08f5bbed6899e
+      md5: 43fa2fcc16d1a88a324c08549ca98b2b
       size: 513107
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: caa7ab8789d86f42b0e20d4a40d54982
-      size: 10723271
+      md5: 488e517fa0695fbbe8df987eb40d999e
+      size: 142537265
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: e361c2eef93e088d3906a88d4744d5a3
-      size: 71453
+      md5: 864d6b8d6fd338f21f3f3a680246b521
+      size: 496851
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: b1ddc661882b9feadb7cf225e1096e6e
-      size: 147614
+      md5: 20a6798dfeff3e3fd867846a180acaf1
+      size: 1233759
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: ae30ee5f5556016cb7e4795b7b1dcb24
-      size: 1023
+      md5: ff32cea8814134c605f66649a635cca1
+      size: 497628
     - path: reports/metrics/cnn_lstm_best_training_metrics.json
       hash: md5
-      md5: eb8cbb5905895681966e0b186bdd0f0c
-      size: 244
+      md5: 4627cb2efae68ccb941b17e9c28aae57
+      size: 515
     - path: src/data/cnn_lstm_dataset.py
       hash: md5
       md5: a02c5619afa0987e95e82ed51cba3237
@@ -1345,14 +1345,14 @@ stages:
           rolling_w: 64
           label_rule: any_attack
         prepare:
-          label_schema: road
+          label_schema: CANMIRGU
           features: []
         split:
           unit: window
           strategy: stratified_random
           window_size: 64
           stride: 64
-          val_ratio: 0.0
+          val_ratio: 0.2
           test_ratio: 0.2
           downsample: false
           random_seed: 42
@@ -1365,25 +1365,25 @@ stages:
     outs:
     - path: reports/figures/cnn_lstm_test_confusion_matrix.png
       hash: md5
-      md5: 7cc1e93c00e8f14b0ab254f3eeeed772
-      size: 156728
+      md5: 8e90ed7a2de1b8e05534b2e22975ea49
+      size: 185975
     - path: reports/figures/cnn_lstm_test_confusion_matrix_counts.png
       hash: md5
-      md5: 4031242068beca395172efb26d285d94
-      size: 150228
+      md5: 7f478ed417834c9a83364d29d566997e
+      size: 186952
     - path: reports/figures/cnn_lstm_train_confusion_matrix.png
       hash: md5
-      md5: 5324b4aff3811372521b3e43110ab3b5
-      size: 153210
+      md5: 1e37ba2027aa42ac11e411ffc2e73a13
+      size: 179753
     - path: reports/figures/cnn_lstm_val_confusion_matrix.png
       hash: md5
-      md5: 50f94a99a56b43da5c88927008221c3a
-      size: 151606
+      md5: 1f045519ce81308eebd394a7fd2f98d8
+      size: 186961
     - path: reports/metrics/cnn_lstm_classification_report.json
       hash: md5
-      md5: 4ea0967c27e4fb9ce0ca545bb4528063
-      size: 3283
+      md5: e0adfcb55f48a3c13dfc02cbb42f3b60
+      size: 3601
     - path: reports/metrics/cnn_lstm_classification_report.txt
       hash: md5
-      md5: 79397f1fe68d00fb6f744b6566d78c89
-      size: 1431
+      md5: 2846541601545ec61f033f3d7abd39ba
+      size: 1421

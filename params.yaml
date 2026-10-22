@@ -2,7 +2,7 @@ dataset:
   name: road
   raw_dir: data/raw/road
   ingest_adapter: road_raw
-  variant: fabrication
+  variant: masquerade
   exclude_files: null
   interim_path: data/interim/canonical.parquet
   prepared_path: data/interim/prepared.parquet
@@ -15,9 +15,9 @@ prepare:
 split:
   unit: window
   strategy: stratified_random
-  window_size: 64
-  stride: 64
-  val_ratio: 0.0
+  window_size: 16
+  stride: 8
+  val_ratio: 0.2
   test_ratio: 0.2
   downsample: false
   random_seed: 42
