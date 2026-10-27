@@ -1,0 +1,109 @@
+Model report: transformer_gru
+================================================================================
+
+Configuration
+-------------
+{
+  "dataset": {
+    "exclude_files": [
+      "Pre_train_D_0.csv",
+      "Pre_train_S_0.csv"
+    ],
+    "ingest_adapter": "car_hacking_attack_defense",
+    "interim_path": "data/interim/canonical.parquet",
+    "name": "carhacking_a&d",
+    "prepared_path": "data/interim/prepared.parquet",
+    "processed_dir": "data/processed/current",
+    "raw_dir": "data/raw/Car_Hacking_Challenge_Dataset/0_Preliminary",
+    "variant": null
+  },
+  "model": {
+    "d_model": 16,
+    "dim_feedforward": 32,
+    "dropout": 0.2,
+    "gru_hidden_size": 32,
+    "label_rule": "any_attack",
+    "num_features": 5,
+    "num_heads": 2,
+    "rolling_w": 50
+  },
+  "num_classes": 10,
+  "parameter_counts": {
+    "non_trainable_parameters": 0,
+    "total_parameters": 31130,
+    "trainable_parameters": 31130
+  },
+  "split": {
+    "downsample": false,
+    "random_seed": 42,
+    "strategy": "stratified_random",
+    "stride": 8,
+    "test_ratio": 0.2,
+    "test_sessions": [],
+    "unit": "window",
+    "val_ratio": 0.2,
+    "val_sessions": [],
+    "window_size": 16
+  },
+  "task": {
+    "benign_labels": [
+      0,
+      5
+    ],
+    "class_names": [
+      "benign-driving",
+      "DoS-driving",
+      "Fuzzing-driving",
+      "Spoofing-driving",
+      "Replay-driving",
+      "benign-stationary",
+      "DoS-stationary",
+      "Fuzzing-stationary",
+      "Spoofing-stationary",
+      "Replay-stationary"
+    ],
+    "num_classes": 10
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs": 100,
+    "learning_rate": 0.001
+  }
+}
+
+Parameter counts
+----------------
+{
+  "non_trainable_parameters": 0,
+  "total_parameters": 31130,
+  "trainable_parameters": 31130
+}
+
+Keras model summary
+-------------------
+Model: "transformer_gru"
+__________________________________________________________________________________________________
+ Layer (type)                Output Shape                 Param #   Connected to                  
+==================================================================================================
+ image_input (InputLayer)    [(None, 16, 8, 8, 1)]        0         []                            
+                                                                                                  
+ time_distributed_transform  (None, 16, 256)              2480      ['image_input[0][0]']         
+ er (TimeDistributed)                                                                             
+                                                                                                  
+ features_input (InputLayer  [(None, 16, 5)]              0         []                            
+ )                                                                                                
+                                                                                                  
+ feature_fusion (Concatenat  (None, 16, 261)              0         ['time_distributed_transformer
+ e)                                                                 [0][0]',                      
+                                                                     'features_input[0][0]']      
+                                                                                                  
+ gru (GRU)                   (None, 32)                   28320     ['feature_fusion[0][0]']      
+                                                                                                  
+ classification_head (Dense  (None, 10)                   330       ['gru[0][0]']                 
+ )                                                                                                
+                                                                                                  
+==================================================================================================
+Total params: 31130 (121.60 KB)
+Trainable params: 31130 (121.60 KB)
+Non-trainable params: 0 (0.00 Byte)
+__________________________________________________________________________________________________

@@ -20,30 +20,32 @@ stages:
     params:
       params.yaml:
         dataset.exclude_files:
-        dataset.ingest_adapter: road_raw
+        - Pre_train_D_0.csv
+        - Pre_train_S_0.csv
+        dataset.ingest_adapter: car_hacking_attack_defense
         dataset.interim_path: data/interim/canonical.parquet
-        dataset.raw_dir: data/raw/road
-        dataset.variant: masquerade
+        dataset.raw_dir: data/raw/Car_Hacking_Challenge_Dataset/0_Preliminary
+        dataset.variant:
     outs:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 65c8704dd0bbb01bee6e955d2e9a7ae7
-      size: 16166111
+      md5: 6df97abfa41608c0c358480a167cd977
+      size: 88334260
   prepare:
     cmd: PYTHONPATH=src python src/data/prepare.py
     deps:
     - path: data/interim/canonical.parquet
       hash: md5
-      md5: 65c8704dd0bbb01bee6e955d2e9a7ae7
-      size: 16166111
+      md5: 6df97abfa41608c0c358480a167cd977
+      size: 88334260
     - path: src/data/prepare.py
       hash: md5
       md5: 759d9355c6fa9de09b2a9f1b271fb1ea
       size: 6538
     - path: src/data/task.py
       hash: md5
-      md5: da0735f78714170ff2bcb5a5139feabc
-      size: 4274
+      md5: c42db032b05395763bc9cfd3f6c0d961
+      size: 4317
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -51,22 +53,22 @@ stages:
     params:
       params.yaml:
         dataset.prepared_path: data/interim/prepared.parquet
-        dataset.variant: masquerade
+        dataset.variant:
         prepare:
-          label_schema: road
+          label_schema: ten_state_attack
           features: []
     outs:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
-      size: 9887131
+      md5: 4508a035d5b6a252cd34d8738cf82485
+      size: 63323419
   split:
     cmd: PYTHONPATH=src python src/data/split.py
     deps:
     - path: data/interim/prepared.parquet
       hash: md5
-      md5: 5b39dc3d26d4b23f0ba7857da1f7f8d3
-      size: 9887131
+      md5: 4508a035d5b6a252cd34d8738cf82485
+      size: 63323419
     - path: src/data/split.py
       hash: md5
       md5: 07ee510734c7364c3256ccf7f3d91663
@@ -78,8 +80,8 @@ stages:
     params:
       params.yaml:
         dataset.processed_dir: data/processed/current
-        dataset.variant: masquerade
-        prepare.label_schema: road
+        dataset.variant:
+        prepare.label_schema: ten_state_attack
         split:
           unit: window
           strategy: stratified_random
@@ -94,16 +96,16 @@ stages:
     outs:
     - path: data/processed/current/test.parquet
       hash: md5
-      md5: 56ef2eb984569ad856bbbbd60f22bb31
-      size: 257290
+      md5: f6254b1614e2d307983c99ca53894443
+      size: 2014557
     - path: data/processed/current/train.parquet
       hash: md5
-      md5: a792172c399b78d51193c05e717b04e2
-      size: 699210
+      md5: ac1649f028c9236d3053050d33d0cf58
+      size: 6041126
     - path: data/processed/current/val.parquet
       hash: md5
-      md5: 17d2934e30dd82f67ee7dc000ad30f96
-      size: 257312
+      md5: 4de679aa636d2c5494b78e2d7709d16b
+      size: 2014132
   train_can_bigrubert:
     cmd: PYTHONPATH=src python src/train_can_bigrubert.py
     deps:
@@ -1387,3 +1389,219 @@ stages:
       hash: md5
       md5: 2846541601545ec61f033f3d7abd39ba
       size: 1421
+  train_transformer_gru:
+    cmd: PYTHONPATH=src python src/train_transformer_gru.py
+    deps:
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: 4508a035d5b6a252cd34d8738cf82485
+      size: 63323419
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: ac1649f028c9236d3053050d33d0cf58
+      size: 6041126
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: 4de679aa636d2c5494b78e2d7709d16b
+      size: 2014132
+    - path: src/data/cnn_lstm_dataset.py
+      hash: md5
+      md5: a02c5619afa0987e95e82ed51cba3237
+      size: 12002
+    - path: src/data/task.py
+      hash: md5
+      md5: c42db032b05395763bc9cfd3f6c0d961
+      size: 4317
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: aef82e3803cfd0b4fb8eb9aece54fbab
+      size: 2130
+    - path: src/model/transformer_gru.py
+      hash: md5
+      md5: d1c5ff30d82c3bc387ab0111fd29e4db
+      size: 7672
+    - path: src/train_transformer_gru.py
+      hash: md5
+      md5: c4b6d8eb6db36902712b4277eae1d06f
+      size: 5256
+    - path: src/utils/metrics.py
+      hash: md5
+      md5: d9951f3c38d209e9543f99e2fa5a1762
+      size: 4776
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: b681d8dff5d875ee83179f146757dbda
+      size: 4695
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        mlflow.experiment_transformer_gru: can_ids_transformer_gru
+        model.transformer_gru:
+          num_features: 5
+          d_model: 16
+          num_heads: 2
+          dim_feedforward: 32
+          dropout: 0.2
+          gru_hidden_size: 32
+          rolling_w: 50
+          label_rule: any_attack
+        prepare:
+          label_schema: ten_state_attack
+          features: []
+        split:
+          unit: window
+          strategy: stratified_random
+          window_size: 16
+          stride: 8
+          val_ratio: 0.2
+          test_ratio: 0.2
+          downsample: false
+          random_seed: 42
+          val_sessions: []
+          test_sessions: []
+        training.transformer_gru:
+          batch_size: 32
+          epochs: 100
+          learning_rate: 0.001
+    outs:
+    - path: checkpoints/transformer_gru_best.keras
+      hash: md5
+      md5: e9c311ba1470da98c2a96fe8095e6926
+      size: 487876
+    - path: checkpoints/transformer_gru_final.keras
+      hash: md5
+      md5: 844e70f2ca07666b6018fff402fbf539
+      size: 487876
+    - path: checkpoints/transformer_gru_mlflow_run_id.txt
+      hash: md5
+      md5: b7ca6333d1543d4627bad4b9c3f7b2d9
+      size: 32
+    - path: reports/metrics/transformer_gru_best_training_metrics.json
+      hash: md5
+      md5: 7675ceea77df696a991adafcdc08d9dd
+      size: 515
+    - path: reports/model_summaries/transformer_gru_model_report.txt
+      hash: md5
+      md5: 5e0a88613691266800c93041137f07df
+      size: 4126
+  eval_transformer_gru:
+    cmd: PYTHONPATH=src python src/eval_transformer_gru.py
+    deps:
+    - path: checkpoints/transformer_gru_best.keras
+      hash: md5
+      md5: e9c311ba1470da98c2a96fe8095e6926
+      size: 487876
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: 4508a035d5b6a252cd34d8738cf82485
+      size: 63323419
+    - path: data/processed/current/test.parquet
+      hash: md5
+      md5: f6254b1614e2d307983c99ca53894443
+      size: 2014557
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: ac1649f028c9236d3053050d33d0cf58
+      size: 6041126
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: 4de679aa636d2c5494b78e2d7709d16b
+      size: 2014132
+    - path: reports/metrics/transformer_gru_best_training_metrics.json
+      hash: md5
+      md5: 7675ceea77df696a991adafcdc08d9dd
+      size: 515
+    - path: src/data/cnn_lstm_dataset.py
+      hash: md5
+      md5: a02c5619afa0987e95e82ed51cba3237
+      size: 12002
+    - path: src/data/task.py
+      hash: md5
+      md5: c42db032b05395763bc9cfd3f6c0d961
+      size: 4317
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: aef82e3803cfd0b4fb8eb9aece54fbab
+      size: 2130
+    - path: src/eval_transformer_gru.py
+      hash: md5
+      md5: bce1132c70a49e9a6346516509ef1009
+      size: 10831
+    - path: src/model/transformer_gru.py
+      hash: md5
+      md5: d1c5ff30d82c3bc387ab0111fd29e4db
+      size: 7672
+    - path: src/utils/eval_reporting.py
+      hash: md5
+      md5: fc495e654e38bfb8d322a73628ea1f96
+      size: 9715
+    - path: src/utils/metrics.py
+      hash: md5
+      md5: d9951f3c38d209e9543f99e2fa5a1762
+      size: 4776
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: b681d8dff5d875ee83179f146757dbda
+      size: 4695
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        mlflow.experiment_transformer_gru: can_ids_transformer_gru
+        model.transformer_gru:
+          num_features: 5
+          d_model: 16
+          num_heads: 2
+          dim_feedforward: 32
+          dropout: 0.2
+          gru_hidden_size: 32
+          rolling_w: 50
+          label_rule: any_attack
+        prepare:
+          label_schema: ten_state_attack
+          features: []
+        split:
+          unit: window
+          strategy: stratified_random
+          window_size: 16
+          stride: 8
+          val_ratio: 0.2
+          test_ratio: 0.2
+          downsample: false
+          random_seed: 42
+          val_sessions: []
+          test_sessions: []
+        training.transformer_gru:
+          batch_size: 32
+          epochs: 100
+          learning_rate: 0.001
+    outs:
+    - path: reports/figures/transformer_gru_test_confusion_matrix.png
+      hash: md5
+      md5: 789f9200ab62691d2c7f9b6e96c201f3
+      size: 343085
+    - path: reports/figures/transformer_gru_test_confusion_matrix_counts.png
+      hash: md5
+      md5: 4db861baa70896bf8bb5e7d0e38f3805
+      size: 319690
+    - path: reports/figures/transformer_gru_train_confusion_matrix.png
+      hash: md5
+      md5: f757ff0b7cb7fd8ba2a698f8f6a65315
+      size: 324326
+    - path: reports/figures/transformer_gru_val_confusion_matrix.png
+      hash: md5
+      md5: 411f50ed1d80b98b6713530bbf37497a
+      size: 346524
+    - path: reports/metrics/transformer_gru_classification_report.json
+      hash: md5
+      md5: c2bbc696c621df294e50845317d4235c
+      size: 4512
+    - path: reports/metrics/transformer_gru_classification_report.txt
+      hash: md5
+      md5: e6c9dc31d7d21d119b76f916bf6d3463
+      size: 1628

@@ -1,15 +1,17 @@
 dataset:
-  name: road
-  raw_dir: data/raw/road
-  ingest_adapter: road_raw
-  variant: masquerade
-  exclude_files: null
+  name: carhacking_a&d
+  raw_dir: data/raw/Car_Hacking_Challenge_Dataset/0_Preliminary
+  ingest_adapter: car_hacking_attack_defense
+  variant: null
+  exclude_files:
+    - Pre_train_D_0.csv
+    - Pre_train_S_0.csv
   interim_path: data/interim/canonical.parquet
   prepared_path: data/interim/prepared.parquet
   processed_dir: data/processed/current
 
 prepare:
-  label_schema: road
+  label_schema: ten_state_attack
   features: []
 
 split:
@@ -85,7 +87,7 @@ model:
     dropout: 0.2
     gru_hidden_size: 32
     rolling_w: 50
-    label_rule: last_frame
+    label_rule: any_attack
 
 training:
   can_st_transformer:
@@ -124,8 +126,8 @@ training:
     epochs: 100
     learning_rate: 0.001
   transformer_gru:
-    batch_size: 128
-    epochs: 50
+    batch_size: 32
+    epochs: 100
     learning_rate: 0.001
 
 mlflow:
