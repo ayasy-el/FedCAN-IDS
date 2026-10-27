@@ -1,0 +1,166 @@
+{
+  "model": {
+    "num_features": 5,
+    "d_model": 16,
+    "num_heads": 2,
+    "dim_feedforward": 32,
+    "dropout": 0.2,
+    "gru_hidden_size": 32,
+    "rolling_w": 50,
+    "label_rule": "any_attack"
+  },
+  "test": {
+    "loss": 0.013196579180657864,
+    "accuracy": 0.9965401887893677,
+    "precision_macro": 0.9955862164497375,
+    "recall_macro": 0.9959012269973755,
+    "f1_macro": 0.9957429766654968,
+    "classification_report": {
+      "benign-driving": {
+        "precision": 0.9978268955931009,
+        "recall": 0.9972802160173753,
+        "f1-score": 0.997553480907365,
+        "support": 51107.0
+      },
+      "DoS-driving": {
+        "precision": 1.0,
+        "recall": 0.9989614124790285,
+        "f1-score": 0.9994804364333959,
+        "support": 12517.0
+      },
+      "Fuzzing-driving": {
+        "precision": 0.9982154104555953,
+        "recall": 0.9968550162490827,
+        "f1-score": 0.9975347495410438,
+        "support": 9539.0
+      },
+      "Spoofing-driving": {
+        "precision": 0.9989672977624785,
+        "recall": 0.9979367262723521,
+        "f1-score": 0.9984517460863581,
+        "support": 8724.0
+      },
+      "Replay-driving": {
+        "precision": 0.9859967830447536,
+        "recall": 0.9903069466882067,
+        "f1-score": 0.9881471648018206,
+        "support": 10523.0
+      },
+      "benign-stationary": {
+        "precision": 0.9969971286412556,
+        "recall": 0.9967131212200894,
+        "f1-score": 0.996855104702002,
+        "support": 45636.0
+      },
+      "DoS-stationary": {
+        "precision": 0.9991088788075179,
+        "recall": 1.0,
+        "f1-score": 0.99955424079102,
+        "support": 12333.0
+      },
+      "Fuzzing-stationary": {
+        "precision": 0.9974504804863699,
+        "recall": 0.9978418677653522,
+        "f1-score": 0.9976461357395057,
+        "support": 10194.0
+      },
+      "Spoofing-stationary": {
+        "precision": 0.9983523447401774,
+        "recall": 0.9984788946634554,
+        "f1-score": 0.9984156156917422,
+        "support": 7889.0
+      },
+      "Replay-stationary": {
+        "precision": 0.9829468776837198,
+        "recall": 0.9846380729998772,
+        "f1-score": 0.9837917485265226,
+        "support": 8137.0
+      },
+      "accuracy": 0.9965401842592541,
+      "macro avg": {
+        "precision": 0.9955862097214968,
+        "recall": 0.9959012274354819,
+        "f1-score": 0.9957430423220777,
+        "support": 176599.0
+      },
+      "weighted avg": {
+        "precision": 0.9965445566595706,
+        "recall": 0.9965401842592541,
+        "f1-score": 0.9965419564269654,
+        "support": 176599.0
+      }
+    }
+  },
+  "class_names": [
+    "benign-driving",
+    "DoS-driving",
+    "Fuzzing-driving",
+    "Spoofing-driving",
+    "Replay-driving",
+    "benign-stationary",
+    "DoS-stationary",
+    "Fuzzing-stationary",
+    "Spoofing-stationary",
+    "Replay-stationary"
+  ],
+  "comparison": {
+    "best_epoch": 100,
+    "best_train": {
+      "loss": 0.017005810514092445,
+      "accuracy": 0.9949076175689697,
+      "precision_macro": 0.9933268427848816,
+      "recall_macro": 0.9932681918144226,
+      "f1_macro": 0.9932973980903625
+    },
+    "best_validation": {
+      "loss": 0.01409949641674757,
+      "accuracy": 0.9965741634368896,
+      "precision_macro": 0.9956629872322083,
+      "recall_macro": 0.9958783984184265,
+      "f1_macro": 0.9957699775695801
+    },
+    "test": {
+      "loss": 0.013196579180657864,
+      "accuracy": 0.9965401887893677,
+      "precision_macro": 0.9955862164497375,
+      "recall_macro": 0.9959012269973755,
+      "f1_macro": 0.9957429766654968
+    }
+  },
+  "dataset": {
+    "name": "carhacking_a&d",
+    "raw_dir": "data/raw/Car_Hacking_Challenge_Dataset/0_Preliminary",
+    "ingest_adapter": "car_hacking_attack_defense",
+    "variant": null,
+    "exclude_files": [
+      "Pre_train_D_0.csv",
+      "Pre_train_S_0.csv"
+    ],
+    "interim_path": "data/interim/canonical.parquet",
+    "prepared_path": "data/interim/prepared.parquet",
+    "processed_dir": "data/processed/current"
+  },
+  "split": {
+    "unit": "window",
+    "strategy": "stratified_random",
+    "window_size": 16,
+    "stride": 8,
+    "val_ratio": 0.2,
+    "test_ratio": 0.2,
+    "downsample": false,
+    "random_seed": 42,
+    "val_sessions": [],
+    "test_sessions": []
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs": 100,
+    "learning_rate": 0.001
+  },
+  "parameter_counts": {
+    "trainable_parameters": 14042,
+    "non_trainable_parameters": 0,
+    "total_parameters": 14042
+  },
+  "mean_latency_ms": 44.012989652171534
+}

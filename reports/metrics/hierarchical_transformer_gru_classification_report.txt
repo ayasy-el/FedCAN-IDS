@@ -1,0 +1,34 @@
+Model: {'num_features': 5, 'd_model': 16, 'num_heads': 2, 'dim_feedforward': 32, 'dropout': 0.2, 'gru_hidden_size': 32, 'rolling_w': 50, 'label_rule': 'any_attack'}
+
+TEST METRICS
+------------
+loss                : 0.013197
+accuracy            : 0.996540
+precision_macro     : 0.995586
+recall_macro        : 0.995901
+f1_macro            : 0.995743
+
+CHECKPOINT VS TEST
+-------------------
+Best checkpoint epoch: 100
+
+split                      loss       accuracy   precision   recall      f1
+best_train                   0.017006   0.994908   0.993327   0.993268   0.993297
+best_validation              0.014099   0.996574   0.995663   0.995878   0.995770
+test                         0.013197   0.996540   0.995586   0.995901   0.995743
+
+CLASSIFICATION REPORT
+----------------------
+class                 precision   recall      f1          support
+benign-driving         0.997827   0.997280   0.997553     51,107
+DoS-driving            1.000000   0.998961   0.999480     12,517
+Fuzzing-driving        0.998215   0.996855   0.997535      9,539
+Spoofing-driving       0.998967   0.997937   0.998452      8,724
+Replay-driving         0.985997   0.990307   0.988147     10,523
+benign-stationary      0.996997   0.996713   0.996855     45,636
+DoS-stationary         0.999109   1.000000   0.999554     12,333
+Fuzzing-stationary     0.997450   0.997842   0.997646     10,194
+Spoofing-stationary    0.998352   0.998479   0.998416      7,889
+Replay-stationary      0.982947   0.984638   0.983792      8,137
+macro avg              0.995586   0.995901   0.995743    176,599
+weighted avg           0.996545   0.996540   0.996542    176,599

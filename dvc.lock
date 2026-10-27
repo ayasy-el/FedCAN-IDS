@@ -44,8 +44,8 @@ stages:
       size: 6538
     - path: src/data/task.py
       hash: md5
-      md5: c42db032b05395763bc9cfd3f6c0d961
-      size: 4317
+      md5: b9a12e322b3706faccd4e646234db7ed
+      size: 4373
     - path: src/utils/params.py
       hash: md5
       md5: e12239d6f108a5845bb8c3cf6ba22bb7
@@ -1605,3 +1605,230 @@ stages:
       hash: md5
       md5: e6c9dc31d7d21d119b76f916bf6d3463
       size: 1628
+  train_hierarchical_transformer_gru:
+    cmd: PYTHONPATH=src python src/train_hierarchical_transformer_gru.py
+    deps:
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: 4508a035d5b6a252cd34d8738cf82485
+      size: 63323419
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: ac1649f028c9236d3053050d33d0cf58
+      size: 6041126
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: 4de679aa636d2c5494b78e2d7709d16b
+      size: 2014132
+    - path: src/data/task.py
+      hash: md5
+      md5: b9a12e322b3706faccd4e646234db7ed
+      size: 4373
+    - path: src/data/transformer_gru_dataset.py
+      hash: md5
+      md5: e1261f7f62efde9f79581f13f1dfe5da
+      size: 11792
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: aef82e3803cfd0b4fb8eb9aece54fbab
+      size: 2130
+    - path: src/model/hierarchical_transformer_gru.py
+      hash: md5
+      md5: 89b6ad10062bfd2fedac91b3124eb4e4
+      size: 11722
+    - path: src/train_hierarchical_transformer_gru.py
+      hash: md5
+      md5: 21835d78d1943ce8cebad39d1fd77409
+      size: 5548
+    - path: src/utils/metrics.py
+      hash: md5
+      md5: d9951f3c38d209e9543f99e2fa5a1762
+      size: 4776
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: b681d8dff5d875ee83179f146757dbda
+      size: 4695
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        mlflow.experiment_hierarchical_transformer_gru: 
+          can_ids_hierarchical_transformer_gru
+        model.hierarchical_transformer_gru:
+          num_features: 5
+          d_model: 16
+          num_heads: 2
+          dim_feedforward: 32
+          dropout: 0.2
+          gru_hidden_size: 32
+          rolling_w: 50
+          label_rule: any_attack
+        prepare:
+          label_schema: ten_state_attack
+          features: []
+        split:
+          unit: window
+          strategy: stratified_random
+          window_size: 16
+          stride: 8
+          val_ratio: 0.2
+          test_ratio: 0.2
+          downsample: false
+          random_seed: 42
+          val_sessions: []
+          test_sessions: []
+        training.hierarchical_transformer_gru:
+          batch_size: 32
+          epochs: 100
+          learning_rate: 0.001
+    outs:
+    - path: checkpoints/hierarchical_transformer_gru_best.keras
+      hash: md5
+      md5: 86929b36de118459f5761178fceb0d87
+      size: 333975
+    - path: checkpoints/hierarchical_transformer_gru_final.keras
+      hash: md5
+      md5: 94a8e85761a2c9b6157030042c48856f
+      size: 333975
+    - path: checkpoints/hierarchical_transformer_gru_mlflow_run_id.txt
+      hash: md5
+      md5: 627d3494e70afc74c8d092c7b000e5ee
+      size: 32
+    - path: 
+        reports/metrics/hierarchical_transformer_gru_best_training_metrics.json
+      hash: md5
+      md5: 8cc45802f03a1e8566878153d2c020a6
+      size: 515
+    - path: 
+        reports/model_summaries/hierarchical_transformer_gru_model_report.txt
+      hash: md5
+      md5: e2091e05e0064ccef08c9b437ba9236f
+      size: 5635
+  eval_hierarchical_transformer_gru:
+    cmd: PYTHONPATH=src python src/eval_hierarchical_transformer_gru.py
+    deps:
+    - path: checkpoints/hierarchical_transformer_gru_best.keras
+      hash: md5
+      md5: 86929b36de118459f5761178fceb0d87
+      size: 333975
+    - path: data/interim/prepared.parquet
+      hash: md5
+      md5: 4508a035d5b6a252cd34d8738cf82485
+      size: 63323419
+    - path: data/processed/current/test.parquet
+      hash: md5
+      md5: f6254b1614e2d307983c99ca53894443
+      size: 2014557
+    - path: data/processed/current/train.parquet
+      hash: md5
+      md5: ac1649f028c9236d3053050d33d0cf58
+      size: 6041126
+    - path: data/processed/current/val.parquet
+      hash: md5
+      md5: 4de679aa636d2c5494b78e2d7709d16b
+      size: 2014132
+    - path: 
+        reports/metrics/hierarchical_transformer_gru_best_training_metrics.json
+      hash: md5
+      md5: 8cc45802f03a1e8566878153d2c020a6
+      size: 515
+    - path: src/data/task.py
+      hash: md5
+      md5: b9a12e322b3706faccd4e646234db7ed
+      size: 4373
+    - path: src/data/transformer_gru_dataset.py
+      hash: md5
+      md5: e1261f7f62efde9f79581f13f1dfe5da
+      size: 11792
+    - path: src/data/window_dataset_utils.py
+      hash: md5
+      md5: aef82e3803cfd0b4fb8eb9aece54fbab
+      size: 2130
+    - path: src/eval_hierarchical_transformer_gru.py
+      hash: md5
+      md5: 696ab608d291c1a83f76299eba59e713
+      size: 11446
+    - path: src/model/hierarchical_transformer_gru.py
+      hash: md5
+      md5: 89b6ad10062bfd2fedac91b3124eb4e4
+      size: 11722
+    - path: src/utils/eval_reporting.py
+      hash: md5
+      md5: fc495e654e38bfb8d322a73628ea1f96
+      size: 9715
+    - path: src/utils/metrics.py
+      hash: md5
+      md5: d9951f3c38d209e9543f99e2fa5a1762
+      size: 4776
+    - path: src/utils/mlflow_utils.py
+      hash: md5
+      md5: b681d8dff5d875ee83179f146757dbda
+      size: 4695
+    - path: src/utils/params.py
+      hash: md5
+      md5: e12239d6f108a5845bb8c3cf6ba22bb7
+      size: 1180
+    params:
+      params.yaml:
+        mlflow.experiment_hierarchical_transformer_gru: 
+          can_ids_hierarchical_transformer_gru
+        model.hierarchical_transformer_gru:
+          num_features: 5
+          d_model: 16
+          num_heads: 2
+          dim_feedforward: 32
+          dropout: 0.2
+          gru_hidden_size: 32
+          rolling_w: 50
+          label_rule: any_attack
+        prepare:
+          label_schema: ten_state_attack
+          features: []
+        split:
+          unit: window
+          strategy: stratified_random
+          window_size: 16
+          stride: 8
+          val_ratio: 0.2
+          test_ratio: 0.2
+          downsample: false
+          random_seed: 42
+          val_sessions: []
+          test_sessions: []
+        training.hierarchical_transformer_gru:
+          batch_size: 32
+          epochs: 100
+          learning_rate: 0.001
+    outs:
+    - path: 
+        reports/figures/hierarchical_transformer_gru_test_confusion_matrix.png
+      hash: md5
+      md5: 31d7bff6d7d7d0acca1d606ee954c05e
+      size: 355885
+    - path: 
+        reports/figures/hierarchical_transformer_gru_test_confusion_matrix_counts.png
+      hash: md5
+      md5: 08dee2ba004ff30a3c23a0451c9f69b1
+      size: 320288
+    - path: 
+        reports/figures/hierarchical_transformer_gru_train_confusion_matrix.png
+      hash: md5
+      md5: 28eee4e4cb99a29111fc192e875ae244
+      size: 349523
+    - path: 
+        reports/figures/hierarchical_transformer_gru_val_confusion_matrix.png
+      hash: md5
+      md5: 466002dbf4ab1afe7cc86d6dcfcdd1b5
+      size: 352841
+    - path: 
+        reports/metrics/hierarchical_transformer_gru_classification_report.json
+      hash: md5
+      md5: efb17d69d206cdde4d768b711f84b0f1
+      size: 4556
+    - path: 
+        reports/metrics/hierarchical_transformer_gru_classification_report.txt
+      hash: md5
+      md5: 01108620d73511bececff206e15fa2ae
+      size: 1629
