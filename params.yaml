@@ -97,6 +97,15 @@ model:
     gru_hidden_size: 32
     rolling_w: 50
     label_rule: any_attack
+  hat_ids:
+    num_features: 5
+    d_model: 32
+    num_heads: 2
+    dim_feedforward: 64
+    dropout: 0.2
+    alpha: 1.0e-7
+    rolling_w: 50
+    label_rule: any_attack
 
 training:
   can_st_transformer:
@@ -142,6 +151,10 @@ training:
     batch_size: 32
     epochs: 100
     learning_rate: 0.001
+  hat_ids:
+    batch_size: 32
+    epochs: 100
+    learning_rate: 0.001
 
 mlflow:
   tracking_uri: "https://dagshub.com/ayasy-el/FedCAN-IDS.mlflow"
@@ -154,3 +167,4 @@ mlflow:
   experiment_cnn_lstm: "can_ids_cnn_lstm"
   experiment_transformer_gru: "can_ids_transformer_gru"
   experiment_hierarchical_transformer_gru: "can_ids_hierarchical_transformer_gru"
+  experiment_hat_ids: "can_ids_hat_ids"

@@ -666,6 +666,78 @@ stages:
       - reports/figures/hierarchical_transformer_gru_test_confusion_matrix_counts.png:
           cache: false
 
+  train_hat_ids:
+    cmd: PYTHONPATH=src python src/train_hat_ids.py
+    deps:
+      - src/train_hat_ids.py
+      - src/data/task.py
+      - src/data/hat_ids_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/hat_ids.py
+      - src/utils/metrics.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/interim/prepared.parquet
+    params:
+      - prepare
+      - split
+      - model.hat_ids
+      - training.hat_ids
+      - mlflow.experiment_hat_ids
+    outs:
+      - checkpoints/hat_ids_best.keras:
+          cache: false
+      - checkpoints/hat_ids_final.keras:
+          cache: false
+      - checkpoints/hat_ids_mlflow_run_id.txt:
+          cache: false
+      - reports/metrics/hat_ids_best_training_metrics.json:
+          cache: false
+      - reports/model_summaries/hat_ids_model_report.txt:
+          cache: false
+
+  eval_hat_ids:
+    cmd: PYTHONPATH=src python src/eval_hat_ids.py
+    deps:
+      - src/eval_hat_ids.py
+      - src/data/task.py
+      - src/data/hat_ids_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/hat_ids.py
+      - src/utils/eval_reporting.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - src/utils/metrics.py
+      - checkpoints/hat_ids_best.keras
+      - reports/metrics/hat_ids_best_training_metrics.json
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
+      - data/interim/prepared.parquet
+    params:
+      - prepare
+      - split
+      - model.hat_ids
+      - training.hat_ids
+      - mlflow.experiment_hat_ids
+    metrics:
+      - reports/metrics/hat_ids_classification_report.json:
+          cache: false
+    outs:
+      - reports/metrics/hat_ids_classification_report.txt:
+          cache: false
+      - reports/figures/hat_ids_train_confusion_matrix.png:
+          cache: false
+      - reports/figures/hat_ids_val_confusion_matrix.png:
+          cache: false
+      - reports/figures/hat_ids_test_confusion_matrix.png:
+          cache: false
+      - reports/figures/hat_ids_test_confusion_matrix_counts.png:
+          cache: false
+
+
 
 
 
