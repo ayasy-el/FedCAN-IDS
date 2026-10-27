@@ -8,7 +8,7 @@ import dagshub
 import mlflow
 from tensorflow import keras
 
-from data.cnn_lstm_dataset import CNNLSTMDataset
+from data.transformer_gru_dataset import TransformerGRUDataset
 from model.transformer_gru import (
     build_transformer_gru,
     parameter_counts,
@@ -49,10 +49,10 @@ report_path = "reports/model_summaries/transformer_gru_model_report.txt"
 
 
 # ==========================================================
-# Dataset (Reuses CNNLSTMDataset directly)
+# Dataset (TransformerGRUDataset: 19 nibbles [B, W, 19] + features [B, W, 5])
 # ==========================================================
 
-train = CNNLSTMDataset(
+train = TransformerGRUDataset(
     f"{dataset['processed_dir']}/train.parquet",
     window_size=window_size,
     rolling_w=model_params.get("rolling_w", 50),
@@ -63,7 +63,7 @@ train = CNNLSTMDataset(
     source_path=dataset["prepared_path"],
     label_rule=model_params.get("label_rule", "last_frame"),
 )
-val = CNNLSTMDataset(
+val = TransformerGRUDataset(
     f"{dataset['processed_dir']}/val.parquet",
     window_size=window_size,
     rolling_w=model_params.get("rolling_w", 50),

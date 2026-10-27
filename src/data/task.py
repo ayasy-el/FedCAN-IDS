@@ -74,6 +74,7 @@ MODEL_CONTRACTS = {
     "tct_ids": {"unit": "window"},
     "cnn_lstm": {"unit": "window"},
     "transformer_gru": {"unit": "window"},
+    "hierarchical_transformer_gru": {"unit": "window"},
 }
 
 

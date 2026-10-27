@@ -12,9 +12,10 @@ import mlflow
 import numpy as np
 from tensorflow import keras
 
-from data.cnn_lstm_dataset import CNNLSTMDataset
+from data.transformer_gru_dataset import TransformerGRUDataset
 from model.transformer_gru import (
     NibbleTokenizer,
+    PayloadSliceLayer,
     build_transformer_gru,
     parameter_counts,
 )
@@ -100,7 +101,7 @@ mlflow.set_experiment(
 # Dataset
 # ==========================================================
 
-train_dataset = CNNLSTMDataset(
+train_dataset = TransformerGRUDataset(
     TRAIN_PATH,
     window_size=window_size,
     rolling_w=model_params.get("rolling_w", 50),
@@ -111,7 +112,7 @@ train_dataset = CNNLSTMDataset(
     source_path=dataset_params["prepared_path"],
     label_rule=model_params.get("label_rule", "last_frame"),
 )
-val_dataset = CNNLSTMDataset(
+val_dataset = TransformerGRUDataset(
     VAL_PATH,
     window_size=window_size,
     rolling_w=model_params.get("rolling_w", 50),
@@ -122,7 +123,7 @@ val_dataset = CNNLSTMDataset(
     source_path=dataset_params["prepared_path"],
     label_rule=model_params.get("label_rule", "last_frame"),
 )
-test_dataset = CNNLSTMDataset(
+test_dataset = TransformerGRUDataset(
     TEST_PATH,
     window_size=window_size,
     rolling_w=model_params.get("rolling_w", 50),
@@ -139,10 +140,15 @@ test_dataset = CNNLSTMDataset(
 # Load model
 # ==========================================================
 
+custom_objects = {
+    "PayloadSliceLayer": PayloadSliceLayer,
+    "NibbleTokenizer": NibbleTokenizer,
+}
+
 try:
     model = keras.models.load_model(
         MODEL_PATH,
-        custom_objects={"NibbleTokenizer": NibbleTokenizer},
+        custom_objects=custom_objects,
         compile=False,
     )
 except Exception:
@@ -180,11 +186,11 @@ latency_samples = min(100, len(test_dataset.y))
 latency_durations = []
 if latency_samples > 0:
     for idx in range(latency_samples):
-        img, feat = test_dataset._window_at(idx)
-        img_b = np.expand_dims(img, 0)
+        tok, feat = test_dataset._window_at(idx)
+        tok_b = np.expand_dims(tok, 0)
         feat_b = np.expand_dims(feat, 0)
         t0 = perf_counter()
-        _ = model([img_b, feat_b], training=False)
+        _ = model([tok_b, feat_b], training=False)
         latency_durations.append((perf_counter() - t0) * 1000.0)  # ms
     mean_latency_ms = float(np.mean(latency_durations[5:]))  # warm-up skipped
     print(f"\nSingle-sample inference latency: {mean_latency_ms:.4f} ms/sample")

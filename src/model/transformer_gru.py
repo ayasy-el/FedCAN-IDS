@@ -1,10 +1,12 @@
 """TensorFlow/Keras implementation of Lightweight Transformer-GRU with Nibble Lookup Table for CAN Intrusion Detection.
 
 Architecture Pipeline:
-1. Payload Image Input: [B, W, 8, 8, 1] - 8x8 binary bit-matrix sequence
-2. Temporal Features Input: [B, W, N_feat] - engineered CAN temporal features (default: 5)
+1. Frame Tokens Input: [B, W, 19] (int32) - 19 nibbles per frame in range [0..15]:
+   - nibbles 0..2: 3 CAN Arbitration ID nibbles (12 bits)
+   - nibbles 3..18: 16 payload nibbles (upper & lower 4 bits for Data_0..Data_7)
+2. Temporal Features Input: [B, W, N_feat] (float32) - engineered CAN temporal features (default: 5)
 3. Spatial Feature Extraction (per frame):
-   - NibbleTokenizer: unpacks 8x8 bit-matrix into 16 nibbles (4-bit chunks, vocab size 16, values 0..15)
+   - PayloadSliceLayer: slices 16 payload nibbles (nibbles 3..18)
    - Nibble Embedding: Embedding(16, d_model) -> [16, d_model]
    - Positional Embedding: Embedding(16, d_model) for nibble positions 0..15
    - Transformer-Lite Block: MultiHeadAttention + LayerNorm + MLP (Dense-ReLU-Dense) + LayerNorm
@@ -27,32 +29,38 @@ from tensorflow.keras import layers
 
 
 @keras.utils.register_keras_serializable(package="transformer_gru")
-class NibbleTokenizer(layers.Layer):
-    """Converts an 8x8 bit-matrix per CAN frame into 16 nibble integers (values 0..15).
-
-    Each 8-byte CAN payload has 16 nibbles (4 bits each):
-    - Upper 4 bits of Byte j -> Nibble 2*j
-    - Lower 4 bits of Byte j -> Nibble 2*j + 1
-    """
+class PayloadSliceLayer(layers.Layer):
+    """Slices the 16 payload nibbles from frame tokens (skipping the 3 CAN ID nibbles)."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Powers of 2 for a 4-bit binary vector: [8, 4, 2, 1]
+
+    def call(self, inputs):
+        return inputs[:, 3:]
+
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], 16)
+
+    def get_config(self):
+        return super().get_config()
+
+
+@keras.utils.register_keras_serializable(package="transformer_gru")
+class NibbleTokenizer(layers.Layer):
+    """Backwards-compatibility layer for legacy 8x8 bit-matrix models."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.powers = tf.constant([8.0, 4.0, 2.0, 1.0], dtype=tf.float32)
 
     def call(self, inputs):
-        # inputs shape: (..., 8, 8, 1) or (..., 8, 8)
         if inputs.shape[-1] == 1:
             x = tf.squeeze(inputs, axis=-1)
         else:
             x = inputs
-
         batch_dims = tf.shape(x)[:-2]
-        # Ensure binary range [0.0, 1.0] for bits
         x = tf.clip_by_value(x, 0.0, 1.0)
-        # Reshape the last two dimensions (8, 8) -> (16, 4)
         x_16x4 = tf.reshape(x, tf.concat([batch_dims, [16, 4]], axis=0))
-        # Compute integer value for each nibble: sum(bits * [8, 4, 2, 1])
         nibble_values = tf.reduce_sum(x_16x4 * self.powers, axis=-1)
         nibble_ints = tf.cast(nibble_values, tf.int32)
         return tf.clip_by_value(nibble_ints, 0, 15)
@@ -85,7 +93,7 @@ def build_transformer_gru(
     Args:
         window_size: Number of CAN frames in sliding window (default 20).
         num_features: Number of temporal engineered features (default 5).
-        num_classes: Number of classification classes (default 6 for ROAD masquerade).
+        num_classes: Number of classification classes.
         d_model: Hidden dimension for nibble tokens (default 16, giving 16*16=256 spatial dims).
         num_heads: Number of attention heads in Transformer-Lite (default 2).
         dim_feedforward: Hidden dimension of FFN in Transformer block (default 32).
@@ -93,11 +101,11 @@ def build_transformer_gru(
         gru_hidden_size: Hidden units in temporal GRU layer (default 32).
         batch_size: Optional fixed batch size.
     """
-    image_input = keras.Input(
-        shape=(window_size, 8, 8, 1),
+    tokens_input = keras.Input(
+        shape=(window_size, 19),
         batch_size=batch_size,
-        dtype=tf.float32,
-        name="image_input",
+        dtype=tf.int32,
+        name="tokens_input",
     )
     features_input = keras.Input(
         shape=(window_size, num_features),
@@ -109,10 +117,10 @@ def build_transformer_gru(
     # -------------------------------------------------------------
     # 1. Spatial Payload Sub-Module (Per Frame via Transformer-Lite)
     # -------------------------------------------------------------
-    frame_in = keras.Input(shape=(8, 8, 1), name="frame_input")
+    frame_in = keras.Input(shape=(19,), dtype=tf.int32, name="frame_input")
 
-    # Step A: Convert 8x8 bit matrix to 16 nibbles [0..15]
-    nibbles = NibbleTokenizer(name="nibble_tokenizer")(frame_in)  # (16,)
+    # Step A: Slice 16 payload nibbles (nibbles 3..18)
+    nibbles = PayloadSliceLayer(name="payload_slice")(frame_in)  # (16,)
 
     # Step B: Nibble Categorical Embedding + Positional Embedding
     nibble_embed = layers.Embedding(
@@ -158,7 +166,7 @@ def build_transformer_gru(
     # Apply spatial extractor across all timesteps in window
     spatial_seq = layers.TimeDistributed(
         frame_module, name="time_distributed_transformer"
-    )(image_input)
+    )(tokens_input)
 
     # -------------------------------------------------------------
     # 2. Feature Fusion
@@ -186,7 +194,7 @@ def build_transformer_gru(
     )(gru_repr)
 
     return keras.Model(
-        inputs=[image_input, features_input],
+        inputs=[tokens_input, features_input],
         outputs=outputs,
         name="transformer_gru",
     )
