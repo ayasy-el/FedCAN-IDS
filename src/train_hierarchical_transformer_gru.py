@@ -4,7 +4,6 @@ import os
 
 os.environ.setdefault("TF_USE_LEGACY_KERAS", "1")
 
-import dagshub
 import mlflow
 from tensorflow import keras
 
@@ -19,6 +18,7 @@ from utils.metrics import MacroF1Score, MacroPrecision, MacroRecall
 from utils.mlflow_utils import (
     BestEpochMetrics,
     MlflowEpochLogger,
+    init_dagshub,
     log_artifact_organized,
     save_run_id,
     write_model_report,
@@ -26,7 +26,7 @@ from utils.mlflow_utils import (
 from utils.params import load_params
 from data.task import validate_experiment
 
-dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
+init_dagshub()
 
 
 # ==========================================================

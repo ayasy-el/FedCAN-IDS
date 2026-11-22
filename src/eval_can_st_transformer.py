@@ -23,7 +23,6 @@ from time import perf_counter
 
 os.environ.setdefault("TF_USE_LEGACY_KERAS", "1")
 
-import dagshub
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -47,21 +46,15 @@ from utils.eval_reporting import (
     save_text_report,
     stratified_sample_indices,
 )
-from utils.mlflow_utils import load_run_id
+from utils.mlflow_utils import init_dagshub, load_run_id
 from utils.params import load_params
 from data.task import validate_experiment
 
 # Initialize DagsHub / MLflow tracking
-if os.environ.get("DAGSHUB_USER_TOKEN"):
-    try:
-        dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
-    except Exception as e:
-        print(f"DagsHub init skipped: {e}")
-else:
-    try:
-        dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
-    except Exception:
-        pass
+try:
+    init_dagshub()
+except Exception as e:
+    print(f"DagsHub init skipped: {e}")
 
 
 def compute_attack_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:

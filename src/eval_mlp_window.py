@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import dagshub
 import mlflow
 import numpy as np
 from tensorflow import keras
@@ -18,11 +17,11 @@ from utils.eval_reporting import (
     stratified_sample_indices,
 )
 from utils.metrics import MacroF1Score, MacroPrecision, MacroRecall
-from utils.mlflow_utils import load_run_id
+from utils.mlflow_utils import init_dagshub, load_run_id
 from utils.params import load_params
 from data.task import validate_experiment
 
-dagshub.init(repo_owner="ayasy-el", repo_name="FedCAN-IDS", mlflow=True)
+init_dagshub()
 
 
 # ==========================================================

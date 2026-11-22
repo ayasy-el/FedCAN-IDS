@@ -1,8 +1,95 @@
 import json
+import os
 from pathlib import Path
 
 import mlflow
 from tensorflow import keras
+
+
+def is_kaggle() -> bool:
+    """Check if running inside a Kaggle notebook or script environment."""
+    if (
+        "KAGGLE_KERNEL_RUN_TYPE" in os.environ
+        or "KAGGLE_URL_BASE" in os.environ
+        or "KAGGLE_DATA_PROXY_TOKEN" in os.environ
+        or Path("/kaggle").exists()
+    ):
+        return True
+    try:
+        import kaggle_secrets  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
+def setup_kaggle_dagshub_credentials() -> bool:
+    """
+    If running inside Kaggle environment, retrieve credentials from Kaggle Secrets
+    and set environment variables for DagsHub and MLflow.
+    """
+    if not is_kaggle():
+        return False
+
+    try:
+        from kaggle_secrets import UserSecretsClient
+
+        user_secrets = UserSecretsClient()
+        dagshub_token = None
+        for secret_name in ("DAGSHUB_TOKEN", "DAGSHUB_USER_TOKEN"):
+            try:
+                dagshub_token = user_secrets.get_secret(secret_name)
+                if dagshub_token:
+                    break
+            except Exception:
+                continue
+
+        if dagshub_token:
+            os.environ["DAGSHUB_USER_TOKEN"] = dagshub_token
+            os.environ["DAGSHUB_TOKEN"] = dagshub_token
+            os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
+            os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
+            try:
+                import dagshub.common.config as dagshub_config
+
+                dagshub_config.token = dagshub_token
+            except Exception:
+                pass
+            return True
+        else:
+            print(
+                "Warning: Running on Kaggle, but DAGSHUB_TOKEN was not found in Kaggle Secrets."
+            )
+    except Exception as e:
+        print(f"Warning: Failed to retrieve DAGSHUB_TOKEN from Kaggle Secrets: {e}")
+    return False
+
+
+# Auto-detect Kaggle on import to configure secrets if available
+setup_kaggle_dagshub_credentials()
+
+
+def init_dagshub(
+    repo_owner: str = "ayasy-el",
+    repo_name: str = "FedCAN-IDS",
+    mlflow: bool = True,
+    **kwargs,
+):
+    """
+    Initialize DagsHub with Kaggle secret support if in Kaggle,
+    otherwise fallback to default DagsHub initialization.
+    """
+    setup_kaggle_dagshub_credentials()
+    import dagshub
+
+    return dagshub.init(
+        repo_owner=repo_owner, repo_name=repo_name, mlflow=mlflow, **kwargs
+    )
+
+
+setup_dagshub = init_dagshub
+setup_dagshub_credentials = setup_kaggle_dagshub_credentials
+
 
 
 def write_model_report(
