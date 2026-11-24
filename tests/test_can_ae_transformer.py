@@ -71,6 +71,41 @@ def test_parameter_counts():
     assert counts["non_trainable_parameters"] == 0
 
 
+def test_window_lookup_robustness(monkeypatch, tmp_path):
+    from data.can_ae_transformer_dataset import CANAeTransformerDataset
+    import polars as pl
+
+    # Prepare dummy session and index parquet
+    prepared_file = tmp_path / "prepared.parquet"
+    train_file = tmp_path / "train.parquet"
+
+    # Simulate non-monotonic or tied row_ids in a session
+    sess_df = pl.DataFrame({
+        "session_id": ["sess_1"] * 30,
+        "Timestamp": [1.0] * 30,
+        "row_id": np.arange(100, 130, dtype=np.uint64),
+        "Arbitration_ID": ["153"] * 30,
+        "DLC": [8] * 30,
+        "Class": [0] * 30,
+        **{f"Data_{i}": ["00"] * 30 for i in range(8)},
+    })
+    sess_df.write_parquet(prepared_file)
+
+    index_df = pl.DataFrame({
+        "window_id": ["sess_1:105"],
+        "session_id": ["sess_1"],
+        "start_row_id": [105],
+        "window_size": [15],
+        "label": [0],
+    })
+    index_df.write_parquet(train_file)
+
+    ds = CANAeTransformerDataset(train_file, window_size=15, source_path=prepared_file)
+    msg, tse = ds._window_at(0)
+    assert msg.shape == (15, 12)
+    assert tse.shape == (15, 10)
+
+
 if __name__ == "__main__":
     print("Testing sinusoidal table...")
     test_build_sinusoidal_table_shape()

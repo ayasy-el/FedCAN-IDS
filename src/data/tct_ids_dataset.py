@@ -129,6 +129,7 @@ class TCTIDSDataset:
         )
 
         self._session_cache: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+        self._session_row_to_idx: dict[str, dict[int, int]] = {}
         self._precompute_session_features()
 
     def _precompute_session_features(self) -> None:
@@ -173,6 +174,9 @@ class TCTIDSDataset:
                 message_features,
                 timestamps,
             )
+            self._session_row_to_idx[session_id] = {
+                int(rid): idx for idx, rid in enumerate(row_ids)
+            }
 
     def _window_at(self, index: int) -> tuple[np.ndarray, np.ndarray]:
         session_id = self.session_ids[index]
@@ -180,11 +184,18 @@ class TCTIDSDataset:
         size = int(self.window_sizes[index])
 
         row_ids, message_features, timestamps = self._session_cache[session_id]
-        offset = int(np.searchsorted(row_ids, start_row))
-        if offset >= len(row_ids) or int(row_ids[offset]) != start_row:
-            raise ValueError(
-                f"Window start row_id {start_row} not found in session {session_id}"
-            )
+        row_map = self._session_row_to_idx.get(session_id)
+        if row_map is not None and start_row in row_map:
+            offset = row_map[start_row]
+        else:
+            offset = int(np.searchsorted(row_ids, start_row))
+            if offset >= len(row_ids) or int(row_ids[offset]) != start_row:
+                matches = np.flatnonzero(row_ids == start_row)
+                if len(matches) == 0:
+                    raise ValueError(
+                        f"Window start row_id {start_row} not found in session {session_id}"
+                    )
+                offset = int(matches[0])
 
         window_messages = message_features[offset : offset + size]
         window_timestamps = timestamps[offset : offset + size]

@@ -16,7 +16,15 @@ from utils.params import load_params
 
 
 def _order_columns(df):
-    return ["session_id", "Timestamp"] if "Timestamp" in df.columns else ["session_id", "row_id"]
+    cols = df.columns if hasattr(df, "columns") else df.collect_schema().names()
+    order = []
+    if "session_id" in cols:
+        order.append("session_id")
+    if "Timestamp" in cols:
+        order.append("Timestamp")
+    if "row_id" in cols:
+        order.append("row_id")
+    return order
 
 
 def _session_split(df, split):

@@ -80,6 +80,7 @@ class CANSTTransformerDataset:
 
         # Precompute session arrays for fast indexing
         self._session_cache: Dict[str, Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]] = {}
+        self._session_row_to_idx: Dict[str, Dict[int, int]] = {}
         self._precompute_session_features()
 
     def _precompute_session_features(self) -> None:
@@ -105,6 +106,9 @@ class CANSTTransformerDataset:
             is_attack = (classes > 0).astype(np.int32)
 
             self._session_cache[session_id] = (row_ids, can_ids, payloads, is_attack)
+            self._session_row_to_idx[session_id] = {
+                int(rid): idx for idx, rid in enumerate(row_ids)
+            }
 
     def __len__(self) -> int:
         return len(self.starts)
@@ -115,7 +119,15 @@ class CANSTTransformerDataset:
         w_size = self.window_sizes[idx]
 
         row_ids, can_ids, payloads, is_attack = self._session_cache[session_id]
-        start_idx = int(np.searchsorted(row_ids, start_row_id))
+        row_map = self._session_row_to_idx.get(session_id)
+        if row_map is not None and int(start_row_id) in row_map:
+            start_idx = row_map[int(start_row_id)]
+        else:
+            start_idx = int(np.searchsorted(row_ids, start_row_id))
+            if start_idx >= len(row_ids) or int(row_ids[start_idx]) != int(start_row_id):
+                matches = np.flatnonzero(row_ids == start_row_id)
+                if len(matches) > 0:
+                    start_idx = int(matches[0])
         target_idx = start_idx + w_size - 1
 
         # Temporal sequence Tn(input) = [t_{n-w+1}, ..., t_{n-1}, <Mask>]

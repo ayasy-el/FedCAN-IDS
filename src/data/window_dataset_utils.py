@@ -15,7 +15,15 @@ SOURCE_COLUMNS = {
 
 
 def _order_columns(df):
-    return ["session_id", "Timestamp"] if "Timestamp" in df.columns else ["session_id", "row_id"]
+    cols = df.columns if hasattr(df, "columns") else df.collect_schema().names()
+    order = []
+    if "session_id" in cols:
+        order.append("session_id")
+    if "Timestamp" in cols:
+        order.append("Timestamp")
+    if "row_id" in cols:
+        order.append("row_id")
+    return order
 
 
 @lru_cache(maxsize=2)
@@ -51,7 +59,10 @@ def materialize_window(row, sessions):
     row_ids = session["row_id"].to_numpy()
     offset = int(np.searchsorted(row_ids, start))
     if offset >= len(row_ids) or int(row_ids[offset]) != start:
-        raise ValueError(f"Window start row_id {start} not found in session {row['session_id']}")
+        matches = np.flatnonzero(row_ids == start)
+        if len(matches) == 0:
+            raise ValueError(f"Window start row_id {start} not found in session {row['session_id']}")
+        offset = int(matches[0])
     window = session.slice(offset, size)
     if len(window) != size:
         raise ValueError(f"Window {row['window_id']} has only {len(window)} rows; expected {size}")
