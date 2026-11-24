@@ -771,7 +771,49 @@ stages:
           cache: false
       - checkpoints/fl_hierarchical_transformer_gru_final.keras:
           cache: false
+      - checkpoints/fl_hierarchical_transformer_gru_mlflow_run_id.txt:
+          cache: false
       - reports/metrics/fl_hierarchical_transformer_gru_best_metrics.json:
           cache: false
       - reports/metrics/fl_hierarchical_transformer_gru_metrics.json:
           cache: false
+
+  eval_fl_hierarchical_transformer_gru:
+    cmd: PYTHONPATH=src python src/fl/evaluate.py --model hierarchical_transformer_gru
+    deps:
+      - src/fl/evaluate.py
+      - src/fl/models.py
+      - src/data/task.py
+      - src/data/transformer_gru_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/hierarchical_transformer_gru.py
+      - src/utils/eval_reporting.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - checkpoints/fl_hierarchical_transformer_gru_best.keras
+      - checkpoints/fl_hierarchical_transformer_gru_mlflow_run_id.txt
+      - reports/metrics/fl_hierarchical_transformer_gru_best_metrics.json
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
+      - data/interim/prepared.parquet
+    params:
+      - prepare
+      - model.hierarchical_transformer_gru
+      - federated
+      - mlflow.experiment_fl
+    metrics:
+      - reports/metrics/fl_hierarchical_transformer_gru_classification_report.json:
+          cache: false
+    outs:
+      - reports/metrics/fl_hierarchical_transformer_gru_classification_report.txt:
+          cache: false
+      - reports/figures/fl_hierarchical_transformer_gru_train_confusion_matrix.png:
+          cache: false
+      - reports/figures/fl_hierarchical_transformer_gru_val_confusion_matrix.png:
+          cache: false
+      - reports/figures/fl_hierarchical_transformer_gru_test_confusion_matrix.png:
+          cache: false
+      - reports/figures/fl_hierarchical_transformer_gru_test_confusion_matrix_counts.png:
+          cache: false
+

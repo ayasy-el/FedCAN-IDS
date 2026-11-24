@@ -13,7 +13,7 @@ from fl.client import FedCanClient
 from fl.models import get_model_and_dataset
 from fl.partition import partition_windows
 from fl.server import create_fedavg_strategy, get_eval_fn
-from utils.mlflow_utils import init_dagshub
+from utils.mlflow_utils import init_dagshub, save_run_id
 from utils.params import load_params
 
 
@@ -48,9 +48,11 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
     final_model_path = Path("checkpoints") / f"fl_{model_name}_final.keras"
     best_metrics_path = Path("reports/metrics") / f"fl_{model_name}_best_metrics.json"
     summary_report_path = Path("reports/metrics") / f"fl_{model_name}_metrics.json"
+    run_id_path = Path("checkpoints") / f"fl_{model_name}_mlflow_run_id.txt"
 
     best_model_path.parent.mkdir(parents=True, exist_ok=True)
     best_metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    run_id_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Ensure federated partition files exist
     client_files = [federated_dir / f"client_{i}.parquet" for i in range(num_clients)]
@@ -117,7 +119,8 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
         client_resources = {"num_cpus": 1, "num_gpus": 0.0}
         print("[Simulation] Running clients on CPU")
 
-    with mlflow.start_run(run_name=f"fl_{model_name}"):
+    with mlflow.start_run(run_name=f"fl_{model_name}") as run:
+        save_run_id(run.info.run_id, str(run_id_path))
         mlflow.log_params({
             "model": model_name,
             "fl_strategy": "FedAvg",

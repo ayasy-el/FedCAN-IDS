@@ -137,3 +137,54 @@ def test_models_factory_hierarchical_transformer_gru():
                 assert model == mock_model
                 assert dataset == mock_dataset
 
+
+def test_evaluate_federated_model_mocked(tmp_path):
+    from fl.evaluate import evaluate_federated_model
+
+    mock_model = MagicMock()
+    mock_model.evaluate.return_value = {
+        "loss": 0.1,
+        "accuracy": 0.95,
+        "precision_macro": 0.94,
+        "recall_macro": 0.93,
+        "f1_macro": 0.935,
+    }
+    mock_model.predict.return_value = np.array([[0.9, 0.1], [0.2, 0.8]])
+    mock_model.count_params.return_value = 1000
+    mock_model.trainable_weights = []
+
+    mock_dataset = MagicMock()
+    mock_dataset.y = np.array([0, 1])
+    mock_dataset.__len__.return_value = 2
+    mock_dataset._window_at.return_value = (np.zeros((10, 19)), np.zeros((10, 5)))
+    mock_dataset.to_tf_dataset.return_value = None
+
+    ckpt_dir = tmp_path / "checkpoints"
+    ckpt_dir.mkdir()
+    model_file = ckpt_dir / "fl_hierarchical_transformer_gru_best.keras"
+    model_file.write_bytes(b"dummy")
+
+    with patch("fl.evaluate.Path") as mock_path:
+        # Route checkpoints to tmp_path
+        def fake_path(p):
+            if "fl_hierarchical_transformer_gru_best.keras" in str(p):
+                return model_file
+            return tmp_path / p
+        mock_path.side_effect = fake_path
+
+        with patch("fl.evaluate.get_model_and_dataset", return_value=(mock_model, mock_dataset)):
+            with patch("fl.evaluate.validate_experiment", return_value={"num_classes": 2, "class_names": ["Normal", "Attack"]}):
+                with patch("fl.evaluate.init_dagshub"):
+                    with patch("fl.evaluate.mlflow"):
+                        with patch("fl.evaluate.save_confusion_matrix_figure"):
+                            params = {
+                                "dataset": {"processed_dir": str(tmp_path)},
+                                "split": {"window_size": 10},
+                                "model": {},
+                                "federated": {},
+                                "mlflow": {},
+                            }
+                            evaluate_federated_model("hierarchical_transformer_gru", params)
+                            mock_model.evaluate.assert_called_once()
+
+
