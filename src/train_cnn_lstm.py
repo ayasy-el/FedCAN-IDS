@@ -19,6 +19,7 @@ from utils.mlflow_utils import (
     init_dagshub,
     log_artifact_organized,
     save_run_id,
+    setup_device_strategy,
     write_model_report,
 )
 from utils.params import load_params
@@ -82,30 +83,32 @@ monitor = "val_f1_macro" if has_validation else "f1_macro"
 # Model and build
 # ==========================================================
 
-model = build_cnn_lstm(
-    window_size=window_size,
-    num_features=model_params.get("num_features", 5),
-    num_classes=num_classes,
-    cnn_filters=model_params.get("cnn_filters", 16),
-    cnn_kernel_size=model_params.get("cnn_kernel_size", 3),
-    dropout=model_params.get("dropout", 0.2),
-    lstm_hidden_size=model_params.get("lstm_hidden_size", 32),
-)
+strategy = setup_device_strategy()
+with strategy.scope():
+    model = build_cnn_lstm(
+        window_size=window_size,
+        num_features=model_params.get("num_features", 5),
+        num_classes=num_classes,
+        cnn_filters=model_params.get("cnn_filters", 16),
+        cnn_kernel_size=model_params.get("cnn_kernel_size", 3),
+        dropout=model_params.get("dropout", 0.2),
+        lstm_hidden_size=model_params.get("lstm_hidden_size", 32),
+    )
 
-optimizer = keras.optimizers.Adam(
-    learning_rate=float(training["learning_rate"])
-)
+    optimizer = keras.optimizers.Adam(
+        learning_rate=float(training["learning_rate"])
+    )
 
-model.compile(
-    optimizer=optimizer,
-    loss="sparse_categorical_crossentropy",
-    metrics=[
-        "accuracy",
-        MacroPrecision(num_classes),
-        MacroRecall(num_classes),
-        MacroF1Score(num_classes),
-    ],
-)
+    model.compile(
+        optimizer=optimizer,
+        loss="sparse_categorical_crossentropy",
+        metrics=[
+            "accuracy",
+            MacroPrecision(num_classes),
+            MacroRecall(num_classes),
+            MacroF1Score(num_classes),
+        ],
+    )
 model.summary()
 
 write_model_report(

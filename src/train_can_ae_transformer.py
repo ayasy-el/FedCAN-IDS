@@ -20,6 +20,7 @@ from utils.mlflow_utils import (
     init_dagshub,
     log_artifact_organized,
     save_run_id,
+    setup_device_strategy,
     write_model_report,
 )
 from utils.params import load_params
@@ -83,36 +84,38 @@ monitor = "val_f1_macro" if has_validation else "f1_macro"
 # Model and build
 # ==========================================================
 
-model = build_can_ae_transformer(
-    window_size=window_size,
-    d_model=model_params["d_model"],
-    num_heads=model_params["num_heads"],
-    num_layers=model_params["num_layers"],
-    dim_feedforward=model_params["dim_feedforward"],
-    dropout=model_params["dropout"],
-    num_classes=num_classes,
-)
+strategy = setup_device_strategy()
+with strategy.scope():
+    model = build_can_ae_transformer(
+        window_size=window_size,
+        d_model=model_params["d_model"],
+        num_heads=model_params["num_heads"],
+        num_layers=model_params["num_layers"],
+        dim_feedforward=model_params["dim_feedforward"],
+        dropout=model_params["dropout"],
+        num_classes=num_classes,
+    )
 
-# Cosine decay schedule with linear warmup
-steps_per_epoch = max(1, len(train.y) // training["batch_size"])
-total_steps = steps_per_epoch * training["epochs"]
-warmup_steps = int(training.get("warmup_steps", 100))
-lr_schedule = CosineDecay(
-    initial_learning_rate=float(training["learning_rate"]),
-    decay_steps=total_steps,
-    warmup_steps=min(warmup_steps, max(1, total_steps // 10)),
-)
+    # Cosine decay schedule with linear warmup
+    steps_per_epoch = max(1, len(train.y) // training["batch_size"])
+    total_steps = steps_per_epoch * training["epochs"]
+    warmup_steps = int(training.get("warmup_steps", 100))
+    lr_schedule = CosineDecay(
+        initial_learning_rate=float(training["learning_rate"]),
+        decay_steps=total_steps,
+        warmup_steps=min(warmup_steps, max(1, total_steps // 10)),
+    )
 
-model.compile(
-    optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),
-    loss="sparse_categorical_crossentropy",
-    metrics=[
-        "accuracy",
-        MacroPrecision(num_classes),
-        MacroRecall(num_classes),
-        MacroF1Score(num_classes),
-    ],
-)
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),
+        loss="sparse_categorical_crossentropy",
+        metrics=[
+            "accuracy",
+            MacroPrecision(num_classes),
+            MacroRecall(num_classes),
+            MacroF1Score(num_classes),
+        ],
+    )
 model.summary()
 
 write_model_report(

@@ -18,6 +18,7 @@ from utils.mlflow_utils import (
     init_dagshub,
     log_artifact_organized,
     save_run_id,
+    setup_device_strategy,
     write_model_report,
 )
 from utils.params import load_params
@@ -82,24 +83,26 @@ monitor = "val_f1_macro" if has_validation else "f1_macro"
 # Model Build & Compile
 # ==========================================================
 
-model = build_can_st_transformer(
-    window_size=window_size,
-    vocab_size=vocab_size,
-    d_model=d_model,
-    num_heads=num_heads,
-    num_layers=num_layers,
-    dim_feedforward=dim_feedforward,
-    dropout=dropout,
-)
+strategy = setup_device_strategy()
+with strategy.scope():
+    model = build_can_st_transformer(
+        window_size=window_size,
+        vocab_size=vocab_size,
+        d_model=d_model,
+        num_heads=num_heads,
+        num_layers=num_layers,
+        dim_feedforward=dim_feedforward,
+        dropout=dropout,
+    )
 
-model.compile(
-    optimizer=keras.optimizers.Adam(learning_rate=float(training["learning_rate"])),
-    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    metrics=[
-        "accuracy",
-        keras.metrics.SparseTopKCategoricalAccuracy(k=5, name="top_5_acc"),
-    ],
-)
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=float(training["learning_rate"])),
+        loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=[
+            "accuracy",
+            keras.metrics.SparseTopKCategoricalAccuracy(k=5, name="top_5_acc"),
+        ],
+    )
 model.summary()
 
 write_model_report(

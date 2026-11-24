@@ -21,6 +21,7 @@ from utils.mlflow_utils import (
     init_dagshub,
     log_artifact_organized,
     save_run_id,
+    setup_device_strategy,
     write_model_report,
 )
 from utils.params import load_params
@@ -82,55 +83,57 @@ monitor = "val_f1_macro" if has_validation else "f1_macro"
 # Model and build
 # ==========================================================
 
-model = build_tct_ids(
-    window_size=window_size,
-    d_model=model_params.get("d_model", 10),
-    num_heads=model_params.get("num_heads", 1),
-    num_layers=model_params.get("num_layers", 3),
-    dim_feedforward=model_params.get("dim_feedforward", 40),
-    mlp_hidden_dim=model_params.get("mlp_hidden_dim", 40),
-    tcn_filters=model_params.get("tcn_filters", 100),
-    tcn_kernel_size=model_params.get("tcn_kernel_size", 2),
-    tcn_dilations=model_params.get("tcn_dilations", [1, 2, 4]),
-    use_weight_norm=bool(model_params.get("use_weight_norm", True)),
-    dropout=model_params.get("dropout", 0.1),
-    num_classes=num_classes,
-    fusion=model_params.get("fusion", "concat"),
-    pooling=model_params.get("pooling", "last"),
-)
+strategy = setup_device_strategy()
+with strategy.scope():
+    model = build_tct_ids(
+        window_size=window_size,
+        d_model=model_params.get("d_model", 10),
+        num_heads=model_params.get("num_heads", 1),
+        num_layers=model_params.get("num_layers", 3),
+        dim_feedforward=model_params.get("dim_feedforward", 40),
+        mlp_hidden_dim=model_params.get("mlp_hidden_dim", 40),
+        tcn_filters=model_params.get("tcn_filters", 100),
+        tcn_kernel_size=model_params.get("tcn_kernel_size", 2),
+        tcn_dilations=model_params.get("tcn_dilations", [1, 2, 4]),
+        use_weight_norm=bool(model_params.get("use_weight_norm", True)),
+        dropout=model_params.get("dropout", 0.1),
+        num_classes=num_classes,
+        fusion=model_params.get("fusion", "concat"),
+        pooling=model_params.get("pooling", "last"),
+    )
 
-# Attach R-Drop regularized training step
-lambda_rdrop = float(training.get("lambda_rdrop", 0.1))
-enable_rdrop_training(model, lambda_rdrop=lambda_rdrop)
+    # Attach R-Drop regularized training step
+    lambda_rdrop = float(training.get("lambda_rdrop", 0.1))
+    enable_rdrop_training(model, lambda_rdrop=lambda_rdrop)
 
-# Cosine decay schedule with linear warmup
-steps_per_epoch = max(1, len(train.y) // training["batch_size"])
-total_steps = steps_per_epoch * training["epochs"]
-warmup_epochs = int(training.get("warmup_epochs", 50))
-warmup_steps = warmup_epochs * steps_per_epoch
+    # Cosine decay schedule with linear warmup
+    steps_per_epoch = max(1, len(train.y) // training["batch_size"])
+    total_steps = steps_per_epoch * training["epochs"]
+    warmup_epochs = int(training.get("warmup_epochs", 50))
+    warmup_steps = warmup_epochs * steps_per_epoch
 
-lr_schedule = CosineDecay(
-    initial_learning_rate=float(training["learning_rate"]),
-    decay_steps=total_steps,
-    warmup_steps=min(warmup_steps, max(1, total_steps // 6)),
-)
+    lr_schedule = CosineDecay(
+        initial_learning_rate=float(training["learning_rate"]),
+        decay_steps=total_steps,
+        warmup_steps=min(warmup_steps, max(1, total_steps // 6)),
+    )
 
-weight_decay = float(training.get("weight_decay", 1e-5))
-optimizer = keras.optimizers.Adam(
-    learning_rate=lr_schedule,
-    weight_decay=weight_decay if weight_decay > 0 else None,
-)
+    weight_decay = float(training.get("weight_decay", 1e-5))
+    optimizer = keras.optimizers.Adam(
+        learning_rate=lr_schedule,
+        weight_decay=weight_decay if weight_decay > 0 else None,
+    )
 
-model.compile(
-    optimizer=optimizer,
-    loss="sparse_categorical_crossentropy",
-    metrics=[
-        "accuracy",
-        MacroPrecision(num_classes),
-        MacroRecall(num_classes),
-        MacroF1Score(num_classes),
-    ],
-)
+    model.compile(
+        optimizer=optimizer,
+        loss="sparse_categorical_crossentropy",
+        metrics=[
+            "accuracy",
+            MacroPrecision(num_classes),
+            MacroRecall(num_classes),
+            MacroF1Score(num_classes),
+        ],
+    )
 model.summary()
 
 write_model_report(

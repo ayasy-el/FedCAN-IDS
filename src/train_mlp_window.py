@@ -12,6 +12,7 @@ from utils.mlflow_utils import (
     init_dagshub,
     log_artifact_organized,
     save_run_id,
+    setup_device_strategy,
     write_model_report,
 )
 from utils.params import load_params
@@ -67,22 +68,24 @@ monitor = "val_f1_macro" if has_validation else "f1_macro"
 # Model and build
 # ==========================================================
 
-model = build_mlp_window(
-    train.input_dim,
-    num_classes,
-    model_params["hidden_dims"],
-    model_params["dropout"],
-)
-model.compile(
-    optimizer=keras.optimizers.Adam(training["learning_rate"]),
-    loss="sparse_categorical_crossentropy",
-    metrics=[
-        "accuracy",
-        MacroPrecision(num_classes),
-        MacroRecall(num_classes),
-        MacroF1Score(num_classes),
-    ],
-)
+strategy = setup_device_strategy()
+with strategy.scope():
+    model = build_mlp_window(
+        train.input_dim,
+        num_classes,
+        model_params["hidden_dims"],
+        model_params["dropout"],
+    )
+    model.compile(
+        optimizer=keras.optimizers.Adam(training["learning_rate"]),
+        loss="sparse_categorical_crossentropy",
+        metrics=[
+            "accuracy",
+            MacroPrecision(num_classes),
+            MacroRecall(num_classes),
+            MacroF1Score(num_classes),
+        ],
+    )
 model.summary()
 write_model_report(
     report_path,

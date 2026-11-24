@@ -3,7 +3,15 @@ import os
 from pathlib import Path
 
 import mlflow
+import tensorflow as tf
 from tensorflow import keras
+
+from utils.device_utils import (
+    get_strategy,
+    init_tpu_strategy,
+    is_tpu_available,
+    setup_device_strategy,
+)
 
 
 def is_kaggle() -> bool:
@@ -21,6 +29,37 @@ def is_kaggle() -> bool:
         return True
     except ImportError:
         return False
+
+
+def is_colab() -> bool:
+    """Check if running inside Google Colab environment."""
+    if (
+        "COLAB_GPU" in os.environ
+        or "COLAB_RELEASE_TAG" in os.environ
+        or "COLAB_TPU_ADDR" in os.environ
+        or "GCS_READ_CACHE" in os.environ
+    ):
+        return True
+    try:
+        import google.colab  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
+def _apply_dagshub_token(token: str) -> None:
+    """Set environment variables and module configs for DagsHub and MLflow."""
+    os.environ["DAGSHUB_USER_TOKEN"] = token
+    os.environ["DAGSHUB_TOKEN"] = token
+    os.environ["MLFLOW_TRACKING_USERNAME"] = token
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = token
+    try:
+        import dagshub.common.config as dagshub_config
+
+        dagshub_config.token = token
+    except Exception:
+        pass
 
 
 def setup_kaggle_dagshub_credentials() -> bool:
@@ -45,16 +84,7 @@ def setup_kaggle_dagshub_credentials() -> bool:
                 continue
 
         if dagshub_token:
-            os.environ["DAGSHUB_USER_TOKEN"] = dagshub_token
-            os.environ["DAGSHUB_TOKEN"] = dagshub_token
-            os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
-            os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
-            try:
-                import dagshub.common.config as dagshub_config
-
-                dagshub_config.token = dagshub_token
-            except Exception:
-                pass
+            _apply_dagshub_token(dagshub_token)
             return True
         else:
             print(
@@ -65,8 +95,52 @@ def setup_kaggle_dagshub_credentials() -> bool:
     return False
 
 
-# Auto-detect Kaggle on import to configure secrets if available
-setup_kaggle_dagshub_credentials()
+def setup_colab_dagshub_credentials() -> bool:
+    """
+    If running inside Google Colab environment, retrieve credentials from
+    google.colab.userdata and set environment variables for DagsHub and MLflow.
+    """
+    if not is_colab():
+        return False
+
+    try:
+        from google.colab import userdata
+
+        dagshub_token = None
+        for secret_name in ("DAGSHUB_TOKEN", "DAGSHUB_USER_TOKEN"):
+            try:
+                dagshub_token = userdata.get(secret_name)
+                if dagshub_token:
+                    break
+            except Exception:
+                continue
+
+        if dagshub_token:
+            _apply_dagshub_token(dagshub_token)
+            return True
+        else:
+            print(
+                "Warning: Running on Google Colab, but DAGSHUB_TOKEN was not found in Colab Secrets."
+            )
+    except Exception as e:
+        print(f"Warning: Failed to retrieve DAGSHUB_TOKEN from Google Colab userdata: {e}")
+    return False
+
+
+def setup_cloud_credentials() -> bool:
+    """
+    Auto-detect cloud environment (Kaggle or Google Colab) and configure
+    DagsHub credentials from secrets. If not running in cloud, do nothing.
+    """
+    if is_kaggle():
+        return setup_kaggle_dagshub_credentials()
+    if is_colab():
+        return setup_colab_dagshub_credentials()
+    return False
+
+
+# Auto-detect cloud environment on import to configure secrets if available
+setup_cloud_credentials()
 
 
 def init_dagshub(
@@ -76,10 +150,10 @@ def init_dagshub(
     **kwargs,
 ):
     """
-    Initialize DagsHub with Kaggle secret support if in Kaggle,
+    Initialize DagsHub with cloud secret support if in Kaggle or Colab,
     otherwise fallback to default DagsHub initialization.
     """
-    setup_kaggle_dagshub_credentials()
+    setup_cloud_credentials()
     import dagshub
 
     return dagshub.init(
@@ -88,7 +162,7 @@ def init_dagshub(
 
 
 setup_dagshub = init_dagshub
-setup_dagshub_credentials = setup_kaggle_dagshub_credentials
+setup_dagshub_credentials = setup_cloud_credentials
 
 
 
