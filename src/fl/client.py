@@ -5,12 +5,35 @@ from typing import Any, Dict, List, Tuple
 
 import flwr as fl
 import numpy as np
+from tensorflow import keras
 
 from fl.models import get_model_and_dataset
 from utils.device_utils import configure_gpu_memory_growth
 
 # Enable memory growth inside Ray worker process
 configure_gpu_memory_growth()
+
+
+class ClientEpochLogger(keras.callbacks.Callback):
+    """Callback to log each local epoch for the client."""
+
+    def __init__(self, client_id: int, round_num: Any, total_epochs: int):
+        super().__init__()
+        self.client_id = client_id
+        self.round_num = round_num
+        self.total_epochs = total_epochs
+
+    def on_epoch_end(self, epoch: int, logs: Dict[str, Any] | None = None):
+        logs = logs or {}
+        loss = float(logs.get("loss", 0.0))
+        acc = float(logs.get("accuracy", 0.0))
+        f1 = logs.get("f1_macro")
+        f1_text = f" | f1_macro={float(f1):.4f}" if f1 is not None else ""
+        print(
+            f"  [Round {self.round_num} | Client {self.client_id}] "
+            f"Epoch {epoch + 1}/{self.total_epochs}: loss={loss:.4f} | acc={acc:.4f}{f1_text}",
+            flush=True,
+        )
 
 
 class FedCanClient(fl.client.NumPyClient):
@@ -61,20 +84,29 @@ class FedCanClient(fl.client.NumPyClient):
     ) -> Tuple[List[np.ndarray], int, Dict[str, Any]]:
         self.model.set_weights(parameters)
 
+        round_num = config.get("round", "?")
+        logger_cb = ClientEpochLogger(self.client_id, round_num, self.local_epochs)
+
         tf_dataset = self.dataset.to_tf_dataset()
         history = self.model.fit(
             tf_dataset,
             epochs=self.local_epochs,
             verbose=0,
+            callbacks=[logger_cb],
         )
 
         loss = float(history.history["loss"][-1]) if "loss" in history.history else 0.0
         acc = float(history.history["accuracy"][-1]) if "accuracy" in history.history else 0.0
 
-        return self.model.get_weights(), self._get_num_samples(), {
+        metrics = {
+            "client_id": self.client_id,
             "loss": loss,
             "accuracy": acc,
         }
+        if "f1_macro" in history.history:
+            metrics["f1_macro"] = float(history.history["f1_macro"][-1])
+
+        return self.model.get_weights(), self._get_num_samples(), metrics
 
     def evaluate(
         self, parameters: List[np.ndarray], config: Dict[str, Any]

@@ -95,6 +95,48 @@ def get_eval_fn(
     return evaluate
 
 
+def create_fit_metrics_aggregation_fn() -> Callable[[List[Tuple[int, Dict[str, Any]]]], Dict[str, Any]]:
+    """Aggregate training metrics across all clients and print clean per-client summary."""
+
+    def fit_metrics_agg(results: List[Tuple[int, Dict[str, Any]]]) -> Dict[str, Any]:
+        if not results:
+            return {}
+
+        total_samples = sum(num_samples for num_samples, _ in results)
+        if total_samples == 0:
+            return {}
+
+        avg_loss = sum(num_samples * m.get("loss", 0.0) for num_samples, m in results) / total_samples
+        avg_acc = sum(num_samples * m.get("accuracy", 0.0) for num_samples, m in results) / total_samples
+
+        details = []
+        for _, m in sorted(results, key=lambda x: int(x[1].get("client_id", 0)) if isinstance(x[1].get("client_id"), int) else 0):
+            cid = m.get("client_id", "?")
+            c_loss = m.get("loss", 0.0)
+            c_acc = m.get("accuracy", 0.0)
+            f1_val = m.get("f1_macro")
+            f1_text = f", f1={float(f1_val):.4f}" if f1_val is not None else ""
+            details.append(f"Client {cid} (loss={c_loss:.4f}, acc={c_acc:.4f}{f1_text})")
+
+        print(
+            f"\n[Round Summary - Clients Fit] Avg Loss={avg_loss:.4f} | Avg Acc={avg_acc:.4f}\n"
+            f"  Participating: {', '.join(details)}",
+            flush=True,
+        )
+
+        agg = {
+            "train_avg_loss": avg_loss,
+            "train_avg_accuracy": avg_acc,
+        }
+        if any("f1_macro" in m for _, m in results):
+            avg_f1 = sum(num_samples * float(m.get("f1_macro", 0.0)) for num_samples, m in results) / total_samples
+            agg["train_avg_f1_macro"] = avg_f1
+
+        return agg
+
+    return fit_metrics_agg
+
+
 def create_fedavg_strategy(
     initial_parameters: List[np.ndarray],
     eval_fn: Callable,
@@ -112,6 +154,7 @@ def create_fedavg_strategy(
         min_evaluate_clients=0,
         min_available_clients=int(min_available_clients),
         evaluate_fn=eval_fn,
+        fit_metrics_aggregation_fn=create_fit_metrics_aggregation_fn(),
         initial_parameters=initial_ndarrays,
         on_fit_config_fn=lambda rnd: {"round": rnd},
     )
