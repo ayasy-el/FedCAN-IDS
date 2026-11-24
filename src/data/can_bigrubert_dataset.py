@@ -44,6 +44,9 @@ class CANBiGRUBERTDataset:
             self.index, self.sessions = load_window_references(parquet_path, source_path)
         self.y = self.index["label"].to_numpy().astype(np.int32)
         self.num_classes = int(self.y.max()) + 1 if len(self.y) else 0
+
+    def __len__(self) -> int:
+        return len(self.y)
         if self.legacy_frames is None and len(self.index) and not np.all(self.index["window_size"].to_numpy() == self.window_size):
             raise ValueError("Window index size does not match the configured window_size")
 

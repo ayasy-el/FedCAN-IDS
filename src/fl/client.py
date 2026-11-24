@@ -38,6 +38,20 @@ class FedCanClient(fl.client.NumPyClient):
     def get_parameters(self, config: Dict[str, Any]) -> List[np.ndarray]:
         return self.model.get_weights()
 
+    def _get_num_samples(self) -> int:
+        if hasattr(self.dataset, "__len__"):
+            try:
+                return len(self.dataset)
+            except Exception:
+                pass
+        if hasattr(self.dataset, "y"):
+            return len(self.dataset.y)
+        if hasattr(self.dataset, "num_windows"):
+            return int(self.dataset.num_windows)
+        if hasattr(self.dataset, "index"):
+            return len(self.dataset.index)
+        return 0
+
     def fit(
         self, parameters: List[np.ndarray], config: Dict[str, Any]
     ) -> Tuple[List[np.ndarray], int, Dict[str, Any]]:
@@ -53,7 +67,7 @@ class FedCanClient(fl.client.NumPyClient):
         loss = float(history.history["loss"][-1]) if "loss" in history.history else 0.0
         acc = float(history.history["accuracy"][-1]) if "accuracy" in history.history else 0.0
 
-        return self.model.get_weights(), len(self.dataset), {
+        return self.model.get_weights(), self._get_num_samples(), {
             "loss": loss,
             "accuracy": acc,
         }
@@ -64,4 +78,4 @@ class FedCanClient(fl.client.NumPyClient):
         self.model.set_weights(parameters)
         tf_dataset = self.dataset.to_tf_dataset()
         results = self.model.evaluate(tf_dataset, verbose=0)
-        return float(results[0]), len(self.dataset), {"accuracy": float(results[1])}
+        return float(results[0]), self._get_num_samples(), {"accuracy": float(results[1])}

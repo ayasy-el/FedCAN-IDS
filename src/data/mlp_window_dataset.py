@@ -48,6 +48,9 @@ class MLPWindowDataset:
         self.num_classes = int(self.y.max()) + 1 if len(self.y) else 0
         self.mean, self.std = self._load_or_fit_stats(normalize_stats_path, fit_normalize_stats)
 
+    def __len__(self) -> int:
+        return len(self.y)
+
     def _features_at(self, index):
         row = {
             "window_id": self.index["window_id"][index],

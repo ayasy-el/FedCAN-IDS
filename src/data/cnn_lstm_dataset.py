@@ -224,6 +224,9 @@ class CNNLSTMDataset:
             elif self.label_rule == "any_attack":
                 self.y[sub_row_idxs] = sub["label"].to_numpy().astype(np.int32)
 
+    def __len__(self) -> int:
+        return self.num_windows
+
     def _window_at(self, index: int) -> tuple[np.ndarray, np.ndarray]:
         """Extract a single window."""
         s_idx = self.window_session_idx[index]

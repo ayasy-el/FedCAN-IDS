@@ -206,3 +206,7 @@ class CANAeTransformerDataset:
             lambda: self._batch_generator(indices),
             output_signature=signature,
         ).prefetch(tf.data.AUTOTUNE)
+
+    def __len__(self) -> int:
+        return len(self.y)
+
