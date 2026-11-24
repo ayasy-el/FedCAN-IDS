@@ -17,8 +17,8 @@ prepare:
 split:
   unit: window
   strategy: stratified_random
-  window_size: 16
-  stride: 8
+  window_size: 64
+  stride: 64
   val_ratio: 0.2
   test_ratio: 0.2
   downsample: false
@@ -168,3 +168,12 @@ mlflow:
   experiment_transformer_gru: "can_ids_transformer_gru"
   experiment_hierarchical_transformer_gru: "can_ids_hierarchical_transformer_gru"
   experiment_hat_ids: "can_ids_hat_ids"
+  experiment_fl: "federated_can_ids"
+
+federated:
+  num_clients: 5
+  num_rounds: 20
+  local_epochs: 2
+  batch_size: 32
+  fraction_fit: 1.0
+

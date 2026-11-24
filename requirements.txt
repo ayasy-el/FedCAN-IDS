@@ -17,3 +17,7 @@ pyarrow>=25.0.0
 dvc>=3.30.0
 mlflow>=2.10.0
 dagshub>=0.7.2
+
+# Federated Learning
+flwr[simulation]>=1.7.0
+

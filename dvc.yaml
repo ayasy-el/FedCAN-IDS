@@ -737,8 +737,41 @@ stages:
       - reports/figures/hat_ids_test_confusion_matrix_counts.png:
           cache: false
 
+  partition_federated:
+    cmd: PYTHONPATH=src python src/fl/partition.py
+    deps:
+      - src/fl/partition.py
+      - data/processed/current/train.parquet
+    params:
+      - federated.num_clients
+      - split.random_seed
+    outs:
+      - data/processed/current/federated:
+          cache: false
 
-
-
-
-
+  train_fl_hierarchical_transformer_gru:
+    cmd: PYTHONPATH=src python src/fl/simulation.py --model hierarchical_transformer_gru
+    deps:
+      - src/fl/simulation.py
+      - src/fl/client.py
+      - src/fl/server.py
+      - src/fl/models.py
+      - src/model/hierarchical_transformer_gru.py
+      - src/data/transformer_gru_dataset.py
+      - data/processed/current/federated
+      - data/processed/current/val.parquet
+      - data/interim/prepared.parquet
+    params:
+      - federated
+      - model.hierarchical_transformer_gru
+      - training.hierarchical_transformer_gru.learning_rate
+      - mlflow.experiment_fl
+    outs:
+      - checkpoints/fl_hierarchical_transformer_gru_best.keras:
+          cache: false
+      - checkpoints/fl_hierarchical_transformer_gru_final.keras:
+          cache: false
+      - reports/metrics/fl_hierarchical_transformer_gru_best_metrics.json:
+          cache: false
+      - reports/metrics/fl_hierarchical_transformer_gru_metrics.json:
+          cache: false
