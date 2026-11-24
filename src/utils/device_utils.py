@@ -4,6 +4,21 @@ import os
 import tensorflow as tf
 
 
+def configure_gpu_memory_growth() -> None:
+    """Ensure TensorFlow allocates GPU memory incrementally rather than hogging all VRAM."""
+    os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")
+    try:
+        gpus = tf.config.list_physical_devices("GPU")
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except Exception:
+        pass
+
+
+# Auto-configure GPU memory growth on import
+configure_gpu_memory_growth()
+
+
 def is_tpu_available(tpu_name: str | None = None) -> bool:
     """Check if a TPU is available in the current environment."""
     if "COLAB_TPU_ADDR" in os.environ or "TPU_NAME" in os.environ:

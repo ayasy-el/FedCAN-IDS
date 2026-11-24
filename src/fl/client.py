@@ -7,6 +7,10 @@ import flwr as fl
 import numpy as np
 
 from fl.models import get_model_and_dataset
+from utils.device_utils import configure_gpu_memory_growth
+
+# Enable memory growth inside Ray worker process
+configure_gpu_memory_growth()
 
 
 class FedCanClient(fl.client.NumPyClient):

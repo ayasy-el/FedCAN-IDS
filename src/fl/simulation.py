@@ -9,6 +9,11 @@ import flwr as fl
 import mlflow
 import tensorflow as tf
 
+from utils.device_utils import configure_gpu_memory_growth
+
+# Enable incremental GPU memory allocation before TensorFlow initializes CUDA
+configure_gpu_memory_growth()
+
 from fl.client import FedCanClient
 from fl.models import get_model_and_dataset
 from fl.partition import partition_windows
@@ -66,13 +71,14 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
             seed=int(split_params.get("random_seed", 42)),
         )
 
-    # 1. Initialize Base Model to extract initial parameters
-    base_model, _ = get_model_and_dataset(
-        model_name=model_name,
-        data_path=val_path,
-        params=params,
-        is_training=False,
-    )
+    # 1. Initialize Base Model to extract initial parameters (on CPU to save VRAM for Ray workers)
+    with tf.device("/CPU:0"):
+        base_model, _ = get_model_and_dataset(
+            model_name=model_name,
+            data_path=val_path,
+            params=params,
+            is_training=False,
+        )
     initial_weights = base_model.get_weights()
 
     # 2. Server-side centralized evaluation function
@@ -111,10 +117,9 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
     # 5. Device detection for Ray simulation resources
     gpus = tf.config.list_physical_devices("GPU")
     if gpus:
-        # Allow virtual clients to share GPU safely
-        gpu_fraction = 1.0 / min(len(gpus) * 2, num_clients)
-        client_resources = {"num_cpus": 1, "num_gpus": gpu_fraction}
-        print(f"[Simulation] GPU detected: allocating {gpu_fraction:.2f} GPU per client")
+        # Allocate 1.0 GPU per virtual client to run sequentially and prevent VRAM OOM
+        client_resources = {"num_cpus": 1, "num_gpus": 1.0}
+        print(f"[Simulation] GPU detected ({len(gpus)} device(s)): running clients sequentially on GPU")
     else:
         client_resources = {"num_cpus": 1, "num_gpus": 0.0}
         print("[Simulation] Running clients on CPU")
