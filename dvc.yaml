@@ -777,6 +777,8 @@ stages:
           cache: false
       - reports/metrics/fl_hierarchical_transformer_gru_metrics.json:
           cache: false
+      - reports/model_summaries/fl_hierarchical_transformer_gru_model_report.txt:
+          cache: false
 
   eval_fl_hierarchical_transformer_gru:
     cmd: PYTHONPATH=src python src/fl/evaluate.py --model hierarchical_transformer_gru

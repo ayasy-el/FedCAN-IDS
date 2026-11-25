@@ -25,7 +25,7 @@ from utils.eval_reporting import (
     save_text_report,
     stratified_sample_indices,
 )
-from utils.mlflow_utils import init_dagshub, load_run_id
+from utils.mlflow_utils import init_dagshub, load_run_id, write_model_report
 from utils.params import load_params
 
 
@@ -216,19 +216,53 @@ def evaluate_federated_model(model_name: str = "hierarchical_transformer_gru", p
     save_json_report(full_report, metrics_json_path)
     save_text_report(full_report, metrics_text_path)
 
+    model_report_path = Path("reports/model_summaries") / f"fl_{model_name}_model_report.txt"
+    if not model_report_path.exists():
+        model_report_path.parent.mkdir(parents=True, exist_ok=True)
+        write_model_report(
+            path=model_report_path,
+            model_name=f"fl_{model_name}",
+            model=model,
+            sections={
+                "dataset": dataset_params,
+                "split": split,
+                "federated": fl_params,
+                "model": model_params,
+                "training": params.get("training", {}).get(model_name, {}),
+            },
+        )
+
     # 7. Log to MLflow / DagsHub
     run_id = load_run_id(run_id_path) if run_id_path.exists() else None
+
+    # Collect all evaluation, pre-training, and training artifacts to upload
+    all_artifacts = [
+        test_cm_counts_path,
+        test_cm_path,
+        train_cm_path,
+        val_cm_path,
+        metrics_text_path,
+    ]
+    federated_summary = processed_dir / "federated" / "partition_summary.json"
+    fl_round_metrics = reports_metrics_dir / f"fl_{model_name}_metrics.json"
+    fl_final_model = Path("checkpoints") / f"fl_{model_name}_final.keras"
+
+    for extra_path in (
+        model_report_path,
+        federated_summary,
+        best_metrics_path,
+        fl_round_metrics,
+        model_path,
+        fl_final_model,
+    ):
+        if extra_path.exists():
+            all_artifacts.append(extra_path)
+
     active_run_id = log_evaluation_to_mlflow(
         run_id=run_id,
         report=full_report,
         report_path=metrics_json_path,
-        artifact_paths=[
-            test_cm_counts_path,
-            test_cm_path,
-            train_cm_path,
-            val_cm_path,
-            metrics_text_path,
-        ],
+        artifact_paths=all_artifacts,
     )
     with mlflow.start_run(run_id=active_run_id):
         for k in ("accuracy", "precision_macro", "recall_macro", "f1_macro"):

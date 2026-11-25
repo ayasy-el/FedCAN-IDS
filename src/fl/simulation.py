@@ -22,7 +22,12 @@ from fl.client import FedCanClient
 from fl.models import get_model_and_dataset
 from fl.partition import partition_windows
 from fl.server import create_fedavg_strategy, get_eval_fn
-from utils.mlflow_utils import init_dagshub, save_run_id
+from utils.mlflow_utils import (
+    init_dagshub,
+    log_artifact_organized,
+    save_run_id,
+    write_model_report,
+)
 from utils.params import load_params
 
 
@@ -58,10 +63,12 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
     best_metrics_path = Path("reports/metrics") / f"fl_{model_name}_best_metrics.json"
     summary_report_path = Path("reports/metrics") / f"fl_{model_name}_metrics.json"
     run_id_path = Path("checkpoints") / f"fl_{model_name}_mlflow_run_id.txt"
+    model_report_path = Path("reports/model_summaries") / f"fl_{model_name}_model_report.txt"
 
     best_model_path.parent.mkdir(parents=True, exist_ok=True)
     best_metrics_path.parent.mkdir(parents=True, exist_ok=True)
     run_id_path.parent.mkdir(parents=True, exist_ok=True)
+    model_report_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Ensure federated partition files exist
     client_files = [federated_dir / f"client_{i}.parquet" for i in range(num_clients)]
@@ -84,6 +91,20 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
             is_training=False,
         )
     initial_weights = base_model.get_weights()
+
+    # Pre-training Model Report & Architecture Summary
+    write_model_report(
+        path=model_report_path,
+        model_name=f"fl_{model_name}",
+        model=base_model,
+        sections={
+            "dataset": dataset_params,
+            "split": split_params,
+            "federated": fl_params,
+            "model": params.get("model", {}).get(model_name, {}),
+            "training": params.get("training", {}).get(model_name, {}),
+        },
+    )
 
     # 2. Server-side centralized evaluation function
     eval_fn = get_eval_fn(
@@ -147,6 +168,11 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
             "batch_size": batch_size,
             "fraction_fit": fraction_fit,
         })
+        # Log pre-training artifacts
+        log_artifact_organized(model_report_path, "reports/model_summaries")
+        partition_summary_path = federated_dir / "partition_summary.json"
+        if partition_summary_path.exists():
+            log_artifact_organized(partition_summary_path, "federated")
 
         print(f"\n{'='*70}\nStarting Flower FL Simulation: {model_name.upper()} ({num_clients} clients, {num_rounds} rounds)\n{'='*70}")
 
@@ -175,6 +201,15 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
         }
         summary_report_path.write_text(json.dumps(summary, indent=2))
         print(f"Federated training summary written to {summary_report_path}")
+
+        # Log training completion artifacts
+        log_artifact_organized(summary_report_path, "metrics")
+        if best_metrics_path.exists():
+            log_artifact_organized(best_metrics_path, "metrics")
+        if best_model_path.exists():
+            log_artifact_organized(best_model_path, "models")
+        if final_model_path.exists():
+            log_artifact_organized(final_model_path, "models")
 
 
 if __name__ == "__main__":
