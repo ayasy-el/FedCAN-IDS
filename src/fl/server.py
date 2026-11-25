@@ -1,5 +1,7 @@
 """Server-side Centralized Evaluation and FedAvg strategy configuration."""
 
+import ctypes
+import gc
 import json
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -14,6 +16,15 @@ from utils.device_utils import configure_gpu_memory_growth
 
 # Enable memory growth for server evaluation
 configure_gpu_memory_growth()
+
+
+def _trim_memory() -> None:
+    """Force garbage collection and release heap pages back to OS kernel."""
+    gc.collect()
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except Exception:
+        pass
 
 
 def get_eval_fn(
@@ -89,6 +100,8 @@ def get_eval_fn(
             val_model.save(str(best_model_path))
             best_metrics_path.write_text(json.dumps(best_metrics_record, indent=2))
             print(f"[Round {server_round}] -> New best model saved to {best_model_path} (F1: {f1_macro:.4f})")
+
+        _trim_memory()
 
         return loss, round_metrics
 

@@ -1,5 +1,6 @@
 """Flower NumPyClient implementation for Federated CAN-IDS."""
 
+import ctypes
 import gc
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -13,6 +14,15 @@ from utils.device_utils import configure_gpu_memory_growth
 
 # Enable memory growth inside Ray worker process
 configure_gpu_memory_growth()
+
+
+def _trim_memory() -> None:
+    """Force garbage collection and release heap pages back to OS kernel via glibc malloc_trim."""
+    gc.collect()
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except Exception:
+        pass
 
 
 class ClientEpochLogger(keras.callbacks.Callback):
@@ -62,6 +72,8 @@ class FedCanClient(fl.client.NumPyClient):
             is_training=True,
             batch_size=batch_size,
         )
+        # Pre-create tf.data pipeline once to prevent C++ PyFunc memory leaks across rounds
+        self.tf_dataset = self.dataset.to_tf_dataset()
 
     def get_parameters(self, config: Dict[str, Any]) -> List[np.ndarray]:
         return self.model.get_weights()
@@ -88,9 +100,8 @@ class FedCanClient(fl.client.NumPyClient):
         round_num = config.get("round", "?")
         logger_cb = ClientEpochLogger(self.client_id, round_num, self.local_epochs)
 
-        tf_dataset = self.dataset.to_tf_dataset()
         history = self.model.fit(
-            tf_dataset,
+            self.tf_dataset,
             epochs=self.local_epochs,
             verbose=0,
             callbacks=[logger_cb],
@@ -107,7 +118,7 @@ class FedCanClient(fl.client.NumPyClient):
         if "f1_macro" in history.history:
             metrics["f1_macro"] = float(history.history["f1_macro"][-1])
 
-        gc.collect()
+        _trim_memory()
 
         return self.model.get_weights(), self._get_num_samples(), metrics
 
@@ -115,6 +126,6 @@ class FedCanClient(fl.client.NumPyClient):
         self, parameters: List[np.ndarray], config: Dict[str, Any]
     ) -> Tuple[float, int, Dict[str, Any]]:
         self.model.set_weights(parameters)
-        tf_dataset = self.dataset.to_tf_dataset()
-        results = self.model.evaluate(tf_dataset, verbose=0)
+        results = self.model.evaluate(self.tf_dataset, verbose=0)
+        _trim_memory()
         return float(results[0]), self._get_num_samples(), {"accuracy": float(results[1])}

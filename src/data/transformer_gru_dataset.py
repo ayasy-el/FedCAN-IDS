@@ -49,6 +49,10 @@ def parse_can_id(value: str | int | float) -> int:
         return 0
 
 
+# Module-level shared session cache across client instances to avoid RAM duplication
+_TRANSFORMER_GRU_SESSION_CACHE: dict[tuple, tuple] = {}
+
+
 class TransformerGRUDataset:
     """Sliding-window dataset yielding (tokens_input [B, W, 19], features_input [B, W, N_feat]) and labels."""
 
@@ -80,22 +84,54 @@ class TransformerGRUDataset:
             )
         self._rng = np.random.default_rng(int(random_seed))
 
-        # 1. Load compact index and sessions
-        self.index, self.sessions = load_window_references(
-            self.parquet_path, source_path
+        cache_key = (
+            str(Path(source_path).resolve()) if source_path else None,
+            self.rolling_w,
+            self.num_features,
         )
-        self.num_windows = len(self.index)
 
-        # 2. Precompute session arrays
-        self.session_names = sorted(self.sessions.keys())
-        self.session_map = {name: i for i, name in enumerate(self.session_names)}
+        if cache_key[0] is not None and cache_key in _TRANSFORMER_GRU_SESSION_CACHE:
+            # 1. Reuse existing precomputed session arrays from shared cache
+            self.index = pl.read_parquet(self.parquet_path)
+            self.sessions = None
+            self.num_windows = len(self.index)
+            (
+                self.session_names,
+                self.session_map,
+                self.session_tokens,
+                self.session_features,
+                self.session_labels,
+                self.session_r0,
+            ) = _TRANSFORMER_GRU_SESSION_CACHE[cache_key]
+        else:
+            # 1. Load compact index and sessions
+            self.index, self.sessions = load_window_references(
+                self.parquet_path, source_path
+            )
+            self.num_windows = len(self.index)
 
-        self.session_tokens: list[np.ndarray] = []    # (N, 19) int32 in [0..15]
-        self.session_features: list[np.ndarray] = []  # (N, 5) float32
-        self.session_labels: list[np.ndarray] = []    # (N,) int32
-        self.session_r0: list[int] = []               # start row_id per session
+            # 2. Precompute session arrays
+            self.session_names = sorted(self.sessions.keys())
+            self.session_map = {name: i for i, name in enumerate(self.session_names)}
 
-        self._precompute_session_features()
+            self.session_tokens: list[np.ndarray] = []    # (N, 19) int32 in [0..15]
+            self.session_features: list[np.ndarray] = []  # (N, 5) float32
+            self.session_labels: list[np.ndarray] = []    # (N,) int32
+            self.session_r0: list[int] = []               # start row_id per session
+
+            self._precompute_session_features()
+
+            if cache_key[0] is not None:
+                _TRANSFORMER_GRU_SESSION_CACHE[cache_key] = (
+                    self.session_names,
+                    self.session_map,
+                    self.session_tokens,
+                    self.session_features,
+                    self.session_labels,
+                    self.session_r0,
+                )
+            # Free raw Polars sessions to prevent memory bloat
+            self.sessions = None
 
         # 3. Vectorized window pointer mapping (O(1) direct slice)
         self._build_fast_window_pointers()
