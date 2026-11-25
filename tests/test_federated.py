@@ -177,14 +177,17 @@ def test_evaluate_federated_model_mocked(tmp_path):
                 with patch("fl.evaluate.init_dagshub"):
                     with patch("fl.evaluate.mlflow"):
                         with patch("fl.evaluate.save_confusion_matrix_figure"):
-                            params = {
-                                "dataset": {"processed_dir": str(tmp_path)},
-                                "split": {"window_size": 10},
-                                "model": {},
-                                "federated": {},
-                                "mlflow": {},
-                            }
-                            evaluate_federated_model("hierarchical_transformer_gru", params)
-                            mock_model.evaluate.assert_called_once()
+                            with patch("fl.evaluate.log_evaluation_to_mlflow") as mock_log_fl:
+                                mock_log_fl.return_value = "fake_run_123"
+                                params = {
+                                    "dataset": {"processed_dir": str(tmp_path)},
+                                    "split": {"window_size": 10},
+                                    "model": {},
+                                    "federated": {},
+                                    "mlflow": {},
+                                }
+                                evaluate_federated_model("hierarchical_transformer_gru", params)
+                                mock_model.evaluate.assert_called_once()
+                                mock_log_fl.assert_called_once()
 
 

@@ -216,24 +216,27 @@ def evaluate_federated_model(model_name: str = "hierarchical_transformer_gru", p
     save_json_report(full_report, metrics_json_path)
     save_text_report(full_report, metrics_text_path)
 
-    # 7. Log to MLflow
+    # 7. Log to MLflow / DagsHub
     run_id = load_run_id(run_id_path) if run_id_path.exists() else None
-    if run_id:
-        log_evaluation_to_mlflow(
-            run_id=run_id,
-            test_results=test_results,
-            test_metrics=test_metrics,
-            full_report=full_report,
-            json_report_path=metrics_json_path,
-            text_report_path=metrics_text_path,
-            figures=[
-                (train_cm_path, "figures/confusion_matrices"),
-                (val_cm_path, "figures/confusion_matrices"),
-                (test_cm_path, "figures/confusion_matrices"),
-                (test_cm_counts_path, "figures/confusion_matrices"),
-            ],
-        )
-        print(f"[Eval] Attached evaluation results to MLflow run {run_id}")
+    active_run_id = log_evaluation_to_mlflow(
+        run_id=run_id,
+        report=full_report,
+        report_path=metrics_json_path,
+        artifact_paths=[
+            test_cm_counts_path,
+            test_cm_path,
+            train_cm_path,
+            val_cm_path,
+            metrics_text_path,
+        ],
+    )
+    with mlflow.start_run(run_id=active_run_id):
+        for k in ("accuracy", "precision_macro", "recall_macro", "f1_macro"):
+            if k in test_metrics:
+                mlflow.log_metric(f"test_{k}", float(test_metrics[k]))
+        if mean_latency_ms is not None:
+            mlflow.log_metric("inference_latency_ms", float(mean_latency_ms))
+    print(f"[Eval] Attached evaluation results and artifacts to MLflow run {active_run_id}")
 
 
 if __name__ == "__main__":
