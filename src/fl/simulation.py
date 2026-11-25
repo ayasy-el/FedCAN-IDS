@@ -123,6 +123,7 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
         fraction_fit=fraction_fit,
         min_fit_clients=min_fit,
         min_available_clients=num_clients,
+        model_name=model_name,
     )
 
     # 4. Client Factory Function for Flower Simulation (cached per cid to eliminate RAM leaks)

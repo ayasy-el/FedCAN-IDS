@@ -108,8 +108,9 @@ def get_eval_fn(
     return evaluate
 
 
-def create_fit_metrics_aggregation_fn() -> Callable[[List[Tuple[int, Dict[str, Any]]]], Dict[str, Any]]:
-    """Aggregate training metrics across all clients and print clean per-client summary."""
+def create_fit_metrics_aggregation_fn(model_name: str = "hierarchical_transformer_gru") -> Callable[[List[Tuple[int, Dict[str, Any]]]], Dict[str, Any]]:
+    """Aggregate training metrics across all clients, log per-client curves to MLflow, and print clean summary."""
+    history_records: List[Dict[str, Any]] = []
 
     def fit_metrics_agg(results: List[Tuple[int, Dict[str, Any]]]) -> Dict[str, Any]:
         if not results:
@@ -123,6 +124,18 @@ def create_fit_metrics_aggregation_fn() -> Callable[[List[Tuple[int, Dict[str, A
         avg_acc = sum(num_samples * m.get("accuracy", 0.0) for num_samples, m in results) / total_samples
 
         details = []
+        client_metrics_to_log: Dict[str, float] = {
+            "train_avg_loss": float(avg_loss),
+            "train_avg_accuracy": float(avg_acc),
+        }
+
+        # Extract round number from client metrics
+        server_round = None
+        for _, m in results:
+            if "round" in m and str(m["round"]).isdigit():
+                server_round = int(m["round"])
+                break
+
         for _, m in sorted(results, key=lambda x: int(x[1].get("client_id", 0)) if isinstance(x[1].get("client_id"), int) else 0):
             cid = m.get("client_id", "?")
             c_loss = m.get("loss", 0.0)
@@ -131,21 +144,41 @@ def create_fit_metrics_aggregation_fn() -> Callable[[List[Tuple[int, Dict[str, A
             f1_text = f", f1={float(f1_val):.4f}" if f1_val is not None else ""
             details.append(f"Client {cid} (loss={c_loss:.4f}, acc={c_acc:.4f}{f1_text})")
 
+            # Per-client curves for DagsHub
+            if cid != "?":
+                client_metrics_to_log[f"client_{cid}_loss"] = float(c_loss)
+                client_metrics_to_log[f"client_{cid}_accuracy"] = float(c_acc)
+                if f1_val is not None:
+                    client_metrics_to_log[f"client_{cid}_f1_macro"] = float(f1_val)
+
+        if any("f1_macro" in m for _, m in results):
+            avg_f1 = sum(num_samples * float(m.get("f1_macro", 0.0)) for num_samples, m in results) / total_samples
+            client_metrics_to_log["train_avg_f1_macro"] = float(avg_f1)
+
+        # Log per-client metrics and averages to MLflow for this round
+        if mlflow.active_run() is not None:
+            mlflow.log_metrics(client_metrics_to_log, step=server_round)
+
+        round_header = f"[Round {server_round} Clients Fit]" if server_round else "[Clients Fit]"
         print(
-            f"\n[Round Summary - Clients Fit] Avg Loss={avg_loss:.4f} | Avg Acc={avg_acc:.4f}\n"
+            f"\n{round_header} Avg Loss={avg_loss:.4f} | Avg Acc={avg_acc:.4f}\n"
             f"  Participating: {', '.join(details)}",
             flush=True,
         )
 
-        agg = {
-            "train_avg_loss": avg_loss,
-            "train_avg_accuracy": avg_acc,
-        }
-        if any("f1_macro" in m for _, m in results):
-            avg_f1 = sum(num_samples * float(m.get("f1_macro", 0.0)) for num_samples, m in results) / total_samples
-            agg["train_avg_f1_macro"] = avg_f1
+        history_records.append({
+            "round": server_round,
+            "avg_loss": avg_loss,
+            "avg_accuracy": avg_acc,
+            "clients": [m for _, m in results],
+        })
 
-        return agg
+        # Save cumulative clients history JSON artifact
+        history_path = Path("reports/metrics") / f"fl_{model_name}_clients_history.json"
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+        history_path.write_text(json.dumps(history_records, indent=2))
+
+        return client_metrics_to_log
 
     return fit_metrics_agg
 
@@ -156,6 +189,7 @@ def create_fedavg_strategy(
     fraction_fit: float = 1.0,
     min_fit_clients: int = 2,
     min_available_clients: int = 2,
+    model_name: str = "hierarchical_transformer_gru",
 ) -> fl.server.strategy.FedAvg:
     """Instantiate standard FedAvg strategy with server evaluation."""
     initial_ndarrays = fl.common.ndarrays_to_parameters(initial_parameters)
@@ -167,7 +201,7 @@ def create_fedavg_strategy(
         min_evaluate_clients=0,
         min_available_clients=int(min_available_clients),
         evaluate_fn=eval_fn,
-        fit_metrics_aggregation_fn=create_fit_metrics_aggregation_fn(),
+        fit_metrics_aggregation_fn=create_fit_metrics_aggregation_fn(model_name=model_name),
         initial_parameters=initial_ndarrays,
         on_fit_config_fn=lambda rnd: {"round": rnd},
     )

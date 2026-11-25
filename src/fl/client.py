@@ -112,6 +112,7 @@ class FedCanClient(fl.client.NumPyClient):
 
         metrics = {
             "client_id": self.client_id,
+            "round": int(round_num) if str(round_num).isdigit() else round_num,
             "loss": loss,
             "accuracy": acc,
         }
