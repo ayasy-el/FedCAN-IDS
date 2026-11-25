@@ -1,9 +1,13 @@
 """Flower Federated Learning Simulation Runner for FedCAN-IDS."""
 
 import argparse
+import gc
 import json
 import os
 from pathlib import Path
+
+# Prevent Ray from prematurely killing workers on transient RAM spikes
+os.environ.setdefault("RAY_memory_monitor_refresh_ms", "0")
 
 import flwr as fl
 import mlflow
@@ -100,19 +104,22 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
         min_available_clients=num_clients,
     )
 
-    # 4. Client Factory Function for Flower Simulation
+    # 4. Client Factory Function for Flower Simulation (cached per cid to eliminate RAM leaks)
+    client_cache: dict[int, FedCanClient] = {}
+
     def client_fn(context: fl.common.Context) -> fl.client.Client:
         cid = int(context.node_id) % num_clients
-        client_parquet = client_files[cid]
-        client = FedCanClient(
-            client_id=cid,
-            model_name=model_name,
-            client_path=client_parquet,
-            params=params,
-            local_epochs=local_epochs,
-            batch_size=batch_size,
-        )
-        return client.to_client()
+        if cid not in client_cache:
+            client_parquet = client_files[cid]
+            client_cache[cid] = FedCanClient(
+                client_id=cid,
+                model_name=model_name,
+                client_path=client_parquet,
+                params=params,
+                local_epochs=local_epochs,
+                batch_size=batch_size,
+            )
+        return client_cache[cid].to_client()
 
     # 5. Device detection for Ray simulation resources
     gpus = tf.config.list_physical_devices("GPU")

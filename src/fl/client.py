@@ -1,5 +1,6 @@
 """Flower NumPyClient implementation for Federated CAN-IDS."""
 
+import gc
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -105,6 +106,8 @@ class FedCanClient(fl.client.NumPyClient):
         }
         if "f1_macro" in history.history:
             metrics["f1_macro"] = float(history.history["f1_macro"][-1])
+
+        gc.collect()
 
         return self.model.get_weights(), self._get_num_samples(), metrics
 
