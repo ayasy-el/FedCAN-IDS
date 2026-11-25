@@ -817,3 +817,70 @@ stages:
       - reports/figures/fl_hierarchical_transformer_gru_test_confusion_matrix_counts.png:
           cache: false
 
+  train_fl_cnn_lstm:
+    cmd: PYTHONPATH=src python src/fl/simulation.py --model cnn_lstm
+    deps:
+      - src/fl/simulation.py
+      - src/fl/client.py
+      - src/fl/server.py
+      - src/fl/models.py
+      - src/model/cnn_lstm.py
+      - src/data/cnn_lstm_dataset.py
+      - data/processed/current/federated
+      - data/processed/current/val.parquet
+      - data/interim/prepared.parquet
+    params:
+      - federated
+      - model.cnn_lstm
+      - training.cnn_lstm.learning_rate
+      - mlflow.experiment_fl
+    outs:
+      - checkpoints/fl_cnn_lstm_best.keras:
+          cache: false
+      - checkpoints/fl_cnn_lstm_final.keras:
+          cache: false
+      - checkpoints/fl_cnn_lstm_mlflow_run_id.txt:
+          cache: false
+      - reports/metrics/fl_cnn_lstm_best_metrics.json:
+          cache: false
+      - reports/metrics/fl_cnn_lstm_metrics.json:
+          cache: false
+
+  eval_fl_cnn_lstm:
+    cmd: PYTHONPATH=src python src/fl/evaluate.py --model cnn_lstm
+    deps:
+      - src/fl/evaluate.py
+      - src/fl/models.py
+      - src/data/task.py
+      - src/data/cnn_lstm_dataset.py
+      - src/data/window_dataset_utils.py
+      - src/model/cnn_lstm.py
+      - src/utils/eval_reporting.py
+      - src/utils/params.py
+      - src/utils/mlflow_utils.py
+      - checkpoints/fl_cnn_lstm_best.keras
+      - checkpoints/fl_cnn_lstm_mlflow_run_id.txt
+      - reports/metrics/fl_cnn_lstm_best_metrics.json
+      - data/processed/current/train.parquet
+      - data/processed/current/val.parquet
+      - data/processed/current/test.parquet
+      - data/interim/prepared.parquet
+    params:
+      - prepare
+      - model.cnn_lstm
+      - federated
+      - mlflow.experiment_fl
+    metrics:
+      - reports/metrics/fl_cnn_lstm_classification_report.json:
+          cache: false
+    outs:
+      - reports/metrics/fl_cnn_lstm_classification_report.txt:
+          cache: false
+      - reports/figures/fl_cnn_lstm_train_confusion_matrix.png:
+          cache: false
+      - reports/figures/fl_cnn_lstm_val_confusion_matrix.png:
+          cache: false
+      - reports/figures/fl_cnn_lstm_test_confusion_matrix.png:
+          cache: false
+      - reports/figures/fl_cnn_lstm_test_confusion_matrix_counts.png:
+          cache: false

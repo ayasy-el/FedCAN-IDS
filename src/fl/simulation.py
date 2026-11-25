@@ -108,7 +108,12 @@ def run_federated_simulation(model_name: str = "hierarchical_transformer_gru", p
     client_cache: dict[int, FedCanClient] = {}
 
     def client_fn(context: fl.common.Context) -> fl.client.Client:
-        cid = int(context.node_id) % num_clients
+        partition_id = context.node_config.get("partition-id") if hasattr(context, "node_config") and context.node_config else None
+        if partition_id is not None:
+            cid = int(partition_id)
+        else:
+            cid = int(context.node_id) % num_clients
+
         if cid not in client_cache:
             client_parquet = client_files[cid]
             client_cache[cid] = FedCanClient(
